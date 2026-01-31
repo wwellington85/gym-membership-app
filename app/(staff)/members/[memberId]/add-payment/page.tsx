@@ -23,7 +23,7 @@ export default async function AddPaymentPage({
   // IMPORTANT: include membership id
   const { data: membership, error: membershipError } = await supabase
     .from("memberships")
-    .select("id, paid_through_date, membership_plans(name, price)")
+    .select("id, paid_through_date, membership_plan:membership_plan(name, price)")
     .eq("member_id", memberId)
     .maybeSingle();
 
@@ -77,8 +77,8 @@ export default async function AddPaymentPage({
       <div className="rounded border p-3 text-sm">
         <div className="font-medium">Current Membership</div>
         <div className="mt-1 opacity-80">
-          {membership?.membership_plans?.name ?? "—"}
-          {membership?.membership_plans?.price != null ? ` • $${membership.membership_plans.price}` : ""}
+          {membership?.membership_plan?.name ?? "—"}
+          {membership?.membership_plan?.price != null ? ` • $${membership.membership_plan.price}` : ""}
         </div>
         <div className="mt-1 text-xs opacity-70">
           Paid-through: {membership?.paid_through_date ?? "—"}
@@ -107,7 +107,7 @@ export default async function AddPaymentPage({
             step="0.01"
             min="0"
             required
-            defaultValue={membership?.membership_plans?.price ?? ""}
+            defaultValue={membership?.membership_plan?.price ?? ""}
             className="w-full rounded border px-3 py-2"
           />
         </div>
