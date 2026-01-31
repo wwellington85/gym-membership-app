@@ -79,7 +79,7 @@ export default async function MemberProfilePage({
   const { data: membership } = await supabase
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days)"
+      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
     )
     .eq("member_id", memberId)
     .maybeSingle();
@@ -143,14 +143,14 @@ export default async function MemberProfilePage({
     });
 
   // Payment list only for Admin/Front Desk
-  const { data: payments } = canPayments
-    ? await supabase
+  const payments = !canPayments || !membership?.id
+    ? []
+    : (await supabase
         .from("payments")
-        .select("id, amount, paid_on, payment_method, notes, created_at")
-        .eq("member_id", memberId)
+        .select("id, amount, paid_on, payment_method, membership_id")
+        .eq("membership_id", membership.id)
         .order("paid_on", { ascending: false })
-        .limit(25)
-    : { data: [] as any[] };
+      ).data ?? [];
 
   // Status banner
   let banner: { title: string; body?: string; cls: string } | null = null;

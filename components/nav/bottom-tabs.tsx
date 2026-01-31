@@ -3,40 +3,52 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Role = "admin" | "front_desk" | "security" | string;
+type Role = "admin" | "front_desk" | "security";
 type Props = { role: Role };
 
-const tabs = [
-  { href: "/dashboard", label: "Dashboard", roles: ["admin", "front_desk", "security"] },
-  { href: "/members", label: "Members", roles: ["admin", "front_desk", "security"] },
-  { href: "/checkins", label: "Check-ins", roles: ["admin", "front_desk", "security"] },
+type Tab = {
+  href: string;
+  label: string;
+  roles?: Role[];      // if omitted, everyone sees it
+  adminOnly?: boolean; // backward compatibility if you still use it elsewhere
+};
+
+const tabs: Tab[] = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/members", label: "Members" },
+  { href: "/applications", label: "Applications", roles: ["admin", "front_desk"] },
   { href: "/payments", label: "Payments", roles: ["admin", "front_desk"] },
+  { href: "/check-ins", label: "Check-ins" },
   { href: "/settings", label: "Settings", roles: ["admin"] },
-  { href: "/account", label: "Account", roles: ["admin", "front_desk", "security"] },
 ];
 
 export function BottomTabs({ role }: Props) {
   const pathname = usePathname();
+  const isAdmin = role === "admin";
+
+  const visibleTabs = tabs.filter((t) => {
+    if (t.roles) return t.roles.includes(role);
+    if (t.adminOnly) return isAdmin;
+    return true;
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 border-t bg-white">
       <div className="mx-auto flex max-w-md items-center justify-around px-2 py-2">
-        {tabs
-          .filter((t) => t.roles.includes(role))
-          .map((t) => {
-            const active = pathname === t.href;
-            return (
-              <Link
-                key={t.href}
-                href={t.href}
-                className={`whitespace-nowrap rounded px-2 py-2 text-xs ${
-                  active ? "font-semibold" : "opacity-70"
-                }`}
-              >
-                {t.label}
-              </Link>
-            );
-          })}
+        {visibleTabs.map((t) => {
+          const active = pathname === t.href || pathname.startsWith(t.href + "/");
+          return (
+            <Link
+              key={t.href}
+              href={t.href}
+              className={`rounded px-3 py-2 text-sm ${
+                active ? "font-semibold" : "opacity-70"
+              }`}
+            >
+              {t.label}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
