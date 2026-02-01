@@ -77,8 +77,8 @@ export default async function AddPaymentPage({
       <div className="rounded border p-3 text-sm">
         <div className="font-medium">Current Membership</div>
         <div className="mt-1 opacity-80">
-          {membership?.membership_plan?.name ?? "—"}
-          {membership?.membership_plan?.price != null ? ` • $${membership.membership_plan.price}` : ""}
+          {membership?.membership_plan?.[0]?.name ?? "—"}
+          {membership?.membership_plan?.[0]?.price != null ? ` • $${membership.membership_plan[0].price}` : ""}
         </div>
         <div className="mt-1 text-xs opacity-70">
           Paid-through: {membership?.paid_through_date ?? "—"}
@@ -107,7 +107,7 @@ export default async function AddPaymentPage({
             step="0.01"
             min="0"
             required
-            defaultValue={membership?.membership_plan?.price ?? ""}
+            defaultValue={membership?.membership_plan?.[0]?.price ?? ""}
             className="w-full rounded border px-3 py-2"
           />
         </div>

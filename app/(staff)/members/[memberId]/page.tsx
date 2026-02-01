@@ -265,7 +265,7 @@ export default async function MemberProfilePage({
         ) : null}
 
         <div className="mt-3 space-y-1 text-sm">
-          <div>Plan: {membership?.membership_plans?.name ?? "—"}</div>
+          <div>Plan: {membership?.membership_plans?.[0]?.name ?? "—"}</div>
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
           <div>Last payment: {membership?.last_payment_date ?? "—"}</div>
