@@ -11,8 +11,8 @@ const ROLES: Role[] = ["admin", "front_desk", "security"];
 
 type SortKey = "newest" | "oldest" | "email_asc" | "role_asc" | "status_active_first";
 
-function getOrigin() {
-  const h = headers();
+async function getOrigin() {
+  const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   return `${proto}://${host}`;
@@ -288,7 +288,7 @@ export default async function StaffManagementPage({
 
     if (!me || me.role !== "admin") redirect("/dashboard");
 
-    const origin = getOrigin();
+    const origin = await getOrigin();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/auth/update-password`,
