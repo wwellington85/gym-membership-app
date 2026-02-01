@@ -2,6 +2,8 @@
 
 import { BottomTabs } from "./bottom-tabs";
 
-export function BottomTabsClient({ role }: { role: string }) {
+type Role = "admin" | "front_desk" | "security";
+
+export function BottomTabsClient({ role }: { role: Role }) {
   return <BottomTabs role={role} />;
 }
