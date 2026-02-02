@@ -16,17 +16,17 @@ export default async function CheckinsPage() {
 
   const today = todayJM();
 
-  // Pull today's check-ins (by created_at date in Jamaica time)
+  // Pull today's check-ins (by checked_in_at date in Jamaica time)
   const { data: rows, error } = await supabase
     .from("checkins")
-    .select("id, created_at, member_id, members(full_name, phone)")
-    .order("created_at", { ascending: false })
+    .select("id, checked_in_at, member_id, members(full_name, phone)")
+    .order("checked_in_at", { ascending: false })
     .limit(200);
 
   const todayRows =
     (rows ?? []).filter((r: any) => {
       const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Jamaica" }).format(
-        new Date(r.created_at)
+        new Date(r.checked_in_at)
       );
       return d === today;
     }) ?? [];
@@ -65,7 +65,7 @@ export default async function CheckinsPage() {
                 hour: "numeric",
                 minute: "2-digit",
                 hour12: true,
-              }).format(new Date(r.created_at))}
+              }).format(new Date(r.checked_in_at))}
             </div>
           </div>
         ))}
