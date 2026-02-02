@@ -18,7 +18,7 @@ const tabs: Tab[] = [
   { href: "/members", label: "Members" },
   { href: "/applications", label: "Applications", roles: ["admin", "front_desk"] },
   { href: "/payments", label: "Payments", roles: ["admin", "front_desk"] },
-  { href: "/check-ins", label: "Check-ins" },
+  { href: "/checkins", label: "Check-ins" },
   { href: "/settings", label: "Settings", roles: ["admin"] },
 ];
 
