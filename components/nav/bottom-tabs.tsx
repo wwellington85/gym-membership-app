@@ -41,7 +41,7 @@ export function BottomTabs({ role }: Props) {
             <Link
               key={t.href}
               href={t.href}
-              className={`rounded px-3 py-2 text-sm ${
+              className={`rounded px-2 py-2 text-sm whitespace-nowrap ${
                 active ? "font-semibold" : "opacity-70"
               }`}
             >
