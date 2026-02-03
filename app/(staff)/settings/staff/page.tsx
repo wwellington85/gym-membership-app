@@ -170,7 +170,9 @@ export default async function StaffManagementPage({
 
     const admin = createAdminClient();
 
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: `${origin}/auth/update-password`,
+    });
     if (error) redirect(withParam(backTo, "err", error.message));
 
     const invitedUserId = data?.user?.id;
