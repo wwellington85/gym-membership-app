@@ -49,7 +49,7 @@ function roleAllowsPath(role: Role, pathname: string) {
   return false;
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Only protect staff routes
