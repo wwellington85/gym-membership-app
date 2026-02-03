@@ -66,3 +66,11 @@
     @apply bg-background text-foreground;
   }
 }
+/* Hide scrollbars but keep scroll functionality (mobile tab bars, etc.) */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none; /* Firefox */
+}
