@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       return NextResponse.redirect(
-        new URL(`/login?err=${encodeURIComponent(error.message)}`, url)
+        new URL(`/auth/login?err=${encodeURIComponent(error.message)}`, url)
       );
     }
     return NextResponse.redirect(new URL("/auth/update-password", url));
@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
     });
     if (error) {
       return NextResponse.redirect(
-        new URL(`/login?err=${encodeURIComponent(error.message)}`, url)
+        new URL(`/auth/login?err=${encodeURIComponent(error.message)}`, url)
       );
     }
     return NextResponse.redirect(new URL("/auth/update-password", url));
   }
 
-  return NextResponse.redirect(new URL("/login?err=Invalid%20invite%20link", url));
+  return NextResponse.redirect(new URL("/auth/login?err=Invalid%20invite%20link", url));
 }
