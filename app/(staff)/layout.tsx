@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
+import { StaffTopbar } from "@/components/nav/staff-topbar";
 
 export default async function StaffLayout({
   children,
@@ -29,7 +30,8 @@ export default async function StaffLayout({
 
   return (
     <div className="min-h-screen pb-16">
-      <main className="mx-auto w-full max-w-md px-4 py-4">{children}</main>
+      <main className="mx-auto w-full max-w-md px-4 py-4"><StaffTopbar />
+      {children}</main>
       <BottomTabs role={staffProfile.role} />
     </div>
   );
