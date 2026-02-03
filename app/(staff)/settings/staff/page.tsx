@@ -143,12 +143,13 @@ export default async function StaffManagementPage({
 
   const { data: staff, error } = await staffQuery;
   async function inviteStaff(formData: FormData) {
-      const h = headers();
+  "use server";
+
+  const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const origin = `${proto}://${host}`;
 
-"use server";
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
@@ -194,7 +195,7 @@ export default async function StaffManagementPage({
   }
 
   async function updateRole(formData: FormData) {
-    "use server";
+  "use server";
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
@@ -235,7 +236,7 @@ export default async function StaffManagementPage({
   }
 
   async function toggleActive(formData: FormData) {
-    "use server";
+  "use server";
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
@@ -273,7 +274,7 @@ export default async function StaffManagementPage({
   }
 
   async function sendResetEmail(formData: FormData) {
-    "use server";
+  "use server";
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
