@@ -27,6 +27,14 @@ export default function InviteHandlerPage() {
     const run = async () => {
       const supabase = createClient();
 
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      if (code) {
+        // Let the server route handler exchange the code and set cookies
+        window.location.href = `/auth/invite/callback?code=${encodeURIComponent(code)}`;
+        return;
+      }
+
       const {
         access_token,
         refresh_token,
