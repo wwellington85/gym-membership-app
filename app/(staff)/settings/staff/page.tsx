@@ -143,7 +143,12 @@ export default async function StaffManagementPage({
 
   const { data: staff, error } = await staffQuery;
   async function inviteStaff(formData: FormData) {
-    "use server";
+      const h = headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const origin = `${proto}://${host}`;
+
+"use server";
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
