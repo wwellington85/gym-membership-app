@@ -16,10 +16,16 @@ type Tab = {
 const tabs: Tab[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/members", label: "Members" },
-  { href: "/applications", label: "Applications", roles: ["admin", "front_desk"] },
+
+  // Front desk workflow: keep Applications visible
+  { href: "/applications", label: "Applications", roles: ["front_desk"] },
+
+  // Shared operational tabs
   { href: "/payments", label: "Payments", roles: ["admin", "front_desk"] },
   { href: "/checkins", label: "Check-ins" },
-  { href: "/settings", label: "Settings", roles: ["admin"] },
+
+  // Admin: keep bottom bar compact, move rarely-used destinations under "More"
+  { href: "/more", label: "More", roles: ["admin"] },
 ];
 
 export function BottomTabs({ role }: Props) {
