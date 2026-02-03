@@ -2,15 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export function UpdatePasswordForm() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const returnTo = searchParams.get("returnTo") || "/dashboard";
+  const returnTo = "/dashboard";
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
