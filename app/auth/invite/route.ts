@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const token_hash = url.searchParams.get("token_hash");
   const type = url.searchParams.get("type");
 
-  const supabase = createClient();
+  const supabase = await createClient();
 
   // Newer Supabase email links (PKCE)
   if (code) {
