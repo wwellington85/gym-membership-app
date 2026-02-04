@@ -1,0 +1,246 @@
+import { redirect } from "next/navigation";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+
+function parsePayload(raw: string): { memberId?: string; err?: string } {
+  const v = (raw || "").trim();
+  if (!v) return { err: "Empty code" };
+
+  // Expected formats:
+  // 1) member:<uuid>
+  // 2) <uuid>
+  if (v.startsWith("member:")) {
+    const id = v.slice("member:".length).trim();
+    return { memberId: id || undefined, err: id ? undefined : "Invalid member code" };
+  }
+  return { memberId: v };
+}
+
+function pct(n?: number | null) {
+  const v = typeof n === "number" ? n : 0;
+  return `${Math.round(v * 100)}%`;
+}
+
+export default async function ScanCheckinPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ code?: string; ok?: string; err?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
+  const code = sp.code ?? "";
+  const ok = sp.ok ?? "";
+  const errMsg = sp.err ?? "";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/auth/login?returnTo=/checkins/scan");
+
+  const { data: staffProfile } = await supabase
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!staffProfile) redirect("/auth/login?returnTo=/checkins/scan");
+
+  const canCheckin = ["admin", "front_desk", "security"].includes(staffProfile.role);
+
+  if (!canCheckin) redirect("/dashboard?err=Not%20authorized");
+
+  async function lookup(formData: FormData) {
+    "use server";
+    const raw = String(formData.get("code") || "").trim();
+    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}`);
+  }
+
+  async function checkin(formData: FormData) {
+    "use server";
+
+    const raw = String(formData.get("code") || "").trim();
+    const parsed = parsePayload(raw);
+    if (parsed.err || !parsed.memberId) {
+      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(parsed.err || "Invalid code")}`);
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) redirect("/auth/login?returnTo=/checkins/scan");
+
+    // Load member + membership + plan benefits
+    const { data: membership } = await supabase
+      .from("memberships")
+      .select(
+        "id, member_id, status, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+      )
+      .eq("member_id", parsed.memberId)
+      .maybeSingle();
+
+    const plan = Array.isArray((membership as any)?.membership_plans)
+      ? (membership as any).membership_plans[0]
+      : (membership as any)?.membership_plans;
+
+    const accessAllowed = membership?.status === "active" && !!plan?.grants_access;
+
+    if (!accessAllowed) {
+      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Access not allowed (inactive or rewards-only).")}`);
+    }
+
+    // Points per check-in
+    const { data: settingRow } = await supabase
+      .from("app_settings")
+      .select("int_value")
+      .eq("key", "points_per_checkin")
+      .maybeSingle();
+
+    const pointsEarned = settingRow?.int_value ?? 1;
+
+    const { error } = await supabase.from("checkins").insert({
+      member_id: parsed.memberId,
+      staff_user_id: user.id,
+      points_earned: pointsEarned,
+    });
+
+    if (error) {
+      if ((error as any).code === "23505") {
+        redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Already checked in today.")}`);
+      }
+      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(error.message)}`);
+    }
+
+    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&ok=checked_in`);
+  }
+
+  let member: any = null;
+  let membership: any = null;
+  let plan: any = null;
+
+  if (code) {
+    const parsed = parsePayload(code);
+    if (parsed.memberId && !parsed.err) {
+      const { data: m } = await supabase
+        .from("members")
+        .select("id, full_name, phone, email")
+        .eq("id", parsed.memberId)
+        .maybeSingle();
+
+      member = m;
+
+      const { data: ms } = await supabase
+        .from("memberships")
+        .select(
+          "id, member_id, status, paid_through_date, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+        )
+        .eq("member_id", parsed.memberId)
+        .maybeSingle();
+
+      membership = ms;
+      plan = Array.isArray((ms as any)?.membership_plans) ? (ms as any).membership_plans[0] : (ms as any)?.membership_plans;
+    }
+  }
+
+  const accessAllowed = membership?.status === "active" && !!plan?.grants_access;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Scan Check-in</h1>
+          <p className="text-sm opacity-70">Paste the QR code value to look up a member.</p>
+        </div>
+        <Link href="/checkins" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+          Back
+        </Link>
+      </div>
+
+      {ok === "checked_in" ? (
+        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
+          <div className="font-medium">Checked in</div>
+          <div className="mt-1 opacity-80">Visit recorded successfully.</div>
+        </div>
+      ) : null}
+
+      {errMsg ? (
+        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
+          <div className="font-medium">Notice</div>
+          <div className="mt-1 opacity-80">{errMsg}</div>
+        </div>
+      ) : null}
+
+      <form action={lookup} className="space-y-2">
+        <label className="text-sm font-medium">QR / Code</label>
+        <input
+          name="code"
+          defaultValue={code}
+          placeholder="e.g., member:uuid…"
+          className="w-full rounded border px-3 py-2 font-mono text-sm"
+        />
+        <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-gray-50">
+          Look up
+        </button>
+      </form>
+
+      {code && !member ? (
+        <div className="rounded border p-3 text-sm opacity-70">No member found for that code.</div>
+      ) : null}
+
+      {member ? (
+        <div className="rounded border p-3 space-y-2">
+          <div className="font-medium">{member.full_name}</div>
+          <div className="text-sm opacity-70">{member.phone ?? member.id}</div>
+
+          <div className="rounded border p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">Access</div>
+              <div className="text-sm font-semibold">{accessAllowed ? "Allowed" : "Not allowed"}</div>
+            </div>
+            <div className="mt-2 text-xs opacity-70">
+              Plan: {plan?.name ?? "—"} • Type: {plan?.plan_type ?? "—"} • Status: {membership?.status ?? "—"}
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Food</div>
+                <div className="font-medium">{pct(plan?.discount_food)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Watersports</div>
+                <div className="font-medium">{pct(plan?.discount_watersports)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Gift Shop</div>
+                <div className="font-medium">{pct(plan?.discount_giftshop)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Spa</div>
+                <div className="font-medium">{pct(plan?.discount_spa)}</div>
+              </div>
+            </div>
+
+            <form action={checkin} className="mt-3">
+              <input type="hidden" name="code" value={code} />
+              <button
+                type="submit"
+                className="w-full rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
+                disabled={!accessAllowed}
+              >
+                Record check-in
+              </button>
+            </form>
+
+            {!accessAllowed ? (
+              <div className="mt-2 text-xs opacity-70">
+                Only members with an active access plan (Club/Pass) can be checked in here.
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

@@ -38,10 +38,16 @@ export default async function CheckinsPage() {
           <h1 className="text-xl font-semibold">Check-ins</h1>
           <p className="text-sm opacity-70">Today ({today})</p>
         </div>
-        <Link href="/members" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
-          Members
-        </Link>
-      </div>
+        
+        <div className="flex gap-2">
+          <Link href="/checkins/scan" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            Scan
+          </Link>
+          <Link href="/members" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            Members
+          </Link>
+        </div>
+</div>
 
       {error ? (
         <div className="rounded border p-3 text-sm">
