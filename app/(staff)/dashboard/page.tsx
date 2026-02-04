@@ -123,11 +123,21 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
+        
+
         <div className="rounded border p-3">
           <div className="text-xs opacity-70">Active Access</div>
           <div className="mt-1 text-2xl font-semibold">{activeAccessCount ?? 0}</div>
           <div className="mt-1 text-xs opacity-70">Club or Pass</div>
         </div>
+<div className="rounded border p-3">
+          <div className="text-xs opacity-70">Rewards Only</div>
+          <div className="mt-1 text-2xl font-semibold">{rewardsOnlyCount ?? 0}</div>
+          <div className="mt-1 text-xs opacity-70">Discounts only</div>
+        </div>
+
+        
+
         
 
 
@@ -140,7 +150,7 @@ export default async function DashboardPage() {
 
         
 <Link href="/members?filter=active" className="rounded border p-3 hover:bg-gray-50">
-          <div className="text-sm opacity-70">Active</div>
+          <div className="text-sm opacity-70">Total Active (All)</div>
           <div className="text-2xl font-semibold">{count("active")}</div>
         </Link>
 
