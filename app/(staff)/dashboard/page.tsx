@@ -112,7 +112,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Dashboard</h1>
+        <h1 className="text-xl font-semibold">Travellers Club Dashboard</h1>
         <p className="text-sm opacity-70">Membership + gym activity overview</p>
       </div>
 
@@ -124,11 +124,7 @@ export default async function DashboardPage() {
           <div className="mt-1 text-xs opacity-70">Club or Pass</div>
         </div>
 
-        <div className="rounded border p-3">
-          <div className="text-xs opacity-70">Rewards Only</div>
-          <div className="mt-1 text-2xl font-semibold">{rewardsOnlyCount ?? 0}</div>
-          <div className="mt-1 text-xs opacity-70">Discounts only</div>
-        </div>
+        
 <Link href="/members?filter=active" className="rounded border p-3 hover:bg-gray-50">
           <div className="text-sm opacity-70">Active</div>
           <div className="text-2xl font-semibold">{count("active")}</div>
