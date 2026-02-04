@@ -101,6 +101,16 @@ export default async function MemberProfilePage({
     .eq("member_id", memberId)
     .maybeSingle();
 
+  const plan = Array.isArray(plan)
+    ? membership.membership_plans[0]
+    : plan;
+
+
+  const plan =
+    Array.isArray((membership as any)?.membership_plans)
+      ? ((membership as any).membership_plans[0] ?? null)
+      : ((membership as any)?.membership_plans ?? null);
+
   const { data: recentCheckins } = await supabase
     .from("checkins")
     .select("id, checked_in_at, points_earned, notes")
@@ -257,40 +267,40 @@ export default async function MemberProfilePage({
         </div>
 
 
-        {membership?.membership_plans ? (
+        {plan ? (
           <div className="mt-3 rounded border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-sm font-medium">
-                {formatPlanType(membership.membership_plans.plan_type)}: {membership.membership_plans.name}
+                {formatPlanType(plan.plan_type)}: {plan.name}
               </div>
               <div className="text-xs opacity-70">
-                {money(membership.membership_plans.price)} • {membership.membership_plans.duration_days} day(s)
+                {money(plan.price)} • {plan.duration_days} day(s)
               </div>
             </div>
 
             <div className="mt-2 text-sm">
               <span className="opacity-70">Access:</span>{" "}
               <span className="font-medium">
-                {membership.membership_plans.grants_access ? "Allowed" : "Discounts only"}
+                {plan.grants_access ? "Allowed" : "Discounts only"}
               </span>
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
               <div className="rounded border p-2">
                 <div className="text-xs opacity-70">Food</div>
-                <div className="font-medium">{pct(membership.membership_plans.discount_food)}</div>
+                <div className="font-medium">{pct(plan.discount_food)}</div>
               </div>
               <div className="rounded border p-2">
                 <div className="text-xs opacity-70">Watersports</div>
-                <div className="font-medium">{pct(membership.membership_plans.discount_watersports)}</div>
+                <div className="font-medium">{pct(plan.discount_watersports)}</div>
               </div>
               <div className="rounded border p-2">
                 <div className="text-xs opacity-70">Gift Shop</div>
-                <div className="font-medium">{pct(membership.membership_plans.discount_giftshop)}</div>
+                <div className="font-medium">{pct(plan.discount_giftshop)}</div>
               </div>
               <div className="rounded border p-2">
                 <div className="text-xs opacity-70">Spa</div>
-                <div className="font-medium">{pct(membership.membership_plans.discount_spa)}</div>
+                <div className="font-medium">{pct(plan.discount_spa)}</div>
               </div>
             </div>
           </div>
@@ -323,7 +333,7 @@ export default async function MemberProfilePage({
         ) : null}
 
         <div className="mt-3 space-y-1 text-sm">
-          <div>Plan: {membership?.membership_plans?.[0]?.name ?? "—"}</div>
+          <div>Plan: {plan?.[0]?.name ?? "—"}</div>
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
           <div>Last payment: {membership?.last_payment_date ?? "—"}</div>
