@@ -105,12 +105,6 @@ export default async function MemberProfilePage({
     ? membership.membership_plans[0]
     : plan;
 
-
-  const plan =
-    Array.isArray((membership as any)?.membership_plans)
-      ? ((membership as any).membership_plans[0] ?? null)
-      : ((membership as any)?.membership_plans ?? null);
-
   const { data: recentCheckins } = await supabase
     .from("checkins")
     .select("id, checked_in_at, points_earned, notes")
