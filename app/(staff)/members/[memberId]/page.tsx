@@ -326,7 +326,7 @@ const { data: recentCheckins } = await supabase
         ) : null}
 
         <div className="mt-3 space-y-1 text-sm">
-          <div>Plan: {plan?.[0]?.name ?? "—"}</div>
+          <div>Plan: {plan?.name ?? "—"}</div>
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
           <div>Last payment: {membership?.last_payment_date ?? "—"}</div>
