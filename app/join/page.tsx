@@ -1,13 +1,25 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-type PlanCode = "daily" | "weekly" | "monthly";
+type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
 
 const PLAN_LABELS: Record<PlanCode, string> = {
-  daily: "Daily — $15",
-  weekly: "Weekly — $45",
-  monthly: "Monthly — $95",
+  rewards_free: "Travellers Rewards (Free) — Discounts only",
+  club_day: "Travellers Club Day Pass — $25",
+  club_weekly: "Travellers Club Weekly Pass — $45",
+  club_monthly_95: "Travellers Club Monthly — $95",
 };
+
+const ACCESS_PLANS: PlanCode[] = ["club_day", "club_weekly", "club_monthly_95"];
+
+function todayJM(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
 
 export default async function JoinPage({
   searchParams,
@@ -15,8 +27,7 @@ export default async function JoinPage({
   searchParams?: Promise<{ err?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
-
-  const todayJM = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Jamaica", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const today = todayJM();
 
   async function submitApplication(formData: FormData) {
     "use server";
@@ -27,18 +38,31 @@ export default async function JoinPage({
 
     const full_name = String(formData.get("full_name") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
-    const email = String(formData.get("email") || "").trim().toLowerCase();
-    const requested_plan_code = String(formData.get("requested_plan_code") || "").trim() as PlanCode;
+    const email = String(formData.get("email") || "")
+      .trim()
+      .toLowerCase();
+
+    const requested_plan_code = String(formData.get("requested_plan_code") || "")
+      .trim() as PlanCode;
+
     const requested_start_date = String(formData.get("requested_start_date") || "").trim(); // YYYY-MM-DD or ""
     const notes = String(formData.get("notes") || "").trim();
 
     if (!full_name) redirect("/join?err=Please%20enter%20your%20name");
-    if (!requested_plan_code || !["daily", "weekly", "monthly"].includes(requested_plan_code)) {
-      redirect("/join?err=Please%20select%20a%20plan");
+
+    const allowed: PlanCode[] = ["rewards_free", "club_day", "club_weekly", "club_monthly_95"];
+    if (!requested_plan_code || !allowed.includes(requested_plan_code)) {
+      redirect("/join?err=Please%20select%20a%20membership%20option");
     }
 
     // basic email format check (optional)
     if (email && !email.includes("@")) redirect("/join?err=Please%20enter%20a%20valid%20email");
+
+    // Start date is required only for access plans (Club passes)
+    const isAccess = ACCESS_PLANS.includes(requested_plan_code);
+    if (isAccess && !requested_start_date) {
+      redirect("/join?err=Please%20select%20a%20start%20date");
+    }
 
     const supabase = await createClient();
 
@@ -62,9 +86,10 @@ export default async function JoinPage({
   return (
     <div className="mx-auto w-full max-w-md space-y-4 px-4 py-8">
       <div>
-        <h1 className="text-xl font-semibold">Gym Membership Request</h1>
+        <h1 className="text-xl font-semibold">Travellers Club Signup</h1>
         <p className="text-sm opacity-70">
-          Submit your details. Membership is activated after payment at the front desk.
+          Join Travellers Rewards (free) for member discounts, or choose a Travellers Club pass for full facility access.
+          Activation is completed after verification/payment at the front desk.
         </p>
       </div>
 
@@ -91,27 +116,52 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Phone (optional)</label>
-          <input name="phone" className="w-full rounded border px-3 py-2" placeholder="+1 (___) ___-____" />
+          <input
+            name="phone"
+            className="w-full rounded border px-3 py-2"
+            placeholder="876-555-1234"
+          />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
-          <input name="email" required type="email" className="w-full rounded border px-3 py-2" placeholder="you@email.com" />
+          <input
+            name="email"
+            required
+            type="email"
+            className="w-full rounded border px-3 py-2"
+            placeholder="you@email.com"
+          />
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Choose a plan</label>
-          <select name="requested_plan_code" className="w-full rounded border px-3 py-2" defaultValue="monthly">
-            <option value="monthly">{PLAN_LABELS.monthly}</option>
-            <option value="weekly">{PLAN_LABELS.weekly}</option>
-            <option value="daily">{PLAN_LABELS.daily}</option>
+          <label className="text-sm font-medium">Choose an option</label>
+          <select
+            name="requested_plan_code"
+            className="w-full rounded border px-3 py-2"
+            defaultValue="rewards_free"
+          >
+            <option value="rewards_free">{PLAN_LABELS.rewards_free}</option>
+            <option value="club_day">{PLAN_LABELS.club_day}</option>
+            <option value="club_weekly">{PLAN_LABELS.club_weekly}</option>
+            <option value="club_monthly_95">{PLAN_LABELS.club_monthly_95}</option>
           </select>
-          <p className="text-xs opacity-60">Payment is collected at the front desk.</p>
+          <p className="text-xs opacity-60">
+            Club passes include full facility access + member discounts. Rewards (Free) provides discounts only.
+          </p>
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Preferred start date</label>
-          <input name="requested_start_date" required type="date" className="w-full rounded border px-3 py-2"  defaultValue={todayJM}/>
+          <input
+            name="requested_start_date"
+            type="date"
+            className="w-full rounded border px-3 py-2"
+            defaultValue={today}
+          />
+          <p className="text-xs opacity-60">
+            Required for Club passes. Optional for Rewards (Free).
+          </p>
         </div>
 
         <div className="space-y-1">
@@ -124,23 +174,22 @@ export default async function JoinPage({
           />
         </div>
 
-        <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">
-          Submit request
-        </button>
-
         <div className="space-y-2 rounded border p-3">
           <label className="flex items-start gap-2 text-sm">
             <input name="waiver" type="checkbox" required className="mt-1" />
             <span>
-              I understand the risks involved with gym use and release Travellers Beach Resort from liability.
+              I understand the risks involved with using the facilities (including the gym) and release Travellers Beach Resort from liability.
             </span>
           </label>
           <div className="text-xs opacity-60">You must accept to submit your request.</div>
         </div>
 
+        <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">
+          Submit signup
+        </button>
 
         <div className="text-xs opacity-60">
-          By submitting, you agree that Travellers Beach Resort may contact you about your gym membership.
+          By submitting, you agree that Travellers Beach Resort may contact you about your membership.
         </div>
       </form>
     </div>
