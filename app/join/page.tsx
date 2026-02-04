@@ -35,7 +35,7 @@ export default async function JoinPage({
 
     // Honeypot (bots fill this; humans won't)
     const website = String(formData.get("website") || "").trim();
-    if (website) redirect("/join/success"); // pretend success
+    if (website) redirect("/member/dashboard"); // pretend success
 
     const full_name = String(formData.get("full_name") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
@@ -52,6 +52,9 @@ export default async function JoinPage({
     const is_inhouse_guest = String(formData.get("is_inhouse_guest") || "").trim();
     const notes = String(formData.get("notes") || "").trim();
 
+    const password = String(formData.get("password") || "");
+    const password2 = String(formData.get("password2") || "");
+
     if (!full_name) redirect("/join?err=Please%20enter%20your%20name");
 
     const allowed: PlanCode[] = ["rewards_free", "club_day", "club_weekly", "club_monthly_95"];
@@ -62,6 +65,9 @@ export default async function JoinPage({
     // basic email format check (optional)
     if (email && !email.includes("@")) redirect("/join?err=Please%20enter%20a%20valid%20email");
 
+    if (!password || password.length < 8) redirect("/join?err=Please%20choose%20a%20password%20(8%2B%20characters)");
+    if (password != password2) redirect("/join?err=Passwords%20do%20not%20match");
+
     // Start date is required only for access plans (Club passes)
     const isAccess = ACCESS_PLANS.includes(requested_plan_code);
     if (isAccess && !requested_start_date) {
@@ -70,7 +76,17 @@ export default async function JoinPage({
 
     const supabase = await createClient();
 
+    const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (signUpErr) redirect(`/join?err=${encodeURIComponent(signUpErr.message)}`);
+    const userId = signUpData?.user?.id ?? null;
+
+
     const payload: any = {
+      user_id: userId,
       full_name,
       phone: phone || null,
       email: email || null,
@@ -88,7 +104,7 @@ export default async function JoinPage({
 
     if (error) redirect(`/join?err=${encodeURIComponent(error.message)}`);
 
-    redirect("/join/success");
+    redirect("/member/dashboard");
   }
 
   return (
@@ -140,6 +156,34 @@ export default async function JoinPage({
             className="w-full rounded border px-3 py-2"
             placeholder="you@email.com"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Create a password</label>
+          <input
+            name="password"
+            type="password"
+            required
+            className="w-full rounded border px-3 py-2"
+            placeholder="At least 8 characters"
+            minLength={8}
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Confirm password</label>
+          <input
+            name="password2"
+            type="password"
+            required
+            className="w-full rounded border px-3 py-2"
+            placeholder="Re-enter password"
+            minLength={8}
+          />
+        </div>
+
+        <div className="text-xs opacity-60">
+          You’ll use this to log in and view your Membership Card and points.
         </div>
 
         <div className="space-y-1">
