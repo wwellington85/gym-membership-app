@@ -99,6 +99,12 @@ export default async function JoinPage({
     payload.other_country = other_country || null;
     payload.is_inhouse_guest = is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null;
 
+    const waiver = String(formData.get("waiver") || "").trim();
+    if (waiver) {
+      payload.waiver_accepted = true;
+      payload.waiver_accepted_at = new Date().toISOString();
+    }
+
 
     const { data: created, error } = await supabase.from("membership_applications").insert(payload).select("id").single();
 
