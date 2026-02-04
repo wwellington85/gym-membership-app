@@ -47,6 +47,7 @@ export default async function JoinPage({
 
     const requested_start_date = String(formData.get("requested_start_date") || "").trim(); // YYYY-MM-DD or ""
     const country = String(formData.get("country") || "Jamaica").trim();
+    const other_country = String(formData.get("other_country") || "").trim();
     const is_inhouse_guest = String(formData.get("is_inhouse_guest") || "").trim();
     const notes = String(formData.get("notes") || "").trim();
 
@@ -78,6 +79,7 @@ export default async function JoinPage({
 
     if (requested_start_date) payload.requested_start_date = requested_start_date;
     payload.country = country || null;
+    payload.other_country = other_country || null;
     payload.is_inhouse_guest = is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null;
 
 
@@ -181,6 +183,18 @@ export default async function JoinPage({
           </select>
           <p className="text-xs opacity-60">Helps us tailor benefits and contact preferences.</p>
         </div>
+
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">If you selected “Other”, which country?</label>
+          <input
+            name="other_country"
+            className="w-full rounded border px-3 py-2"
+            placeholder="Optional"
+          />
+          <p className="text-xs opacity-60">Only needed if “Other” was selected above.</p>
+        </div>
+
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Are you staying at the hotel right now?</label>
