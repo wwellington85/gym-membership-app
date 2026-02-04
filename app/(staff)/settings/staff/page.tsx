@@ -178,6 +178,7 @@ export default async function StaffManagementPage({
 
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: `${origin}/auth/invite`,
+      data: { is_staff: true },
     });
     if (error) redirect(withParam(backTo, "err", error.message));
 
