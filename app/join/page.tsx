@@ -46,6 +46,8 @@ export default async function JoinPage({
       .trim() as PlanCode;
 
     const requested_start_date = String(formData.get("requested_start_date") || "").trim(); // YYYY-MM-DD or ""
+    const country = String(formData.get("country") || "Jamaica").trim();
+    const is_inhouse_guest = String(formData.get("is_inhouse_guest") || "").trim();
     const notes = String(formData.get("notes") || "").trim();
 
     if (!full_name) redirect("/join?err=Please%20enter%20your%20name");
@@ -75,6 +77,10 @@ export default async function JoinPage({
     };
 
     if (requested_start_date) payload.requested_start_date = requested_start_date;
+    payload.country = country || null;
+    payload.is_inhouse_guest = is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null;
+    # NOTE: requires membership_applications.country (text) and is_inhouse_guest (boolean)
+
 
     const { error } = await supabase.from("membership_applications").insert(payload);
 
@@ -164,7 +170,30 @@ export default async function JoinPage({
           </p>
         </div>
 
+        
         <div className="space-y-1">
+          <label className="text-sm font-medium">Country</label>
+          <select name="country" className="w-full rounded border px-3 py-2" defaultValue="Jamaica">
+            <option value="Jamaica">Jamaica</option>
+            <option value="United States">United States</option>
+            <option value="Canada">Canada</option>
+            <option value="United Kingdom">United Kingdom</option>
+            <option value="Other">Other</option>
+          </select>
+          <p className="text-xs opacity-60">Helps us tailor benefits and contact preferences.</p>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Are you staying at the hotel right now?</label>
+          <select name="is_inhouse_guest" className="w-full rounded border px-3 py-2" defaultValue="">
+            <option value="">Select</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+          <p className="text-xs opacity-60">Optional. Helps staff understand your access needs.</p>
+        </div>
+
+<div className="space-y-1">
           <label className="text-sm font-medium">Notes (optional)</label>
           <textarea
             name="notes"
