@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 
-type Props = { onScan: (text: string) => void };
+type Props = {
+  redirectPath?: string; // default: /checkins/scan
+};
 
-export function QrScanner({ onScan }: Props) {
+export function QrScanner({ redirectPath = "/checkins/scan" }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
@@ -16,9 +18,9 @@ export function QrScanner({ onScan }: Props) {
     return () => {
       try {
         controlsRef.current?.stop();
-        controlsRef.current = null;
-        readerRef.current = null;
       } catch {}
+      controlsRef.current = null;
+      readerRef.current = null;
     };
   }, []);
 
@@ -38,7 +40,8 @@ export function QrScanner({ onScan }: Props) {
           if (result) {
             const text = result.getText();
             stop();
-            onScan(text);
+            const url = `${redirectPath}?code=${encodeURIComponent(text)}`;
+            window.location.href = url;
           }
         }
       );
@@ -51,9 +54,9 @@ export function QrScanner({ onScan }: Props) {
   function stop() {
     try {
       controlsRef.current?.stop();
-        controlsRef.current = null;
-        readerRef.current = null;
     } catch {}
+    controlsRef.current = null;
+    readerRef.current = null;
     setRunning(false);
   }
 

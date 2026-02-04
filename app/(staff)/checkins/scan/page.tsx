@@ -172,16 +172,8 @@ export default async function ScanCheckinPage({
           <div className="mt-1 opacity-80">{errMsg}</div>
         </div>
       ) : null}
-      <QrScanner
-        onScan={(text) => {
-          const url = `/checkins/scan?code=${encodeURIComponent(text)}`;
-          window.location.href = url;
-        }}
-      />
-
-
-
-      <form action={lookup} className="space-y-2">
+      <QrScanner />
+<form action={lookup} className="space-y-2">
         <label className="text-sm font-medium">QR / Code</label>
         <input
           name="code"
