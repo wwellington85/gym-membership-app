@@ -101,11 +101,10 @@ export default async function MemberProfilePage({
     .eq("member_id", memberId)
     .maybeSingle();
 
-  const plan = Array.isArray(plan)
+  const plan = Array.isArray(membership?.membership_plans)
     ? membership.membership_plans[0]
-    : plan;
-
-  const { data: recentCheckins } = await supabase
+    : membership?.membership_plans;
+const { data: recentCheckins } = await supabase
     .from("checkins")
     .select("id, checked_in_at, points_earned, notes")
     .eq("member_id", memberId)
