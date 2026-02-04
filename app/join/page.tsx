@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { CountryFields } from "@/components/join/country-fields";
 
 type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
 
@@ -170,33 +171,8 @@ export default async function JoinPage({
             Required for Club passes. Optional for Rewards (Free).
           </p>
         </div>
-
-        
-        <div className="space-y-1">
-          <label className="text-sm font-medium">Country</label>
-          <select name="country" className="w-full rounded border px-3 py-2" defaultValue="Jamaica">
-            <option value="Jamaica">Jamaica</option>
-            <option value="United States">United States</option>
-            <option value="Canada">Canada</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="Other">Other</option>
-          </select>
-          <p className="text-xs opacity-60">Helps us tailor benefits and contact preferences.</p>
-        </div>
-
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium">If you selected “Other”, which country?</label>
-          <input
-            name="other_country"
-            className="w-full rounded border px-3 py-2"
-            placeholder="Optional"
-          />
-          <p className="text-xs opacity-60">Only needed if “Other” was selected above.</p>
-        </div>
-
-
-        <div className="space-y-1">
+        <CountryFields />
+<div className="space-y-1">
           <label className="text-sm font-medium">Are you staying at the hotel right now?</label>
           <select name="is_inhouse_guest" className="w-full rounded border px-3 py-2" defaultValue="">
             <option value="">Select</option>
