@@ -19,6 +19,19 @@ function jamaicaTodayDateObj() {
 export default async function DashboardPage() {
   const supabase = await createClient();
 
+  // Travellers Club summary counts (based on plan benefits)
+  const { count: activeAccessCount } = await supabase
+    .from("memberships")
+    .select("id, membership_plans!inner(grants_access)", { count: "exact", head: true })
+    .eq("status", "active")
+    .eq("membership_plans.grants_access", true);
+
+  const { count: rewardsOnlyCount } = await supabase
+    .from("memberships")
+    .select("id, membership_plans!inner(grants_access)", { count: "exact", head: true })
+    .eq("status", "active")
+    .eq("membership_plans.grants_access", false);
+
   const { data: membershipsRows, error: membershipsErr } = await supabase
     .from("memberships")
     .select("id, status, needs_contact, paid_through_date, member:members(id)")
@@ -104,7 +117,19 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <Link href="/members?filter=active" className="rounded border p-3 hover:bg-gray-50">
+        
+        <div className="rounded border p-3">
+          <div className="text-xs opacity-70">Active Access</div>
+          <div className="mt-1 text-2xl font-semibold">{activeAccessCount ?? 0}</div>
+          <div className="mt-1 text-xs opacity-70">Club or Pass</div>
+        </div>
+
+        <div className="rounded border p-3">
+          <div className="text-xs opacity-70">Rewards Only</div>
+          <div className="mt-1 text-2xl font-semibold">{rewardsOnlyCount ?? 0}</div>
+          <div className="mt-1 text-xs opacity-70">Discounts only</div>
+        </div>
+<Link href="/members?filter=active" className="rounded border p-3 hover:bg-gray-50">
           <div className="text-sm opacity-70">Active</div>
           <div className="text-2xl font-semibold">{count("active")}</div>
         </Link>
