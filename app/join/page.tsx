@@ -35,7 +35,7 @@ export default async function JoinPage({
 
     // Honeypot (bots fill this; humans won't)
     const website = String(formData.get("website") || "").trim();
-    if (website) redirect("/member/dashboard"); // pretend success
+    if (website) redirect("/member"); // pretend success
 
     const full_name = String(formData.get("full_name") || "").trim();
     const phone = String(formData.get("phone") || "").trim();
@@ -104,7 +104,7 @@ export default async function JoinPage({
 
     if (error) redirect(`/join?err=${encodeURIComponent(error.message)}`);
 
-    redirect("/member/dashboard");
+    redirect("/member");
   }
 
   return (

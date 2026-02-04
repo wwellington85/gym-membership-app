@@ -85,5 +85,5 @@ export async function createMemberAccount(formData: FormData) {
     redirect(`/auth/login?err=${encodeURIComponent(signInErr.message)}`);
   }
 
-  redirect("/member/dashboard");
+  redirect("/member");
 }
