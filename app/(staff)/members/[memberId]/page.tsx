@@ -21,6 +21,23 @@ function statusBadge(status?: string | null) {
   return { label: status ?? "—", cls: "border" };
 }
 
+function formatPlanType(t?: string | null) {
+  if (t === "rewards") return "Rewards";
+  if (t === "club") return "Club";
+  if (t === "pass") return "Pass";
+  return "Plan";
+}
+
+function pct(v?: number | null) {
+  const n = typeof v === "number" ? v : 0;
+  return `${Math.round(n * 100)}%`;
+}
+
+function money(v?: number | null) {
+  const n = typeof v === "number" ? v : 0;
+  return n === 0 ? "Free" : `$${n}`;
+}
+
 function fmtJamaica(ts?: string | null) {
   if (!ts) return "—";
   return new Date(ts).toLocaleString("en-US", { timeZone: "America/Jamaica" });
@@ -79,7 +96,7 @@ export default async function MemberProfilePage({
   const { data: membership } = await supabase
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
+      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
     )
     .eq("member_id", memberId)
     .maybeSingle();
@@ -239,6 +256,47 @@ export default async function MemberProfilePage({
           <span className={`rounded px-2 py-1 text-xs ${badge.cls}`}>{badge.label}</span>
         </div>
 
+
+        {membership?.membership_plans ? (
+          <div className="mt-3 rounded border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm font-medium">
+                {formatPlanType(membership.membership_plans.plan_type)}: {membership.membership_plans.name}
+              </div>
+              <div className="text-xs opacity-70">
+                {money(membership.membership_plans.price)} • {membership.membership_plans.duration_days} day(s)
+              </div>
+            </div>
+
+            <div className="mt-2 text-sm">
+              <span className="opacity-70">Access:</span>{" "}
+              <span className="font-medium">
+                {membership.membership_plans.grants_access ? "Allowed" : "Discounts only"}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Food</div>
+                <div className="font-medium">{pct(membership.membership_plans.discount_food)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Watersports</div>
+                <div className="font-medium">{pct(membership.membership_plans.discount_watersports)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Gift Shop</div>
+                <div className="font-medium">{pct(membership.membership_plans.discount_giftshop)}</div>
+              </div>
+              <div className="rounded border p-2">
+                <div className="text-xs opacity-70">Spa</div>
+                <div className="font-medium">{pct(membership.membership_plans.discount_spa)}</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 text-sm opacity-70">No plan assigned.</div>
+        )}
         {banner ? (
           <div className={`mt-3 rounded p-3 ${banner.cls}`}>
             <div className="text-sm font-medium">{banner.title}</div>
