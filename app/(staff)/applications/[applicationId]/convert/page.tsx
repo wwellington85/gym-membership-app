@@ -89,8 +89,7 @@ export default async function ConvertApplicationPage({
 
   // Load plan by code
   const { data: plan, error: planError } = await supabase
-    .from("membership_plans")
-    .select("id, code, name, price, duration_days")
+    .from("membership_plans").select("id, name, code, price, duration_days").eq("is_active", true)
     .eq("code", app.requested_plan_code)
     .maybeSingle();
 
