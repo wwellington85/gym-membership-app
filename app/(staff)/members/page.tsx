@@ -42,6 +42,12 @@ export default async function MembersPage({
   const sp = (await searchParams) ?? {};
   const supabase = await createClient();
 
+  const { data: staffRows } = await supabase
+    .from("staff_profiles")
+    .select("user_id");
+
+  const staffUserIds = new Set((staffRows ?? []).map((r: any) => r.user_id).filter(Boolean));
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -356,6 +362,8 @@ export default async function MembersPage({
   // -------------------------
   // ADMIN / FRONT DESK UI
   // -------------------------
+  const filteredMembers = (members ?? []).filter((m: any) => !m.user_id || !staffUserIds.has(m.user_id));
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
