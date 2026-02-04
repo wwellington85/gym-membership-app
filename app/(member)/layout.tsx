@@ -6,7 +6,7 @@ export default async function MemberLayout({ children }: { children: React.React
   const { data } = await supabase.auth.getUser();
 
   if (!data.user) {
-    redirect("/auth/login?returnTo=/card");
+    redirect("/auth/login?returnTo=/member");
   }
 
   return (

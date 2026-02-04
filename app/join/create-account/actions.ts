@@ -8,7 +8,7 @@ export async function createMemberAccount(formData: FormData) {
   const applicationId = String(formData.get("applicationId") || "").trim();
   const password = String(formData.get("password") || "").trim();
 
-  if (!applicationId) redirect("/join?err=Missing%20application%20id");
+  if (!applicationId) redirect("/join/create-account?err=Missing%20application%20id");
   if (!password || password.length < 8) redirect(`/join/create-account?applicationId=${encodeURIComponent(applicationId)}&err=Password%20must%20be%20at%20least%208%20characters`);
 
   const supabase = await createClient();

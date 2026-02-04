@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export function LoginForm({
   className,
@@ -26,6 +26,19 @@ export function LoginForm({
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
+  const returnTo = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const v = new URLSearchParams(window.location.search).get("returnTo");
+    return v ? String(v) : "";
+  }, []);
+
+  const errMsg = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const v = new URLSearchParams(window.location.search).get("err");
+    return v ? String(v) : "";
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
@@ -33,15 +46,41 @@ export function LoginForm({
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      // Update this route to redirect to an authenticated route. The user already has an active session.
-      router.push("/protected");
-    } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred");
+      if (signInError) throw signInError;
+
+      const { data: userRes, error: userErr } = await supabase.auth.getUser();
+      if (userErr) throw userErr;
+
+      const u = userRes?.user;
+      const isStaff = !!u?.user_metadata?.is_staff;
+
+      const safeStaffPrefixes = [
+        "/dashboard",
+        "/members",
+        "/applications",
+        "/payments",
+        "/checkins",
+        "/settings",
+        "/more",
+      ];
+
+      const isSafeStaffReturnTo =
+        !!returnTo &&
+        safeStaffPrefixes.some((prefix) => returnTo === prefix || returnTo.startsWith(prefix + "/"));
+
+      const isSafeMemberReturnTo = !!returnTo && (returnTo === "/member" || returnTo.startsWith("/member/"));
+
+      if (isStaff) {
+        router.replace(isSafeStaffReturnTo ? returnTo : "/dashboard");
+      } else {
+        router.replace(isSafeMemberReturnTo ? returnTo : "/member");
+      }
+    } catch (err: any) {
+      setError(err?.message || "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -52,9 +91,7 @@ export function LoginForm({
       <Card>
         <CardHeader>
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>
-            Enter your email below to login to your account
-          </CardDescription>
+          <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin}>
@@ -70,6 +107,7 @@ export function LoginForm({
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
+
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
@@ -88,18 +126,19 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+
+              {errMsg && <p className="text-sm text-red-500">{errMsg}</p>}
               {error && <p className="text-sm text-red-500">{error}</p>}
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </div>
+
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <Link
-                href="/auth/sign-up"
-                className="underline underline-offset-4"
-              >
-                Sign up
+              <Link href="/join" className="underline underline-offset-4">
+                Join Travellers Club
               </Link>
             </div>
           </form>

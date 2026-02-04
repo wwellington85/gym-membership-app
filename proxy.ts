@@ -98,10 +98,9 @@ export async function proxy(request: NextRequest) {
     .maybeSingle();
 
   if (error || !staffProfile?.role) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/auth/login";
-    loginUrl.searchParams.set("err", "Missing staff profile");
-    return NextResponse.redirect(loginUrl);
+    const memberUrl = request.nextUrl.clone();
+    memberUrl.pathname = "/member";
+    return NextResponse.redirect(memberUrl);
   }
 
   const role = staffProfile.role as Role;

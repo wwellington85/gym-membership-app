@@ -1,15 +1,22 @@
 import { redirect } from "next/navigation";
-import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function HomePage() {
-  await connection();
-
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/auth/login");
-  redirect("/dashboard");
+
+  const { data: staffProfile } = await supabase
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (staffProfile?.role) redirect("/dashboard");
+
+  redirect("/member");
 }
