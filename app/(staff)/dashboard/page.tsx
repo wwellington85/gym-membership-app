@@ -135,11 +135,7 @@ export default async function DashboardPage() {
           <div className="mt-1 text-xs opacity-70">Discounts only</div>
         </div>
 
-        <div className="rounded border p-3">
-          <div className="text-xs opacity-70">Total Active (All)</div>
-          <div className="mt-1 text-2xl font-semibold">{activeAllCount ?? 0}</div>
-          <div className="mt-1 text-xs opacity-70">All active plans</div>
-        </div>
+        
 
         
         
