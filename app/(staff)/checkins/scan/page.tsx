@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { QrScanner } from "@/components/checkins/qr-scanner";
 
 function parsePayload(raw: string): { memberId?: string; err?: string } {
   const v = (raw || "").trim();
@@ -171,6 +172,14 @@ export default async function ScanCheckinPage({
           <div className="mt-1 opacity-80">{errMsg}</div>
         </div>
       ) : null}
+      <QrScanner
+        onScan={(text) => {
+          const url = `/checkins/scan?code=${encodeURIComponent(text)}`;
+          window.location.href = url;
+        }}
+      />
+
+
 
       <form action={lookup} className="space-y-2">
         <label className="text-sm font-medium">QR / Code</label>
