@@ -6,7 +6,7 @@ export default async function NewMemberPage() {
 
   const { data: plans, error: plansError } = await supabase
     .from("membership_plans")
-    .select("id, name, code, price")
+    .select("id, name, code, price, duration_days, plan_type")
     .eq("is_active", true)
     .order("duration_days", { ascending: true });
 
@@ -57,11 +57,30 @@ export default async function NewMemberPage() {
     redirect(`/members/${member.id}`);
   }
 
+
+  function formatPrice(price: number) {
+    return price === 0 ? "Free" : `$${price}`;
+  }
+
+  function formatDuration(days: number) {
+    if (days === 1) return "1 day";
+    if (days === 7) return "7 days";
+    if (days === 30) return "30 days";
+    if (days >= 3650) return "No expiry";
+    return `${days} days`;
+  }
+
+  function formatType(t?: string | null) {
+    if (t === "rewards") return "Rewards";
+    if (t === "club") return "Club";
+    if (t === "pass") return "Pass";
+    return "Plan";
+  }
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Add Member</h1>
-        <p className="text-sm opacity-70">Create a member and start a membership</p>
+        <h1 className="text-xl font-semibold">Add Club Member</h1>
+        <p className="text-sm opacity-70">Create a profile and assign Rewards, Club, or a Pass</p>
       </div>
 
       {plansError ? (
@@ -103,12 +122,12 @@ export default async function NewMemberPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Plan *</label>
+          <label className="text-sm font-medium">Membership *</label>
           <select name="plan_id" required className="w-full rounded border px-3 py-2">
             <option value="">Select a plan</option>
             {(plans ?? []).map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} ({p.code}) - ${p.price}
+                {formatType(p.plan_type)}: {p.name} • {formatDuration(p.duration_days)} • {formatPrice(p.price)}
               </option>
             ))}
           </select>
