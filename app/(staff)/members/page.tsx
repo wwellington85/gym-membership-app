@@ -4,6 +4,29 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+function getMemberStatus(m: any): string {
+  return String(
+    m?.membership?.status ??
+      m?.memberships?.status ??
+      m?.membership_status ??
+      m?.status ??
+      ""
+  ).toLowerCase();
+}
+
+function getMemberPlan(m: any): any {
+  const plan =
+    m?.membership?.membership_plans ??
+    m?.memberships?.membership_plans ??
+    m?.membership_plans ??
+    m?.plan ??
+    null;
+
+  if (Array.isArray(plan)) return plan[0] ?? null;
+  return plan ?? null;
+}
+
+
 type Filter =
   | "all"
   | "active"
@@ -76,10 +99,22 @@ export default async function MembersPage({
   const base = supabase
     .from("members")
     .select(
-      "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name))"
+      "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price))"
     )
     .order("created_at", { ascending: false })
     .limit(isSecurity ? 20 : 50);
+
+
+
+  // Query-param filters (from dashboard tiles)
+  const spQuery = (await (searchParams ?? Promise.resolve({}))) as any;
+  const qStatus = (spQuery.status ?? "").toString().toLowerCase();
+  const qAccess = (spQuery.access ?? "").toString(); // "1" | "0" | ""
+  const qNeeds = (spQuery.needs_contact ?? "").toString(); // "1" | "true" | ""
+
+  if (qNeeds) {
+  }
+
 
   const query = q
     ? base.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
@@ -93,7 +128,7 @@ export default async function MembersPage({
   }));
 
   // Filtering (only used for Admin/Front Desk view)
-  const filtered = members.filter((m: any) => {
+  let filtered = members.filter((m: any) => {
     const ms = m.membership;
     if (filter === "all") return true;
     if (filter === "active") return ms?.status === "active";
@@ -105,7 +140,45 @@ export default async function MembersPage({
     return true;
   });
 
-  // For Security gate mode: use first match as the "Gate Status" member
+  
+
+  // Apply query-param filters (dashboard tiles) on top of the tab filter
+  if (qStatus) {
+    filtered = (filtered ?? []).filter((m: any) => {
+      const status =
+        (m.membership?.status ??
+          m.memberships?.status ??
+          m.membership_status ??
+          m.status ??
+          "") as any;
+      return String(status).toLowerCase() === qStatus;
+    });
+  }
+
+  if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
+    filtered = (filtered ?? []).filter((m: any) => !!m.membership?.needs_contact);
+  }
+  if (qAccess === "1" || qAccess === "0") {
+    const want = qAccess === "1";
+    filtered = (filtered ?? []).filter((m: any) => {
+      const plan = getMemberPlan(m);
+      const code = String(plan?.code ?? "").toLowerCase();
+      const price = Number(plan?.price ?? 0);
+
+      // Prefer explicit column if/when it exists
+      const explicit = (plan as any)?.grants_access;
+      const grants =
+        typeof explicit === "boolean" ? explicit : (price > 0 && !code.includes("rewards"));
+
+      return !!grants === want;
+    });
+  }
+
+if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
+    filtered = (filtered ?? []).filter((m: any) => !!m.membership?.needs_contact);
+  }
+
+// For Security gate mode: use first match as the "Gate Status" member
   const gateMember = isSecurity && q && members.length > 0 ? members[0] : null;
   const gateMembership = gateMember?.membership;
 
@@ -179,8 +252,7 @@ export default async function MembersPage({
     confirmParams.set("confirm", "1");
 
     const cancelParams = new URLSearchParams(qParamsBase.toString());
-
-    return (
+return (
       <div className="space-y-4">
         <div>
           <h1 className="text-xl font-semibold">Quick Lookup</h1>
