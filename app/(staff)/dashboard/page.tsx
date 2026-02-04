@@ -125,16 +125,16 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-2">
         
 
-        <div className="rounded border p-3">
+        <Link href="/members?filter=active&access=1" className="block rounded border p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10">
           <div className="text-xs opacity-70">Active Access</div>
           <div className="mt-1 text-2xl font-semibold">{activeAccessCount ?? 0}</div>
           <div className="mt-1 text-xs opacity-70">Club or Pass</div>
-        </div>
-<div className="rounded border p-3">
+        </Link>
+<Link href="/members?filter=active&access=0" className="block rounded border p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10">
           <div className="text-xs opacity-70">Rewards Only</div>
           <div className="mt-1 text-2xl font-semibold">{rewardsOnlyCount ?? 0}</div>
           <div className="mt-1 text-xs opacity-70">Discounts only</div>
-        </div>
+        </Link>
 
         
 

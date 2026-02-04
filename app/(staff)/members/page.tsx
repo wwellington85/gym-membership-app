@@ -168,7 +168,7 @@ export default async function MembersPage({
       // Prefer explicit column if/when it exists
       const explicit = (plan as any)?.grants_access;
       const grants =
-        typeof explicit === "boolean" ? explicit : (price > 0 && !code.includes("rewards"));
+        typeof explicit === "boolean" ? explicit : (!code.includes("rewards") && (code.startsWith("club_") || price > 0));
 
       return !!grants === want;
     });

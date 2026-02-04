@@ -100,7 +100,7 @@ export default async function JoinPage({
     payload.is_inhouse_guest = is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null;
 
 
-    const { error } = await supabase.from("membership_applications").insert(payload);
+    const { data: created, error } = await supabase.from("membership_applications").insert(payload).select("id").single();
 
     if (error) redirect(`/join?err=${encodeURIComponent(error.message)}`);
 

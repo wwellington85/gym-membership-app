@@ -163,7 +163,7 @@ export default async function ConvertApplicationPage({
     // HARD GUARD (server): if already converted, STOP ALL WRITES
     const { data: existingApp } = await supabase
       .from("membership_applications")
-      .select("status, converted_member_id")
+      .select("status, converted_member_id, user_id")
       .eq("id", applicationId)
       .maybeSingle();
 
@@ -178,7 +178,7 @@ export default async function ConvertApplicationPage({
       .update({ status: "processing" })
       .eq("id", applicationId)
       .in("status", ["pending", "contacted", "processing"])
-      .select("status, converted_member_id")
+      .select("status, converted_member_id, user_id")
       .maybeSingle();
 
     if (processingRow?.status === "converted" && processingRow.converted_member_id) {
@@ -205,6 +205,7 @@ export default async function ConvertApplicationPage({
         full_name,
         phone: phone || null,
         email,
+  user_id: processingRow?.user_id ?? null,
         notes: null,
       })
       .select("id")
