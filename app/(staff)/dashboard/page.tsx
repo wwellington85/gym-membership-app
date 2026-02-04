@@ -128,6 +128,8 @@ export default async function DashboardPage() {
           <div className="mt-1 text-2xl font-semibold">{activeAccessCount ?? 0}</div>
           <div className="mt-1 text-xs opacity-70">Club or Pass</div>
         </div>
+        
+
 
         
 
