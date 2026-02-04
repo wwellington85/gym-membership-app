@@ -1,20 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 
 type Props = { onScan: (text: string) => void };
 
 export function QrScanner({ onScan }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [running, setRunning] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     return () => {
       try {
-        readerRef.current?.reset();
+        controlsRef.current?.stop();
+        controlsRef.current = null;
+        readerRef.current = null;
       } catch {}
     };
   }, []);
@@ -28,7 +31,7 @@ export function QrScanner({ onScan }: Props) {
       readerRef.current = reader;
       setRunning(true);
 
-      await reader.decodeFromConstraints(
+      controlsRef.current = await reader.decodeFromConstraints(
         { video: { facingMode: { ideal: "environment" } } },
         videoRef.current,
         (result) => {
@@ -47,7 +50,9 @@ export function QrScanner({ onScan }: Props) {
 
   function stop() {
     try {
-      readerRef.current?.reset();
+      controlsRef.current?.stop();
+        controlsRef.current = null;
+        readerRef.current = null;
     } catch {}
     setRunning(false);
   }
