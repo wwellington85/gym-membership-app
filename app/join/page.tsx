@@ -79,7 +79,6 @@ export default async function JoinPage({
     if (requested_start_date) payload.requested_start_date = requested_start_date;
     payload.country = country || null;
     payload.is_inhouse_guest = is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null;
-    # NOTE: requires membership_applications.country (text) and is_inhouse_guest (boolean)
 
 
     const { error } = await supabase.from("membership_applications").insert(payload);
