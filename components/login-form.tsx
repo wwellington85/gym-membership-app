@@ -14,7 +14,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 export function LoginForm({
@@ -35,8 +34,6 @@ export function LoginForm({
     if (typeof window === "undefined") return false;
     return new URLSearchParams(window.location.search).get("sent") === "1";
   });
-  const router = useRouter();
-
   // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
   const returnToRaw = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -74,15 +71,6 @@ export function LoginForm({
 
     return () => window.clearTimeout(t);
   }, [showSent]);
-
-
-  useEffect(() => {
-    if (!sentMsg) return;
-    setShowSent(true);
-    const t = window.setTimeout(() => setShowSent(false), 4000);
-    return () => window.clearTimeout(t);
-  }, [sentMsg]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
@@ -96,18 +84,34 @@ export function LoginForm({
       });
       if (signInError) throw signInError;
 
-      const { data: userRes, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
+      // Pull tokens from the client session and sync to server cookies (SSR/middleware relies on cookies).
+      const { data: sessionRes, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw sessionErr;
 
-      const u = userRes?.user;
-      const isStaff = !!u?.user_metadata?.is_staff;
-
-      // returnTo is sanitized via safeReturnTo()
-      if (isStaff) {
-        router.replace(returnTo || "/dashboard");
-      } else {
-        router.replace(returnTo || "/member");
+      const sess = sessionRes?.session;
+      if (!sess?.access_token || !sess?.refresh_token) {
+        throw new Error("Login succeeded but session was missing. Please try again.");
       }
+
+      const syncRes = await fetch("/auth/sync", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          access_token: sess.access_token,
+          refresh_token: sess.refresh_token,
+        }),
+      });
+
+      if (!syncRes.ok) {
+        const j = await syncRes.json().catch(() => ({}));
+        throw new Error(j?.error || "Could not sync session.");
+      }
+
+      // Ensure the session is persisted before we hit a server route that relies on cookies.
+      await supabase.auth.getSession();
+
+      // Let the server decide where to send the user (staff vs member) safely.
+      window.location.assign(returnTo ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/post-login");
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {
