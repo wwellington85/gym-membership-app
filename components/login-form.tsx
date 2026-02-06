@@ -30,7 +30,10 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSent, setShowSent] = useState(false);
+  const [showSent, setShowSent] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("sent") === "1";
+  });
   const router = useRouter();
 
   // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
@@ -52,6 +55,23 @@ export function LoginForm({
     const sent = new URLSearchParams(window.location.search).get("sent");
     return sent === "1" ? "Password reset email sent. Please check your inbox." : "";
   }, []);
+
+  useEffect(() => {
+    if (!showSent) return;
+
+    const t = window.setTimeout(() => {
+      setShowSent(false);
+
+      // Remove sent=1 from URL so refresh doesn't show the banner again
+      const url = new URL(window.location.href);
+      url.searchParams.delete("sent");
+      const qs = url.searchParams.toString();
+      window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
+    }, 3500);
+
+    return () => window.clearTimeout(t);
+  }, [showSent]);
+
 
   useEffect(() => {
     if (!sentMsg) return;
