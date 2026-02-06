@@ -58,7 +58,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Prepare response so Supabase can set/refresh cookies
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: request.headers },
   });
 

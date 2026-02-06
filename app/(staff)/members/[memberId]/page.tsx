@@ -81,9 +81,7 @@ export default async function MemberProfilePage({
 
   if (!staffProfile) redirect("/login");
 
-  const role = staffProfile.role as string;
-  const isSecurity = role === "security";
-  const canPayments = ["admin", "front_desk"].includes(role);
+  const role = staffProfile.role as string;const canPayments = ["admin", "front_desk"].includes(role);
 
   const { data: member, error: memberError } = await supabase
     .from("members")

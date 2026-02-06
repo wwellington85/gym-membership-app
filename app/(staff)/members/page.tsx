@@ -4,15 +4,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
-function getMemberStatus(m: any): string {
-  return String(
-    m?.membership?.status ??
-      m?.memberships?.status ??
-      m?.membership_status ??
-      m?.status ??
-      ""
-  ).toLowerCase();
-}
 
 function getMemberPlan(m: any): any {
   const plan =
@@ -64,13 +55,6 @@ export default async function MembersPage({
 }) {
   const sp = (await searchParams) ?? {};
   const supabase = await createClient();
-
-  const { data: staffRows } = await supabase
-    .from("staff_profiles")
-    .select("user_id");
-
-  const staffUserIds = new Set((staffRows ?? []).map((r: any) => r.user_id).filter(Boolean));
-
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -434,7 +418,6 @@ return (
   // -------------------------
   // ADMIN / FRONT DESK UI
   // -------------------------
-  const filteredMembers = (members ?? []).filter((m: any) => !m.user_id || !staffUserIds.has(m.user_id));
 
   return (
     <div className="space-y-4">

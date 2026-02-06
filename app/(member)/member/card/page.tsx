@@ -75,7 +75,7 @@ export default async function MemberCardPage() {
         <div className="font-mono text-sm">{member.id}</div>
 
         <div className="mt-4 flex items-center justify-center">
-          // eslint-disable-next-line @next/next/no-img-element
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={dataUrl} alt="Member QR Code" className="h-56 w-56 rounded border" />
         </div>
 

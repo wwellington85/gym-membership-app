@@ -18,13 +18,6 @@ function jamaicaTodayDateObj() {
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-
-
-  const { count: activeAllCount } = await supabase
-    .from("memberships")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "active");
-
   // Travellers Club summary counts (based on plan benefits)
   const { count: activeAccessCount } = await supabase
     .from("memberships")

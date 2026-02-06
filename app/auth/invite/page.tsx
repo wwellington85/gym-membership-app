@@ -13,8 +13,7 @@ function parseHashParams(hash: string) {
     access_token: params.get("access_token"),
     refresh_token: params.get("refresh_token"),
     expires_in: params.get("expires_in"),
-    token_type: params.get("token_type"),
-    type: params.get("type"),
+    token_type: (params.get("token_type") || params.get("type")),
     error: params.get("error"),
     error_description: params.get("error_description"),
   };
@@ -40,7 +39,6 @@ export default function InviteHandlerPage() {
         refresh_token,
         error,
         error_description,
-        type,
       } = parseHashParams(window.location.hash);
 
       if (error) {
