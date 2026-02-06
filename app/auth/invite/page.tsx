@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeReturnTo } from "@/lib/auth/return-to";
 
 const LOGIN_PATH = "/auth/login"; // <-- change this if your app uses a different login route
 
@@ -27,7 +28,8 @@ export default function InviteHandlerPage() {
     const run = async () => {
       const supabase = createClient();
 
-      const returnTo = new URLSearchParams(window.location.search).get("returnTo") || "";
+      const returnToRaw = new URLSearchParams(window.location.search).get("returnTo") || "";
+      const returnTo = safeReturnTo(returnToRaw) || "";
 
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");

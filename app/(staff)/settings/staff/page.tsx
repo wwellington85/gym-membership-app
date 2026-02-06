@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FlashBanners } from "@/components/ui/flash-banners";
+import { safeReturnTo, withParam } from "@/lib/auth/return-to";
 
 type Role = "admin" | "front_desk" | "security";
 const ROLES: Role[] = ["admin", "front_desk", "security"];
@@ -34,20 +35,7 @@ function sortLabel(sort: SortKey) {
   }
 }
 
-function safeReturnTo(raw: string) {
-  const rt = (raw || "/settings/staff").trim();
-  return rt.startsWith("/settings/staff") ? rt : "/settings/staff";
-}
 
-function withParam(url: string, key: string, value: string) {
-  const parts = url.split("?");
-  const path = parts[0] || "/settings/staff";
-  const qs = parts[1] || "";
-  const params = new URLSearchParams(qs);
-  params.set(key, value);
-  const next = params.toString();
-  return next ? (path + "?" + next) : path;
-}
 
 
 export default async function StaffManagementPage({

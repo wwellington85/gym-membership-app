@@ -2,12 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
+import { safeReturnTo } from "@/lib/auth/return-to";
+
 type Role = "admin" | "front_desk" | "security";
 
-function safeReturnTo(raw: string) {
-  const rt = (raw || "/applications").trim();
-  return rt.startsWith("/applications") ? rt : "/applications";
-}
 
 function withParam(url: string, key: string, value: string) {
   const [path, qs = ""] = url.split("?");

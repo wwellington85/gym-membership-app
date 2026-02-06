@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { safeReturnTo } from "@/lib/auth/return-to";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -37,11 +38,13 @@ export function LoginForm({
   const router = useRouter();
 
   // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
-  const returnTo = useMemo(() => {
+  const returnToRaw = useMemo(() => {
     if (typeof window === "undefined") return "";
     const v = new URLSearchParams(window.location.search).get("returnTo");
     return v ? String(v) : "";
   }, []);
+
+  const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
 
   const errMsg = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -99,26 +102,11 @@ export function LoginForm({
       const u = userRes?.user;
       const isStaff = !!u?.user_metadata?.is_staff;
 
-      const safeStaffPrefixes = [
-        "/dashboard",
-        "/members",
-        "/applications",
-        "/payments",
-        "/checkins",
-        "/settings",
-        "/more",
-      ];
-
-      const isSafeStaffReturnTo =
-        !!returnTo &&
-        safeStaffPrefixes.some((prefix) => returnTo === prefix || returnTo.startsWith(prefix + "/"));
-
-      const isSafeMemberReturnTo = !!returnTo && (returnTo === "/member" || returnTo.startsWith("/member/"));
-
+      // returnTo is sanitized via safeReturnTo()
       if (isStaff) {
-        router.replace(isSafeStaffReturnTo ? returnTo : "/dashboard");
+        router.replace(returnTo || "/dashboard");
       } else {
-        router.replace(isSafeMemberReturnTo ? returnTo : "/member");
+        router.replace(returnTo || "/member");
       }
     } catch (err: any) {
       setError(err?.message || "Login failed");
