@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export function ForgotPasswordForm({
@@ -20,6 +21,7 @@ export function ForgotPasswordForm({
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
   const [email, setEmail] = useState("");
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +39,7 @@ export function ForgotPasswordForm({
       });
       if (error) throw error;
       setSuccess(true);
+      router.replace(`/auth/login?sent=1&email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
@@ -57,7 +60,13 @@ export function ForgotPasswordForm({
               If you registered using your email and password, you will receive
               a password reset email.
             </p>
-          </CardContent>
+          
+            <div className="mt-4 text-center text-sm">
+              <Link href={`/auth/login?sent=1&email=${encodeURIComponent(email)}`} className="underline underline-offset-4">
+                Go to login
+              </Link>
+            </div>
+</CardContent>
         </Card>
       ) : (
         <Card>
