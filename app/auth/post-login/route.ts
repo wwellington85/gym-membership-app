@@ -12,7 +12,9 @@ export async function GET(request: Request) {
   const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
   if (userErr) {
-    return NextResponse.redirect(new URL(`/auth/login?err=${encodeURIComponent(userErr.message)}`, url));
+    return NextResponse.redirect(
+      new URL(`/auth/login?err=${encodeURIComponent(userErr.message)}`, url)
+    );
   }
 
   if (!user) {
@@ -28,16 +30,28 @@ export async function GET(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!staffErr && staff?.role) {
+  if (staffErr) {
+    return NextResponse.redirect(
+      new URL(`/auth/login?err=${encodeURIComponent(staffErr.message)}`, url)
+    );
+  }
+
+  if (staff?.role) {
     return NextResponse.redirect(new URL(returnTo || "/dashboard", url));
   }
 
   // 2) Member? (self-heal if missing)
-  const { data: member } = await supabase
+  const { data: member, error: memberErr } = await supabase
     .from("members")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  if (memberErr) {
+    return NextResponse.redirect(
+      new URL("/auth/login?err=" + encodeURIComponent(memberErr.message), url)
+    );
+  }
 
   if (member?.id) {
     return NextResponse.redirect(new URL(returnTo || "/member", url));
@@ -66,7 +80,9 @@ export async function GET(request: Request) {
     );
 
   if (ensureErr) {
-    return NextResponse.redirect(new URL(`/auth/login?err=${encodeURIComponent(ensureErr.message)}`, url));
+    return NextResponse.redirect(
+      new URL(`/auth/login?err=${encodeURIComponent(ensureErr.message)}`, url)
+    );
   }
 
   return NextResponse.redirect(new URL(returnTo || "/member", url));
