@@ -26,6 +26,7 @@ export default async function ApplicationDetailPage({
 }) {
   const { applicationId } = await params;
   const sp = (await searchParams) ?? {};
+  const backTo = safeReturnTo(sp.back || "/applications");
 
   const supabase = await createClient();
   const {
@@ -59,14 +60,12 @@ export default async function ApplicationDetailPage({
           Could not load application.
           <div className="mt-1 text-xs opacity-70">{error?.message}</div>
         </div>
-        <Link className="underline underline-offset-2" href="/applications">
+        <Link className="underline underline-offset-2" href={backTo}>
           Back to Applications
         </Link>
       </div>
     );
   }
-
-  const backTo = safeReturnTo(sp.back || "/applications");
 
   async function setStatus(formData: FormData) {
     "use server";
