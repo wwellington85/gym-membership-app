@@ -8,10 +8,30 @@ import { createClient } from "@/lib/supabase/client";
 export function UpdatePasswordForm() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const returnTo = useMemo(() => {
+
+  const safeReturnTo = useMemo(() => {
     if (typeof window === "undefined") return "";
+
     const v = new URLSearchParams(window.location.search).get("returnTo");
-    return v ? String(v) : "";
+    const rt = v ? String(v) : "";
+    if (!rt.startsWith("/")) return "";
+
+    const safeStaffPrefixes = [
+      "/dashboard",
+      "/members",
+      "/applications",
+      "/payments",
+      "/checkins",
+      "/settings",
+      "/more",
+    ];
+
+    const isSafeStaff =
+      safeStaffPrefixes.some((prefix) => rt === prefix || rt.startsWith(prefix + "/"));
+
+    const isSafeMember = rt === "/member" || rt.startsWith("/member/");
+
+    return (isSafeStaff || isSafeMember) ? rt : "";
   }, []);
 
   const [password, setPassword] = useState("");
@@ -29,14 +49,18 @@ export function UpdatePasswordForm() {
       if (cancelled) return;
 
       if (error) {
-        const msg = (error.message || "").toLowerCase();
-        if (msg.includes("refresh_token_not_found") || msg.includes("invalid refresh token") || msg.includes("auth session missing")) {
-          setSessionMissing(true);
-          setError("Your link is no longer valid. It may have expired or already been used.");
-          return;
-        }
+        const msg = String(error.message || "").toLowerCase();
+        const isExpired =
+          msg.includes("refresh_token_not_found") ||
+          msg.includes("invalid refresh token") ||
+          msg.includes("auth session missing");
+
         setSessionMissing(true);
-        setError(error.message);
+        setError(
+          isExpired
+            ? "Your link is no longer valid. It may have expired or already been used."
+            : error.message
+        );
         return;
       }
 
@@ -81,7 +105,7 @@ export function UpdatePasswordForm() {
       return;
     }
 
-    router.replace(returnTo ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/post-login");
+    router.replace(safeReturnTo ? `/auth/post-login?returnTo=${encodeURIComponent(safeReturnTo)}` : "/auth/post-login");
   };
 
   if (sessionMissing) {
