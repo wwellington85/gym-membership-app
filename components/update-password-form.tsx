@@ -8,7 +8,11 @@ import { createClient } from "@/lib/supabase/client";
 export function UpdatePasswordForm() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const returnTo = "/dashboard";
+  const returnTo = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const v = new URLSearchParams(window.location.search).get("returnTo");
+    return v ? String(v) : "";
+  }, []);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -25,6 +29,12 @@ export function UpdatePasswordForm() {
       if (cancelled) return;
 
       if (error) {
+        const msg = (error.message || "").toLowerCase();
+        if (msg.includes("refresh_token_not_found") || msg.includes("invalid refresh token") || msg.includes("auth session missing")) {
+          setSessionMissing(true);
+          setError("Your link is no longer valid. It may have expired or already been used.");
+          return;
+        }
         setSessionMissing(true);
         setError(error.message);
         return;
@@ -71,7 +81,7 @@ export function UpdatePasswordForm() {
       return;
     }
 
-    router.replace(returnTo);
+    router.replace(returnTo ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/post-login");
   };
 
   if (sessionMissing) {

@@ -145,11 +145,7 @@ export default async function StaffManagementPage({
   async function inviteStaff(formData: FormData) {
   "use server";
 
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "127.0.0.1:3000";
-  const origin = `${proto}://${host}`;
-
+    const origin = await getOrigin();
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
@@ -177,7 +173,7 @@ export default async function StaffManagementPage({
     const admin = createAdminClient();
 
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/auth/invite`,
+      redirectTo: `${origin}/auth/invite?returnTo=${encodeURIComponent("/dashboard")}`,
       data: { is_staff: true },
     });
     if (error) redirect(withParam(backTo, "err", error.message));
@@ -300,7 +296,7 @@ export default async function StaffManagementPage({
     const origin = await getOrigin();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/invite`,
+      redirectTo: `${origin}/auth/invite?returnTo=${encodeURIComponent("/dashboard")}`,
     });
 
     if (error) redirect(withParam(backTo, "err", error.message));
