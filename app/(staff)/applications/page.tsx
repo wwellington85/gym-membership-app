@@ -67,6 +67,8 @@ export default async function ApplicationsPage({
     { key: "all", label: "All" },
   ];
 
+  const backTo = `/applications?status=${status}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+
   return (
     <div className="space-y-4">
       <div>
@@ -126,7 +128,7 @@ export default async function ApplicationsPage({
         {(apps ?? []).map((a) => (
           <Link
             key={a.id}
-            href={`/applications/${a.id}`}
+            href={`/applications/${a.id}?back=${encodeURIComponent(backTo)}`}
             className="block rounded border p-3 hover:bg-gray-50"
           >
             <div className="flex items-start justify-between gap-3">
