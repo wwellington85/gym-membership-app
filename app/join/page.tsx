@@ -142,11 +142,7 @@ export default async function JoinPage({
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
         if (signInErr) {
           console.error("JOIN signIn (existing user) error:", signInErr);
-          redirect(
-            `/join?err=${encodeURIComponent(
-              "Account already exists. Please log in with your password."
-            )}`
-          );
+          redirect("/auth/login?returnTo=/join&err=That%20email%20is%20already%20registered.%20Please%20log%20in%20to%20continue.");
         }
 
         alreadySignedIn = true;
