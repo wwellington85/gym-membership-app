@@ -42,3 +42,9 @@ yarn-error.log*
 next-env.d.ts
 
 .DS_Store
+
+# macOS
+.DS_Store
+
+# Next build output (belt + suspenders)
+.next/**/.DS_Store
