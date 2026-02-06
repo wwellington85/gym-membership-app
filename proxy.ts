@@ -49,6 +49,13 @@ function roleAllowsPath(role: Role, pathname: string) {
   return false;
 }
 
+function clearAllCookies(req: NextRequest, res: NextResponse) {
+  // Clear everything we received (safe + simple in dev)
+  req.cookies.getAll().forEach((c) => {
+    res.cookies.set(c.name, "", { path: "/", maxAge: 0 });
+  });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -81,7 +88,21 @@ export async function proxy(request: NextRequest) {
 
   const {
     data: { user },
+    error: userErr,
   } = await supabase.auth.getUser();
+
+  // If refresh token is missing/invalid, don't try to keep redirecting.
+  // Clear cookies and send them to login with a helpful message.
+  if (userErr) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
+    loginUrl.searchParams.set("err", "Session expired. Please log in again.");
+    loginUrl.searchParams.set("returnTo", pathname + search);
+
+    const res = NextResponse.redirect(loginUrl);
+    clearAllCookies(request, res);
+    return res;
+  }
 
   if (!user) {
     const loginUrl = request.nextUrl.clone();
@@ -91,13 +112,22 @@ export async function proxy(request: NextRequest) {
   }
 
   // Assumes: staff_profiles(user_id, role)
-  const { data: staffProfile, error } = await supabase
+  const { data: staffProfile, error: staffErr } = await supabase
     .from("staff_profiles")
     .select("role")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (error || !staffProfile?.role) {
+  // If the staff lookup itself fails, treat like auth failure (avoid weird loops).
+  if (staffErr) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
+    loginUrl.searchParams.set("err", staffErr.message);
+    loginUrl.searchParams.set("returnTo", pathname + search);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (!staffProfile?.role) {
     const memberUrl = request.nextUrl.clone();
     memberUrl.pathname = "/member";
     return NextResponse.redirect(memberUrl);

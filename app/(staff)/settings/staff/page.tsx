@@ -14,7 +14,7 @@ type SortKey = "newest" | "oldest" | "email_asc" | "role_asc" | "status_active_f
 async function getOrigin() {
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "127.0.0.1:3000";
   return `${proto}://${host}`;
 }
 
@@ -147,7 +147,7 @@ export default async function StaffManagementPage({
 
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "127.0.0.1:3000";
   const origin = `${proto}://${host}`;
 
 
