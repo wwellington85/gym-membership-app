@@ -22,9 +22,12 @@ function parseHashParams(hash: string) {
 export default function InviteHandlerPage() {
   const router = useRouter();
 
+
   useEffect(() => {
     const run = async () => {
       const supabase = createClient();
+
+      const returnTo = new URLSearchParams(window.location.search).get("returnTo") || "";
 
       const url = new URL(window.location.href);
       const code = url.searchParams.get("code");
@@ -57,7 +60,7 @@ export default function InviteHandlerPage() {
           router.replace(`${LOGIN_PATH}?err=${encodeURIComponent(setErr.message)}`);
           return;
         }
-        router.replace("/auth/update-password");
+        router.replace(returnTo ? `/auth/update-password?returnTo=${encodeURIComponent(returnTo)}` : "/auth/update-password");
         return;
       }
 
