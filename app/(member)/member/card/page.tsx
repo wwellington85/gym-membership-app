@@ -29,7 +29,7 @@ export default async function MemberCardPage() {
             <h1 className="text-xl font-semibold">Membership Card</h1>
             <p className="text-sm opacity-70">Travellers Club</p>
           </div>
-          <Link href="/member" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+          <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
             Back
           </Link>
         </div>
@@ -62,7 +62,7 @@ export default async function MemberCardPage() {
           <h1 className="text-xl font-semibold">Membership Card</h1>
           <p className="text-sm opacity-70">Show this at the gate / front desk</p>
         </div>
-        <Link href="/member" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
           Back
         </Link>
       </div>

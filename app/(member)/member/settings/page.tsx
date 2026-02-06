@@ -27,7 +27,7 @@ export default async function MemberSettingsPage() {
           <h1 className="text-xl font-semibold">Settings</h1>
           <p className="text-sm opacity-70">Manage your account</p>
         </div>
-        <Link href="/member" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
           Back
         </Link>
       </div>
