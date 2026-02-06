@@ -4,34 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeReturnTo } from "@/lib/auth/return-to";
 
 export function UpdatePasswordForm() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
-  const safeReturnTo = useMemo(() => {
+  const returnTo = useMemo(() => {
     if (typeof window === "undefined") return "";
-
     const v = new URLSearchParams(window.location.search).get("returnTo");
-    const rt = v ? String(v) : "";
-    if (!rt.startsWith("/")) return "";
-
-    const safeStaffPrefixes = [
-      "/dashboard",
-      "/members",
-      "/applications",
-      "/payments",
-      "/checkins",
-      "/settings",
-      "/more",
-    ];
-
-    const isSafeStaff =
-      safeStaffPrefixes.some((prefix) => rt === prefix || rt.startsWith(prefix + "/"));
-
-    const isSafeMember = rt === "/member" || rt.startsWith("/member/");
-
-    return (isSafeStaff || isSafeMember) ? rt : "";
+    return safeReturnTo(v);
   }, []);
 
   const [password, setPassword] = useState("");
@@ -105,7 +87,8 @@ export function UpdatePasswordForm() {
       return;
     }
 
-    router.replace(safeReturnTo ? `/auth/post-login?returnTo=${encodeURIComponent(safeReturnTo)}` : "/auth/post-login");
+    router.replace(returnTo ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/post-login");
+
   };
 
   if (sessionMissing) {
