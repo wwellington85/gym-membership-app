@@ -20,7 +20,13 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const [email, setEmail] = useState("");
+  const initialEmail = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const v = new URLSearchParams(window.location.search).get("email");
+    return v ? String(v) : "";
+  }, []);
+
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
