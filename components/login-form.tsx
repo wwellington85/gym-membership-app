@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function LoginForm({
   className,
@@ -30,6 +30,7 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSent, setShowSent] = useState(false);
   const router = useRouter();
 
   // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
@@ -44,6 +45,20 @@ export function LoginForm({
     const v = new URLSearchParams(window.location.search).get("err");
     return v ? String(v) : "";
   }, []);
+
+
+  const sentMsg = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const sent = new URLSearchParams(window.location.search).get("sent");
+    return sent === "1" ? "Password reset email sent. Please check your inbox." : "";
+  }, []);
+
+  useEffect(() => {
+    if (!sentMsg) return;
+    setShowSent(true);
+    const t = window.setTimeout(() => setShowSent(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [sentMsg]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +148,7 @@ export function LoginForm({
                 />
               </div>
 
+              {showSent && sentMsg && <p className="text-sm text-green-600">{sentMsg}</p>}
               {errMsg && <p className="text-sm text-red-500">{errMsg}</p>}
               {error && <p className="text-sm text-red-500">{error}</p>}
 
