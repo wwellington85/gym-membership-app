@@ -40,16 +40,23 @@ export function SignUpForm({
     }
 
     try {
+      const origin = (
+        process.env.NEXT_PUBLIC_SITE_URL ||
+        (typeof window !== "undefined" ? window.location.origin : "")
+      ).replace(/\/$/, "");
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/protected`,
+          emailRedirectTo: `${origin}/protected`,
         },
       });
+
       if (error) throw error;
       router.push("/auth/sign-up-success");
-    } catch (error: unknown) {
+    }
+    catch(error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsLoading(false);
