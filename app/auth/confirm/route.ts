@@ -6,26 +6,28 @@ import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
+
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = safeReturnTo(searchParams.get("next") ?? "/") || "/";
 
-  if (token_hash && type) {
-    const supabase = await createClient();
+  const returnToRaw = searchParams.get("returnTo") || "";
+  const returnTo = safeReturnTo(returnToRaw) || "/";
 
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    });
-    if (!error) {
-      // redirect user to specified redirect URL or root of app
-      redirect(next);
-    } else {
-      // redirect the user to an error page with some instructions
-      redirect(`/auth/error?error=${encodeURIComponent(error?.message || "Auth error")}`);
-    }
+  if (!token_hash || !type) {
+    redirect(`/auth/error?error=${encodeURIComponent("Missing token_hash or type")}`);
   }
 
-  // redirect the user to an error page with some instructions
-  redirect(`/auth/error?error=${encodeURIComponent("No token hash or type")}`);
+  const supabase = await createClient();
+
+  const { error } = await supabase.auth.verifyOtp({
+    type,
+    token_hash,
+  });
+
+  if (error) {
+    redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
+  }
+
+  // Let your post-login router decide staff vs member
+  redirect(`/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`);
 }

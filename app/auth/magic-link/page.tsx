@@ -5,13 +5,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeReturnTo } from "@/lib/auth/return-to";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -47,27 +41,19 @@ export default function MagicLinkPage() {
     try {
       const supabase = createClient();
 
-      const origin =
+      const origin = (
         process.env.NEXT_PUBLIC_SITE_URL ||
-        (typeof window !== "undefined" ? window.location.origin : "");
+        (typeof window !== "undefined" ? window.location.origin : "")
+      ).replace(/\/$/, "");
 
-      const nextPath = returnTo
-        ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`
-        : "/auth/post-login";
-
-      const redirectTo = origin
-        ? `${origin}/auth/confirm?next=${encodeURIComponent(nextPath)}`
-        : undefined;
+      const redirectTo = `${origin}/auth/confirm${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
 
       const { error: otpErr } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: {
-          emailRedirectTo: redirectTo,
-        },
+        options: { emailRedirectTo: redirectTo },
       });
 
       if (otpErr) throw otpErr;
-
       setSent(true);
     } catch (err: any) {
       setError(err?.message || "Could not send magic link");
