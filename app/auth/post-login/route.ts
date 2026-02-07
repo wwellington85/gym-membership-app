@@ -24,8 +24,10 @@ export async function GET(request: Request) {
     return NextResponse.redirect(dest);
   }
 
-  // 1) Staff?
-  const { data: staff, error: staffErr } = await supabase
+  const admin = createAdminClient();
+
+  // 1) Staff? (admin client bypasses RLS so we don't mis-route staff to /member)
+  const { data: staff, error: staffErr } = await admin
     .from("staff_profiles")
     .select("role")
     .eq("user_id", user.id)
@@ -38,7 +40,9 @@ export async function GET(request: Request) {
   }
 
   if (staff?.role) {
-    return NextResponse.redirect(new URL(returnTo || "/dashboard", url));
+    // Staff should not be redirected into member routes
+    const staffReturnTo = returnTo && returnTo.startsWith("/member") ? "" : returnTo;
+    return NextResponse.redirect(new URL(staffReturnTo || "/dashboard", url));
   }
 
   // 2) Member? (self-heal if missing)
@@ -55,11 +59,11 @@ export async function GET(request: Request) {
   }
 
   if (member?.id) {
-    return NextResponse.redirect(new URL(returnTo || "/member", url));
+    const memberReturnTo = returnTo && returnTo.startsWith("/member") ? returnTo : "";
+    return NextResponse.redirect(new URL(memberReturnTo || "/member", url));
   }
 
   // Create member row if it doesn't exist (service role bypasses RLS)
-  const admin = createAdminClient();
   const email = (user.email || "").toLowerCase();
   const full_name =
     (user.user_metadata?.full_name as string | undefined) ||
@@ -86,5 +90,6 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.redirect(new URL(returnTo || "/member", url));
+  const memberReturnTo2 = returnTo && returnTo.startsWith("/member") ? returnTo : "";
+  return NextResponse.redirect(new URL(memberReturnTo2 || "/member", url));
 }
