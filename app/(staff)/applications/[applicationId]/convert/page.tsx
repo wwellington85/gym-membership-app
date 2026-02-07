@@ -168,21 +168,6 @@ export default async function ConvertApplicationPage({
     if (existingApp?.status === "converted" && existingApp.converted_member_id) {
       redirect("/members/" + existingApp.converted_member_id);
     }
-
-    // Optional: mark as processing to reduce double-click races
-    // (If you don't want a new status, you can remove this block.)
-    const { data: processingRow } = await supabase
-      .from("membership_applications")
-      .update({ status: "processing" })
-      .eq("id", applicationId)
-      .in("status", ["pending", "contacted", "processing"])
-      .select("status, converted_member_id, user_id")
-      .maybeSingle();
-
-    if (processingRow?.status === "converted" && processingRow.converted_member_id) {
-      redirect("/members/" + processingRow.converted_member_id);
-    }
-
     // Load plan duration (server truth)
     const { data: plan, error: planError } = await supabase
       .from("membership_plans")
@@ -203,7 +188,7 @@ export default async function ConvertApplicationPage({
         full_name,
         phone: phone || null,
         email,
-  user_id: processingRow?.user_id ?? null,
+        user_id: existingApp?.user_id ?? null,
         notes: null,
       })
       .select("id")
