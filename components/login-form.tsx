@@ -71,6 +71,8 @@ export function LoginForm({
 
     return () => window.clearTimeout(t);
   }, [showSent]);
+
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const supabase = createClient();
@@ -158,6 +160,18 @@ export function LoginForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <div className="text-xs opacity-70">
+                  <Link
+                    href={
+                      returnTo
+                        ? `/auth/magic-link?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(email)}`
+                        : `/auth/magic-link?email=${encodeURIComponent(email)}`
+                    }
+                    className="underline underline-offset-4"
+                  >
+                    Email me a login link instead
+                  </Link>
+                </div>
               </div>
 
               {showSent && sentMsg && <p className="text-sm text-green-600">{sentMsg}</p>}
