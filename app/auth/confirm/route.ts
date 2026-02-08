@@ -5,29 +5,41 @@ import { redirect } from "next/navigation";
 import { type NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
+  const url = new URL(request.url);
+  const sp = url.searchParams;
 
-  const token_hash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
+  // We support both `returnTo` (our app) and `next` (supabase starter pattern)
+  const returnTo = safeReturnTo(sp.get("returnTo") || sp.get("next")) || "";
 
-  const returnToRaw = searchParams.get("returnTo") || "";
-  const returnTo = safeReturnTo(returnToRaw) || "/";
-
-  if (!token_hash || !type) {
-    redirect(`/auth/error?error=${encodeURIComponent("Missing token_hash or type")}`);
-  }
+  const code = sp.get("code");
+  const token_hash = sp.get("token_hash");
+  const type = sp.get("type") as EmailOtpType | null;
 
   const supabase = await createClient();
 
-  const { error } = await supabase.auth.verifyOtp({
-    type,
-    token_hash,
-  });
-
-  if (error) {
+  // PKCE flow (most common for magic links)
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      const dest = returnTo
+        ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`
+        : "/auth/post-login";
+      redirect(dest);
+    }
     redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
   }
 
-  // Let your post-login router decide staff vs member
-  redirect(`/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`);
+  // token_hash flow (older/alternate)
+  if (token_hash && type) {
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+    if (!error) {
+      const dest = returnTo
+        ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`
+        : "/auth/post-login";
+      redirect(dest);
+    }
+    redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect(`/auth/error?error=${encodeURIComponent("Missing code or token_hash/type")}`);
 }
