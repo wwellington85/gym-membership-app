@@ -1,43 +1,48 @@
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { safeReturnTo } from "@/lib/auth/return-to";
 import { type EmailOtpType } from "@supabase/supabase-js";
-import { redirect } from "next/navigation";
-import { type NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
-  const searchParams = url.searchParams;
+  const sp = url.searchParams;
 
-  // Supabase may send either:
-  // - ?code=... (PKCE)
-  // - ?token_hash=...&type=... (OTP magic link)
-  const code = searchParams.get("code");
-  const token_hash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
+  const code = sp.get("code");
+  const token_hash = sp.get("token_hash");
+  const type = sp.get("type") as EmailOtpType | null;
 
-  // Prefer `next`, but allow `returnTo` for our own links
-  const nextRaw = searchParams.get("next") ?? searchParams.get("returnTo") ?? "";
+  // allow both next + returnTo
+  const nextRaw = sp.get("next") ?? sp.get("returnTo") ?? "";
   const next = safeReturnTo(nextRaw) || "/auth/post-login";
 
   const supabase = await createClient();
 
-  // PKCE flow (common for magic links now)
+  // PKCE flow (common modern magic link flow)
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) redirect(next);
-    redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
+    if (!error) {
+      return NextResponse.redirect(new URL(next, url));
+    }
+    return NextResponse.redirect(
+      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url)
+    );
   }
 
-  // Legacy OTP flow
+  // OTP token_hash flow (legacy)
   if (token_hash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    });
-
-    if (!error) redirect(next);
-    redirect(`/auth/error?error=${encodeURIComponent(error.message)}`);
+    const { error } = await supabase.auth.verifyOtp({ type, token_hash });
+    if (!error) {
+      return NextResponse.redirect(new URL(next, url));
+    }
+    return NextResponse.redirect(
+      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url)
+    );
   }
 
-  redirect(`/auth/error?error=${encodeURIComponent("Missing code or token_hash/type")}`);
+  // Helpful debug so we can see what params actually arrived
+  const debug = encodeURIComponent(url.search || "(no query string)");
+  return NextResponse.redirect(
+    new URL(`/auth/error?error=${encodeURIComponent("Missing code or token_hash/type")}&debug=${debug}`, url)
+  );
 }
