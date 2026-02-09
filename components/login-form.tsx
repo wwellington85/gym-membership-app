@@ -1,5 +1,11 @@
 "use client";
 
+
+
+function isValidEmail(v: string) {
+  const s = v.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeReturnTo } from "@/lib/auth/return-to";
@@ -14,8 +20,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-
+import { useCallback, useEffect, useMemo, useState } from "react";
 export function LoginForm({
   className,
   ...props
@@ -30,11 +35,15 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const sentType = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("sent") || "";
+  }, []);
+
   const [showSent, setShowSent] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return new URLSearchParams(window.location.search).get("sent") === "1";
+    return sentType !== "";
   });
-  // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
+// Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
   const returnToRaw = useMemo(() => {
     if (typeof window === "undefined") return "";
     const v = new URLSearchParams(window.location.search).get("returnTo");
@@ -42,6 +51,32 @@ export function LoginForm({
   }, []);
 
   const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
+
+  
+
+  
+
+  const emailOk = useMemo(() => isValidEmail(email), [email]);
+
+  const magicHref = useMemo(() => {
+    const clean = email.trim();
+    if (!isValidEmail(clean)) return "";
+    return returnTo
+      ? `/auth/magic-link?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(clean)}`
+      : `/auth/magic-link?email=${encodeURIComponent(clean)}`;
+  }, [email, returnTo]);
+
+const handleMagicLinkClick = useCallback(
+    (e: React.MouseEvent) => {
+      const v = (email || "").trim();
+      // Basic email check (just to avoid empty/obvious bad clicks)
+      if (!v || !v.includes("@")) {
+        e.preventDefault();
+        setError("Enter a valid email to receive a login link.");
+      }
+    },
+    [email]
+  );
 
   const errMsg = useMemo(() => {
     if (typeof window === "undefined") return "";
@@ -51,12 +86,12 @@ export function LoginForm({
 
 
   const sentMsg = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const sent = new URLSearchParams(window.location.search).get("sent");
-    return sent === "1" ? "Password reset email sent. Please check your inbox." : "";
-  }, []);
-
-  useEffect(() => {
+    if (!sentType) return "";
+    if (sentType === "1") return "Password reset email sent. Please check your inbox.";
+    if (sentType === "magic") return "Login link sent. Please check your email (and spam/junk).";
+    return "";
+  }, [sentType]);
+useEffect(() => {
     if (!showSent) return;
 
     const t = window.setTimeout(() => {
@@ -161,16 +196,19 @@ export function LoginForm({
                   onChange={(e) => setPassword(e.target.value)}
                 />
                 <div className="text-xs opacity-70">
-                  <Link
-                    href={
-                      returnTo
-                        ? `/auth/magic-link?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(email)}`
-                        : `/auth/magic-link?email=${encodeURIComponent(email)}`
-                    }
-                    className="underline underline-offset-4"
-                  >
-                    Email me a login link instead
-                  </Link>
+                  {emailOk && magicHref ? (
+                    <Link href={magicHref} onClick={handleMagicLinkClick}
+                    className="underline underline-offset-4">
+                      Email me a login link instead
+                    </Link>
+                  ) : (
+                    <span className="cursor-not-allowed opacity-50">
+                      Email me a login link instead
+                    </span>
+                  )}
+                  {!emailOk ? (
+                    <span className="ml-2 text-xs opacity-60">Enter your email first</span>
+                  ) : null}
                 </div>
               </div>
 
