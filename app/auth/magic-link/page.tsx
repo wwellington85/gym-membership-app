@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { safeReturnTo } from "@/lib/auth/return-to";
@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+function isValidEmail(v: string) {
+  const s = v.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
 
 export default function MagicLinkPage() {
   const returnToRaw = useMemo(() => {
@@ -17,46 +22,71 @@ export default function MagicLinkPage() {
   }, []);
 
   const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
+  
+  useEffect(() => {
+    const applyFromUrl = () => {
+      try {
+        const v = new URLSearchParams(window.location.search).get("email");
+        if (v) setEmail(String(v));
+      } catch {
+        // ignore
+      }
+    };
 
-  const initialEmail = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const v = new URLSearchParams(window.location.search).get("email");
-    return v ? String(v) : "";
+    applyFromUrl();
+
+    // Handle client-side nav/back/forward where the component might not remount
+    const onPop = () => applyFromUrl();
+    window.addEventListener("popstate", onPop);
+
+    return () => window.removeEventListener("popstate", onPop);
   }, []);
-
-  const [email, setEmail] = useState(initialEmail);
+const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loginHref = returnTo
-    ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}`
-    : "/auth/login";
+  const emailOk = isValidEmail(email);
+  const loginHref = returnTo ? `/auth/login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/login";
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
 
+    const cleanEmail = email.trim();
+    if (!isValidEmail(cleanEmail)) {
+      setError("Enter a valid email to receive a login link.");
+      return;
+    }
+
+    setIsLoading(true);
     try {
       const supabase = createClient();
 
-      const origin = (
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        (typeof window !== "undefined" ? window.location.origin : "")
-      ).replace(/\/$/, "");
+      const origin =
+        (typeof window !== "undefined"
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || "")
+        ).replace(/\/$/, "");
 
-      const redirectTo = `${origin}/auth/confirm${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
+      // Important: send users back through /auth/confirm, which then redirects to /auth/post-login.
+      const confirmUrl = `${origin}/auth/confirm${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
 
       const { error: otpErr } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: redirectTo },
+        email: cleanEmail,
+        options: { emailRedirectTo: confirmUrl },
       });
 
       if (otpErr) throw otpErr;
-      setSent(true);
+
+      // UX: return to login with a success banner
+      const u = new URL(loginHref, window.location.origin);
+      u.searchParams.set("sent", "magic");
+      u.searchParams.set("email", cleanEmail);
+      if (returnTo) u.searchParams.set("returnTo", returnTo);
+      window.location.assign(u.toString());
+      return;
     } catch (err: any) {
-      setError(err?.message || "Could not send magic link");
+      setError(err?.message || "Could not send login link");
     } finally {
       setIsLoading(false);
     }
@@ -68,27 +98,19 @@ export default function MagicLinkPage() {
         <CardHeader>
           <CardTitle className="text-2xl">Email me a login link</CardTitle>
           <CardDescription>
-            We’ll send a secure magic link to your inbox. Clicking it verifies you own the email.
+            We’ll send a secure link to your inbox. Clicking it verifies you own the email.
           </CardDescription>
         </CardHeader>
+
         <CardContent>
-          {sent ? (
-            <div className="space-y-3">
-              <div className="rounded border p-3 text-sm">
-                Link sent. Please check your email (and spam/junk).
-              </div>
-              <Link className="underline underline-offset-4" href={loginHref}>
-                Back to login
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleSend} className="space-y-4">
+          {<form onSubmit={handleSend} className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   required
+                  autoFocus
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
@@ -97,7 +119,7 @@ export default function MagicLinkPage() {
 
               {error ? <p className="text-sm text-red-500">{error}</p> : null}
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || !emailOk}>
                 {isLoading ? "Sending..." : "Send magic link"}
               </Button>
 
@@ -107,8 +129,7 @@ export default function MagicLinkPage() {
                   Login with password
                 </Link>
               </div>
-            </form>
-          )}
+            </form>}
         </CardContent>
       </Card>
     </div>

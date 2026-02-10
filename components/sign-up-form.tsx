@@ -41,8 +41,9 @@ export function SignUpForm({
 
     try {
       const origin = (
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        (typeof window !== "undefined" ? window.location.origin : "")
+        typeof window !== "undefined"
+          ? window.location.origin
+          : (process.env.NEXT_PUBLIC_SITE_URL || "")
       ).replace(/\/$/, "");
 
       const { error } = await supabase.auth.signUp({
