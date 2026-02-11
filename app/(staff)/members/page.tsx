@@ -378,7 +378,7 @@ return (
 
         {/* Other matches */}
         {q && members.length > 1 ? (
-          <div className="rounded border p-3">
+          <div className="oura-card p-3">
             <div className="flex items-center justify-between">
               <div className="font-medium">Other matches</div>
               <div className="text-xs opacity-70">{members.length - 1}</div>

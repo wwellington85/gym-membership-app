@@ -10,6 +10,13 @@ function addDaysISO(baseISO: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function fmtJamaicaDate(ts?: string | null) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", { timeZone: "America/Jamaica" });
+}
+
 export default async function MemberSettingsPage() {
   const supabase = await createClient();
 
@@ -30,36 +37,49 @@ export default async function MemberSettingsPage() {
   // Ensure we have a rewards_free plan to attach when membership row is missing
   const { data: rewardsPlan } = await supabase
     .from("membership_plans")
-    .select("id, duration_days, code")
+    .select("id, duration_days, code, name")
     .eq("code", "rewards_free")
     .maybeSingle();
 
-  // Fetch membership row (create if missing)
+  // Fetch membership row (include plan code + name)
   let { data: membership } = await supabase
     .from("memberships")
-    .select("id, plan_id, paid_through_date, status")
+    .select("id, plan_id, paid_through_date, status, membership_plans(code, name)")
     .eq("member_id", member.id)
     .maybeSingle();
 
+  // Create membership row if missing
   if (!membership) {
     const todayISO = new Date().toISOString().slice(0, 10);
     const duration = Number(rewardsPlan?.duration_days || 3650);
     const paidThrough = addDaysISO(todayISO, duration);
 
-    const { data: created } = await supabase
-      .from("memberships")
-      .insert({
-        member_id: member.id,
-        plan_id: rewardsPlan?.id ?? null,
-        start_date: todayISO,
-        paid_through_date: paidThrough,
-        status: "active",
-      })
-      .select("id, plan_id, paid_through_date, status")
-      .single();
+    await supabase.from("memberships").insert({
+      member_id: member.id,
+      plan_id: rewardsPlan?.id ?? null,
+      start_date: todayISO,
+      paid_through_date: paidThrough,
+      status: "active",
+    });
 
-    membership = created ?? null;
+    const res = await supabase
+      .from("memberships")
+      .select("id, plan_id, paid_through_date, status, membership_plans(code, name)")
+      .eq("member_id", member.id)
+      .maybeSingle();
+
+    membership = res.data ?? null;
   }
+
+  const msPlanRaw: any = (membership as any)?.membership_plans;
+  const msPlan: any = Array.isArray(msPlanRaw) ? msPlanRaw[0] : msPlanRaw;
+
+  const currentPlanCode = String(msPlan?.code || "rewards_free");
+  const currentPlanName = String(
+    msPlan?.name || rewardsPlan?.name || "Travellers Rewards (Free)"
+  );
+
+  const paidThroughLabel = fmtJamaicaDate((membership as any)?.paid_through_date ?? null);
 
   async function logout() {
     "use server";
@@ -72,11 +92,11 @@ export default async function MemberSettingsPage() {
     "use server";
 
     const planCode = String(formData.get("plan_code") || "");
-    if (!planCode) redirect("/member/settings?err=Missing%20plan");
+    if (!planCode) redirect("/member/settings?err=SETTINGS_MISSING_PLAN");
 
-    // Paid plans go to Fygaro checkout route (creates payment row + redirects to Fygaro)
+    // Paid plans: go to upgrade page (Option B)
     if (planCode !== "rewards_free") {
-      redirect(`/api/fygaro/checkout?plan=${encodeURIComponent(planCode)}`);
+      redirect(`/member/upgrade?plan=${encodeURIComponent(planCode)}`);
     }
 
     // Free plan: update membership directly
@@ -103,7 +123,8 @@ export default async function MemberSettingsPage() {
       .maybeSingle();
 
     if (!m) redirect("/join");
-await supabase
+
+    await supabase
       .from("memberships")
       .update({
         plan_id: plan?.id ?? null,
@@ -114,7 +135,7 @@ await supabase
       })
       .eq("member_id", m.id);
 
-redirect("/member/settings?ok=Updated");
+    redirect("/member/settings?ok=Updated");
   }
 
   const { data: plans } = await supabase
@@ -133,7 +154,7 @@ redirect("/member/settings?ok=Updated");
         <Link
           href="/member"
           prefetch={false}
-          className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+          className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
         >
           Back
         </Link>
@@ -145,9 +166,21 @@ redirect("/member/settings?ok=Updated");
           <div className="font-medium">{user.email ?? "—"}</div>
         </div>
 
-        <div className="rounded border p-3">
+        <div className="oura-card p-3">
           <div className="font-medium">Membership plan</div>
-          <p className="mt-1 text-sm opacity-70">
+
+          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <div className="opacity-70">Current plan</div>
+              <div className="font-medium">{currentPlanName}</div>
+            </div>
+            <div>
+              <div className="opacity-70">Paid through</div>
+              <div className="font-medium">{paidThroughLabel}</div>
+            </div>
+          </div>
+
+          <p className="mt-3 text-sm opacity-70">
             Choose a plan. Paid plans will take you to secure checkout.
           </p>
 
@@ -155,7 +188,7 @@ redirect("/member/settings?ok=Updated");
             <select
               name="plan_code"
               className="w-full rounded border px-3 py-2 text-sm"
-              defaultValue="rewards_free"
+              defaultValue={currentPlanCode}
             >
               {(plans ?? []).map((p: any) => (
                 <option key={p.code} value={p.code}>
@@ -164,7 +197,7 @@ redirect("/member/settings?ok=Updated");
               ))}
             </select>
 
-            <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            <button className="w-full rounded border px-3 py-2 text-sm hover:oura-surface-muted">
               Save plan
             </button>
           </form>
@@ -172,13 +205,13 @@ redirect("/member/settings?ok=Updated");
 
         <Link
           href="/auth/update-password"
-          className="block rounded border px-3 py-2 text-sm hover:bg-gray-50"
+          className="block rounded border px-3 py-2 text-sm hover:oura-surface-muted"
         >
           Change password
         </Link>
 
         <form action={logout}>
-          <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">
+          <button className="w-full rounded border px-3 py-2 text-sm hover:oura-surface-muted">
             Log out
           </button>
         </form>

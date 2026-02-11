@@ -51,7 +51,7 @@ export default async function MemberDashboardPage() {
         <div className="rounded border p-3 text-sm">
           We couldn’t find a membership profile linked to this login yet.
           <div className="mt-2 flex gap-2">
-            <Link className="rounded border px-3 py-2 text-sm hover:bg-gray-50" href="/join">
+            <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/join">
               Join Travellers Club
             </Link>
           </div>
@@ -133,17 +133,17 @@ export default async function MemberDashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded border p-3">
+        <div className="oura-card p-3">
           <div className="text-xs opacity-70">Loyalty points</div>
           <div className="mt-1 text-2xl font-semibold">{loyalty?.points ?? 0}</div>
         </div>
-        <div className="rounded border p-3">
+        <div className="oura-card p-3">
           <div className="text-xs opacity-70">Total check-ins</div>
           <div className="mt-1 text-2xl font-semibold">{checkinsCount ?? 0}</div>
         </div>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="font-medium">Membership</div>
           <Link className="text-sm underline opacity-80" href="/member/card">
@@ -163,7 +163,7 @@ export default async function MemberDashboardPage() {
                     ? "bg-yellow-50"
                     : computedStatus === "expired"
                     ? "bg-red-50"
-                    : "bg-gray-50",
+                    : "oura-surface-muted",
                 ].join(" ")}
               >
                 {statusLabel}
@@ -171,7 +171,7 @@ export default async function MemberDashboardPage() {
               <span className="text-xs opacity-70">{statusHint}</span>
             </div>
 
-            <Link className="rounded border px-3 py-2 text-xs hover:bg-gray-50" href={ctaHref}>
+            <Link className="rounded border px-3 py-2 text-xs hover:oura-surface-muted" href={ctaHref}>
               {ctaLabel}
             </Link>
           </div>
@@ -189,7 +189,7 @@ export default async function MemberDashboardPage() {
           </div>
         </div>
 
-        <div className="mt-3 rounded border bg-gray-50 p-3 text-sm">
+        <div className="mt-3 rounded border oura-surface-muted p-3 text-sm">
           <div className="font-medium">Your benefits</div>
           <div className="mt-1 opacity-80">
             See your discounts and access details in{" "}
@@ -201,7 +201,7 @@ export default async function MemberDashboardPage() {
         </div>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="font-medium">Recent check-ins</div>
         {(recentCheckins ?? []).length === 0 ? (
           <div className="mt-2 text-sm opacity-70">No check-ins yet.</div>

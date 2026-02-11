@@ -239,6 +239,56 @@ export default async function JoinPage({
       const { error: insErr } = await supabase.from("membership_applications").insert(payload);
       if (insErr) redirect(`/join?err=${encodeURIComponent(insErr.message)}`);
     }
+    // 5) Ensure memberships row exists (default to rewards_free)
+    {
+      const { data: memRow, error: memRowErr } = await admin
+        .from("members")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (memRowErr || !memRow?.id) {
+        console.error("JOIN members lookup for membership bootstrap error:", memRowErr);
+        redirect("/join?err=" + encodeURIComponent(memRowErr?.message || "Could not load member record"));
+      }
+
+      const { data: rewards, error: rewardsErr } = await admin
+        .from("membership_plans")
+        .select("id, duration_days")
+        .eq("code", "rewards_free")
+        .maybeSingle();
+
+      if (rewardsErr) {
+        console.error("JOIN rewards_free plan lookup error:", rewardsErr);
+      }
+
+      const todayISO = todayJM();
+      const duration = Number(rewards?.duration_days || 3650);
+      const paidThrough = addDaysISO(todayISO, duration);
+
+      const { error: upsertMsErr } = await admin
+        .from("memberships")
+        .upsert(
+          {
+            member_id: memRow.id,
+            plan_id: rewards?.id ?? null,
+            status: "active",
+            start_date: todayISO,
+            paid_through_date: paidThrough,
+          },
+          { onConflict: "member_id" }
+        );
+
+      if (upsertMsErr) {
+        console.error("JOIN memberships upsert error:", upsertMsErr);
+      }
+    }
+
+    // Route based on chosen plan
+    if (requested_plan_code !== "rewards_free") {
+      redirect("/member/upgrade?plan=" + encodeURIComponent(requested_plan_code));
+    }
+
     redirect("/member");
   }
 
@@ -341,3 +391,10 @@ export default async function JoinPage({
     </div>
   );
 }
+
+function addDaysISO(baseISO: string, days: number) {
+  const d = new Date(baseISO + "T00:00:00.000Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+

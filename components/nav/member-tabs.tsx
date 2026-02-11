@@ -14,16 +14,18 @@ export function MemberTabs() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-white pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t oura-tabbar pb-[env(safe-area-inset-bottom)] oura-tabbar">
       <div className="mx-auto flex max-w-md items-center justify-between gap-2 px-2 py-2">
         {tabs.map((t) => {
-          const active = pathname === t.href || pathname.startsWith(t.href + "/");
+          const active = t.href === "/member"
+            ? pathname === "/member"
+            : pathname === t.href || pathname.startsWith(t.href + "/");
           return (
             <Link
               key={t.href}
               href={t.href}
               className={`flex-1 rounded px-2 py-2 text-center text-sm ${
-                active ? "font-semibold" : "opacity-70"
+                active ? "font-semibold oura-tab-active" : "opacity-70 oura-tab"
               }`}
             >
               {t.label}

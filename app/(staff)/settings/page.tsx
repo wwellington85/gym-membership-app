@@ -92,7 +92,7 @@ export default async function SettingsPage({
       ) : null}
 
       {role === "admin" ? (
-        <div className="rounded border p-3">
+        <div className="oura-card p-3">
           <div className="font-medium">Staff Management</div>
           <div className="text-sm opacity-70">Invite staff and assign roles</div>
           <Link className="mt-2 inline-block underline underline-offset-2" href="/settings/staff">
@@ -101,7 +101,7 @@ export default async function SettingsPage({
         </div>
       ) : null}
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="font-medium">Loyalty</div>
         <div className="text-sm opacity-70">Points earned per gym check-in</div>
 

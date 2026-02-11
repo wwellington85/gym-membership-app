@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function MemberLayout({ children }: { children: React.ReactNode }) {
+export default async function MemberGateLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
 
@@ -10,8 +10,6 @@ export default async function MemberLayout({ children }: { children: React.React
   }
 
   return (
-    <div className="min-h-svh bg-white">
-      <div className="mx-auto max-w-md p-4 pb-24">{children}</div>
-    </div>
+    <>{children}</>
   );
 }

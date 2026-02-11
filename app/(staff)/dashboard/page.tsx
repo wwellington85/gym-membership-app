@@ -177,7 +177,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Weekly chart */}
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Weekly check-ins</h2>
           <span className="text-xs opacity-70">Last 7 days (Jamaica)</span>
@@ -207,7 +207,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Leaderboard */}
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Top members</h2>
           <span className="text-xs opacity-70">Visits (last 30 days)</span>

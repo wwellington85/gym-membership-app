@@ -1,6 +1,8 @@
-import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 function base64url(input: string | Buffer) {
   return Buffer.from(input)
@@ -10,7 +12,7 @@ function base64url(input: string | Buffer) {
     .replace(/\//g, "_");
 }
 
-function signHS256(header: any, payload: any, secret: string) {
+function signHS256(header: Record<string, any>, payload: Record<string, any>, secret: string) {
   const h = base64url(JSON.stringify(header));
   const p = base64url(JSON.stringify(payload));
   const msg = `${h}.${p}`;
@@ -21,90 +23,114 @@ function signHS256(header: any, payload: any, secret: string) {
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
+
   return `${msg}.${sig}`;
 }
 
-function getOrigin(reqUrl: string) {
-  const u = new URL(reqUrl);
-  // Prefer NEXT_PUBLIC_SITE_URL if set; otherwise use the request origin.
-  const env = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/$/, "");
-  return env || u.origin;
+function redirectUpgrade(reqUrl: string, planCode: string, err: string) {
+  const u = new URL("/member/upgrade", reqUrl);
+  if (planCode) u.searchParams.set("plan", planCode);
+  if (err) u.searchParams.set("err", err);
+  return NextResponse.redirect(u, 303);
 }
 
 export async function POST(req: Request) {
-  const reqUrl = new URL(req.url);
-  const planCode = String(reqUrl.searchParams.get("plan") || "").trim();
+  const url = new URL(req.url);
+
+  // Prefer querystring, but also accept POST body (hidden input)
+  let planCode = String(url.searchParams.get("plan") || "").trim();
   if (!planCode) {
-    return NextResponse.redirect(new URL("/member/upgrade?err=Missing+plan", reqUrl));
+    try {
+      const fd = await req.formData();
+      planCode = String(fd.get("plan") || fd.get("plan_code") || "").trim();
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!planCode) {
+    return redirectUpgrade(req.url, "", "Missing plan");
   }
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth?.user;
 
-  if (!user) return NextResponse.redirect(new URL("/auth/login", reqUrl));
+  if (!user) {
+    return NextResponse.redirect(new URL("/auth/login", req.url), 303);
+  }
 
-  const { data: member } = await supabase
+  const { data: member, error: memberErr } = await supabase
     .from("members")
     .select("id")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!member) return NextResponse.redirect(new URL("/join", reqUrl));
+  if (memberErr) console.error("checkout: members lookup error", memberErr);
 
-  const { data: plan } = await supabase
+  if (!member?.id) {
+    return NextResponse.redirect(new URL("/join", req.url));
+  }
+
+  const { data: plan, error: planErr } = await supabase
     .from("membership_plans")
     .select("id, code, name, price, duration_days, is_active")
     .eq("code", planCode)
     .eq("is_active", true)
     .maybeSingle();
 
-  if (!plan) return NextResponse.redirect(new URL("/member/upgrade?err=Invalid+plan", reqUrl));
+  if (planErr) console.error("checkout: plan lookup error", planErr);
 
-  const { data: membership } = await supabase
+  if (!plan?.id) {
+    return redirectUpgrade(req.url, planCode, "Invalid plan");
+  }
+
+  if (plan.code === "rewards_free") {
+    return redirectUpgrade(req.url, planCode, "Free plan does not require payment");
+  }
+
+  const { data: membership, error: msErr } = await supabase
     .from("memberships")
     .select("id")
     .eq("member_id", member.id)
     .maybeSingle();
 
-  if (!membership) {
-    return NextResponse.redirect(new URL("/member/upgrade?err=No+membership+row", reqUrl));
+  if (msErr) console.error("checkout: memberships lookup error", msErr);
+
+  if (!membership?.id) {
+    return redirectUpgrade(req.url, planCode, "No membership row");
   }
 
-  const origin = getOrigin(req.url);
-
-  // Return URL (backup). Recommended to set this in Fygaro button "Advanced Options" too.
-  // This endpoint can show a friendly "Processing payment..." screen while webhook completes.
-  const returnUrl = `${origin}/api/fygaro/return`;
-
-  // Create pending payment record (cash payments can also live in this table; just use provider=null or provider='cash')
+  // Create pending payment record
   const { data: payment, error: payErr } = await supabase
     .from("payments")
     .insert({
       membership_id: membership.id,
       member_id: member.id,
       amount: plan.price,
-      currency: "USD", // match your Fygaro button currency; change to JMD if your button is JMD
+      currency: "USD",
       provider: "fygaro",
       status: "pending",
       provider_reference: plan.code,
       notes: `Plan=${plan.code}`,
-      raw: { returnUrl },
     })
     .select("id")
     .single();
 
-  if (payErr || !payment?.id) {
-    return NextResponse.redirect(new URL("/member/upgrade?err=Payment+create+failed", reqUrl));
+  if (payErr) console.error("checkout: payments insert error", payErr);
+
+  if (!payment?.id) {
+    const msg =
+      (payErr as any)?.message ? String((payErr as any).message) : "Payment create failed";
+    return redirectUpgrade(req.url, planCode, msg);
   }
 
-  const buttonUrl = (process.env.FYGARO_BUTTON_URL || "").trim();
-  const keyId = (process.env.FYGARO_API_KEY || "").trim();
-  const secret = (process.env.FYGARO_API_SECRET || "").trim();
+  const buttonUrl = process.env.FYGARO_BUTTON_URL || "";
+  const keyId = process.env.FYGARO_API_KEY || "";
+  const secret = process.env.FYGARO_API_SECRET || "";
 
   if (!buttonUrl || !keyId || !secret) {
-    return NextResponse.redirect(new URL("/member/upgrade?err=Missing+Fygaro+env", reqUrl));
+    return redirectUpgrade(req.url, planCode, "Missing Fygaro env");
   }
 
   const now = Math.floor(Date.now() / 1000);
@@ -112,19 +138,15 @@ export async function POST(req: Request) {
   const payload = {
     amount: Number(plan.price).toFixed(2),
     currency: "USD",
-    custom_reference: payment.id, // returns as customReference in hook payload
-    exp: now + 60 * 30, // 30 min
+    custom_reference: payment.id,
+    exp: now + 60 * 30,
     nbf: now - 5,
   };
 
   const jwt = signHS256(header, payload, secret);
 
-  const url = new URL(buttonUrl);
-  url.searchParams.set("jwt", jwt);
+  const fyUrl = new URL(buttonUrl);
+  fyUrl.searchParams.set("jwt", jwt);
 
-  // FYI: Many Fygaro setups use the button's configured Return URL (recommended).
-  // If Fygaro supports passing it via query for your button type, you could try:
-  // url.searchParams.set("return_url", returnUrl);
-
-  return NextResponse.redirect(url.toString());
+  return NextResponse.redirect(fyUrl.toString(), 303);
 }

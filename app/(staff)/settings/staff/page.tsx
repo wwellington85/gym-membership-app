@@ -303,7 +303,7 @@ export default async function StaffManagementPage({
 
       <FlashBanners />
 
-            <div className="rounded border p-3">
+            <div className="oura-card p-3">
         <div className="font-medium">Invite Staff</div>
         <div className="text-sm opacity-70">Sends an email invite. Staff will set their password from the invite.</div>
 
@@ -325,7 +325,7 @@ export default async function StaffManagementPage({
         </form>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="font-medium">Search, Filters & Sort</div>
 
         <form action="/settings/staff" method="get" className="mt-3 grid gap-2">
@@ -368,7 +368,7 @@ export default async function StaffManagementPage({
         </form>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <div className="font-medium">Staff List</div>
           <div className="text-xs opacity-70">{staff?.length ?? 0}</div>
@@ -443,7 +443,7 @@ export default async function StaffManagementPage({
           {(staff ?? []).map((s: any) => {
             const active = s.is_active !== false;
             return (
-              <div key={s.user_id} className="rounded border p-3">
+              <div key={s.user_id} className="oura-card p-3">
                 <div>
                   <div className="text-sm font-medium">{s.email ?? "(no email on file)"}</div>
                   <div className="text-xs opacity-70">Role: {s.role}</div>

@@ -48,3 +48,5 @@ next-env.d.ts
 
 # Next build output (belt + suspenders)
 .next/**/.DS_Store
+
+.env.local

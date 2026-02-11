@@ -1,0 +1,362 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Oura-like Design Tokens ---------- */
+:root {
+  --bg: 255 255 255;
+  --fg: 10 10 10;
+  --muted: 120 120 120;
+  --card: 255 255 255;
+  --border: 228 228 231;
+  --ring: 59 130 246;
+
+  --accent-1: 99 102 241;   /* indigo */
+  --accent-2: 16 185 129;   /* emerald */
+  --accent-3: 236 72 153;   /* pink */
+
+  --shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.dark {
+  --bg: 8 8 10;             /* near-black */
+  --fg: 244 244 245;        /* zinc-100 */
+  --muted: 161 161 170;     /* zinc-400 */
+  --card: 12 12 16;         /* slightly lifted */
+  --border: 39 39 42;       /* zinc-800 */
+  --ring: 99 102 241;
+  --shadow: 0 14px 50px rgba(0,0,0,0.45);
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--fg));
+}
+
+/* Subtle aurora background (Oura-ish) */
+.oura-bg {
+  position: relative;
+  overflow: hidden;
+}
+
+.oura-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+.oura-bg::before,
+.oura-bg::after {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(closest-side, rgb(var(--accent-1) / 0.28), transparent 65%),
+    radial-gradient(closest-side, rgb(var(--accent-2) / 0.22), transparent 60%),
+    radial-gradient(closest-side, rgb(var(--accent-3) / 0.18), transparent 62%);
+  filter: blur(40px);
+  transform: translate3d(0,0,0);
+}
+.oura-bg::before {
+  transform: translate(-10%, -10%);
+}
+.oura-bg::after {
+  transform: translate(10%, 10%);
+  opacity: .9;
+}
+
+/* Glass card */
+.oura-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    180deg,
+    rgba(var(--card), 0.50),
+    rgba(var(--card), 0.32)
+  );
+  border: 1px solid rgba(var(--border), 0.55);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-radius: 24px;
+}
+
+/* subtle inner highlight */
+.oura-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    980px 320px at 20% 0%,
+    rgba(255, 255, 255, 0.06),
+    transparent 65%
+  );
+}
+
+.oura-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04), rgba(255,255,255,0.10));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.8;
+}
+
+/* allow pseudo-element positioning */
+.oura-card { position: relative; }
+
+
+/* Soft border pill */
+.oura-pill {
+  border: 1px solid rgb(var(--border) / 0.9);
+  background: rgb(var(--card) / 0.55);
+  border-radius: 999px;
+}
+
+/* Subtle divider */
+.oura-divider {
+  border-top: 1px solid rgb(var(--border) / 0.7);
+}
+
+/* Typography helpers */
+.oura-h1 {
+  font-size: 1.35rem;
+  line-height: 1.6rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.oura-sub {
+  font-size: 0.9rem;
+  color: rgba(var(--muted), 1);
+}
+
+/* Buttons */
+.oura-btn {
+  border: 1px solid rgb(var(--border) / 0.9);
+  background: rgb(var(--card) / 0.65);
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  transition: transform .12s ease, background .12s ease;
+}
+.oura-btn:active {
+  transform: scale(0.98);
+}
+.oura-btn-primary {
+  border: 1px solid rgba(var(--accent-1), 0.55);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--accent-1) / 0.55),
+    rgb(var(--accent-2) / 0.35)
+  );
+  color: rgb(var(--fg));
+}
+
+
+/* =========================
+   FINAL DARK GLASS OVERRIDES
+   (single source of truth)
+   ========================= */
+
+html.dark body {
+  color: rgb(var(--fg));
+}
+
+/* Keep aurora visible, but not washed out */
+html.dark .oura-bg {
+  background:
+    radial-gradient(1200px 700px at 20% 0%, rgba(63, 63, 70, 0.28), transparent 60%),
+    radial-gradient(900px 600px at 80% 20%, rgba(59, 130, 246, 0.06), transparent 65%),
+    rgb(0 0 0);
+}
+
+/* TRUE GLASS CARD */
+html.dark .oura-card {
+  position: relative;
+  overflow: hidden;
+
+  /* darker + more transparent so it reads as glass (not gray paint) */
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+    rgba(6,6,10,0.10);
+
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 28px;
+
+  box-shadow:
+    0 18px 70px rgba(0,0,0,0.62),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+
+  backdrop-filter: blur(26px) saturate(150%);
+  -webkit-backdrop-filter: blur(26px) saturate(150%);
+}
+
+/* highlight + subtle noise */
+html.dark .oura-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+
+  background:
+    radial-gradient(900px 280px at 18% 0%,
+      rgba(255,255,255,0.16),
+      transparent 58%
+    ),
+    radial-gradient(700px 260px at 85% 12%,
+      rgba(255,255,255,0.09),
+      transparent 62%
+    );
+  opacity: 0.95;
+}
+
+/* rim light stroke */
+html.dark .oura-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.11),
+    rgba(255,255,255,0.02)
+  );
+
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  padding: 1px;
+  mask-composite: exclude;
+  -webkit-mask-composite: xor;
+
+  opacity: 0.55;
+}
+
+/* Bottom tab bar: glass */
+html.dark .oura-tabbar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+    rgba(10,10,14,0.28);
+
+  border-top: 1px solid rgba(255,255,255,0.10);
+
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.45);
+}
+
+html.dark .oura-tab {
+  color: rgba(210, 210, 215, 0.70);
+}
+
+html.dark .oura-tab-active {
+  color: rgb(var(--fg));
+  text-shadow: 0 0 18px rgba(var(--accent-1), 0.25);
+}
+
+/* Dark hover fix */
+html.dark .hover\:bg-gray-50:hover {
+  background: rgba(255, 255, 255, 0.06) !important;
+}
+
+
+/* ===== FINAL GLASS OVERRIDES (less gray, more Oura-like) ===== */
+html.dark .oura-card {
+  border-radius: 28px !important;
+
+  /* darker glass (avoid gray paint), let aurora bleed through */
+  background: rgba(10, 10, 14, 0.28) !important;
+
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+
+  box-shadow:
+    0 18px 70px rgba(0, 0, 0, 0.60),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035) !important;
+
+  backdrop-filter: blur(26px) saturate(160%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+}
+
+/* clean specular highlight (remove the "gray texture" look) */
+html.dark .oura-card::before {
+  background:
+    radial-gradient(900px 280px at 20% 0%,
+      rgba(255, 255, 255, 0.14),
+      transparent 60%
+    ),
+    radial-gradient(700px 240px at 85% 10%,
+      rgba(255, 255, 255, 0.08),
+      transparent 65%
+    ) !important;
+  opacity: 0.95;
+}
+
+/* subtle rim light only */
+html.dark .oura-card::after {
+  opacity: 0.40 !important;
+}
+
+/* tab bar: a touch more transparent/glassy */
+html.dark .oura-tabbar {
+  background: rgba(10, 10, 14, 0.30) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.10) !important;
+  backdrop-filter: blur(22px) saturate(140%);
+  -webkit-backdrop-filter: blur(22px) saturate(140%);
+}
+
+/* ===== OUTER APP SHELL (restores rounded border frame) ===== */
+.oura-shell{
+  position: relative;
+  border-radius: 28px;
+  padding: 16px;
+
+  background: rgba(10, 10, 14, 0.40);
+  border: 1px solid rgba(255,255,255,0.14);
+
+  box-shadow:
+    0 22px 80px rgba(0,0,0,0.70),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+}
+
+/* ===== BLACKER GLASS CARDS (less gray) ===== */
+html.dark .oura-card{
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01)),
+    rgba(0,0,0,0.22) !important;
+
+  border: 1px solid rgba(255,255,255,0.11) !important;
+
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+}
+
+html.dark .oura-card::before{
+  background:
+    radial-gradient(900px 280px at 20% 0%,
+      rgba(255,255,255,0.16),
+      transparent 62%
+    ),
+    radial-gradient(700px 240px at 85% 10%,
+      rgba(255,255,255,0.08),
+      transparent 68%
+    ) !important;
+}

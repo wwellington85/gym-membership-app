@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body suppressHydrationWarning className="min-h-screen oura-bg text-[rgb(var(--fg))]">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
           <div className="mx-auto w-full max-w-md px-4 py-6">
             <div className="oura-shell p-4 text-[rgb(var(--fg))]">{children}</div>
           </div>

@@ -31,7 +31,7 @@ export default async function BenefitsPage() {
         <div className="rounded border p-3 text-sm">
           No membership profile linked yet.
           <div className="mt-2">
-            <Link className="rounded border px-3 py-2 text-sm hover:bg-gray-50" href="/join">
+            <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/join">
               Join Travellers Club
             </Link>
           </div>
@@ -57,7 +57,7 @@ export default async function BenefitsPage() {
           <h1 className="text-xl font-semibold">Benefits</h1>
           <p className="text-sm opacity-70">{plan?.name ?? "Travellers Rewards"}</p>
         </div>
-        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
           Back
         </Link>
       </div>
@@ -68,7 +68,7 @@ export default async function BenefitsPage() {
           <div className="font-medium">{membership?.status ?? "—"}</div>
         </div>
 
-        <div className="rounded border bg-gray-50 p-3">
+        <div className="rounded border oura-surface-muted p-3">
           <div className="font-medium">Discounts</div>
           <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
             <li>20% off food</li>
@@ -78,7 +78,7 @@ export default async function BenefitsPage() {
           </ul>
         </div>
 
-        <div className="rounded border bg-gray-50 p-3">
+        <div className="rounded border oura-surface-muted p-3">
           <div className="font-medium">Facility access</div>
           {access ? (
             <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
@@ -95,10 +95,10 @@ export default async function BenefitsPage() {
         </div>
 
         <div className="flex gap-2">
-          <Link href="/member/card" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:bg-gray-50">
+          <Link href="/member/card" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:oura-surface-muted">
             View card
           </Link>
-          <Link href="/join" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:bg-gray-50">
+          <Link href="/join" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:oura-surface-muted">
             Change plan
           </Link>
         </div>

@@ -18,10 +18,10 @@ export default function PaymentReturnPage({
       </div>
 
       <div className="flex gap-2">
-        <Link className="rounded border px-3 py-2 text-sm hover:bg-gray-50" href="/member">
+        <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/member">
           Go to dashboard
         </Link>
-        <Link className="rounded border px-3 py-2 text-sm hover:bg-gray-50" href="/member/card">
+        <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/member/card">
           View membership card
         </Link>
       </div>

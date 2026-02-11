@@ -62,7 +62,7 @@ export default async function CheckinsPage() {
 
       <div className="space-y-2">
         {todayRows.map((r: any) => (
-          <div key={r.id} className="rounded border p-3">
+          <div key={r.id} className="oura-card p-3">
             <div className="font-medium">{r.members?.full_name ?? "Member"}</div>
             <div className="text-sm opacity-70">{r.members?.phone ?? r.member_id}</div>
             <div className="mt-1 text-xs opacity-60">

@@ -84,7 +84,7 @@ export default async function PaymentsPage({
           const name = member?.full_name || "Member unknown";
           const meta = [member?.email, member?.phone].filter(Boolean).join(" • ");
           return (
-            <div key={p.id} className="rounded border p-3">
+            <div key={p.id} className="oura-card p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-medium">{name}</div>

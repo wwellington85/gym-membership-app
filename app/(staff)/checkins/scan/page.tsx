@@ -195,7 +195,7 @@ export default async function ScanCheckinPage({
           <div className="font-medium">{member.full_name}</div>
           <div className="text-sm opacity-70">{member.phone ?? member.id}</div>
 
-          <div className="rounded border p-3">
+          <div className="oura-card p-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">Access</div>
               <div className="text-sm font-semibold">{accessAllowed ? "Allowed" : "Not allowed"}</div>

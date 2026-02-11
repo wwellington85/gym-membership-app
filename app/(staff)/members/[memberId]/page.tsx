@@ -251,7 +251,7 @@ const { data: recentCheckins } = await supabase
         </div>
       ) : null}
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <div className="font-medium">Membership</div>
           <span className={`rounded px-2 py-1 text-xs ${badge.cls}`}>{badge.label}</span>
@@ -331,7 +331,7 @@ const { data: recentCheckins } = await supabase
         </div>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Recent check-ins</h2>
           <span className="text-xs opacity-70">{recentCheckins?.length ?? 0}</span>
@@ -342,7 +342,7 @@ const { data: recentCheckins } = await supabase
         ) : (
           <div className="mt-2 space-y-2">
             {recentCheckins.map((c: any) => (
-              <div key={c.id} className="rounded border p-3">
+              <div key={c.id} className="oura-card p-3">
                 <div className="font-medium text-sm">{fmtJamaica(c.checked_in_at)}</div>
                 <div className="text-xs opacity-70">
                   Points: {c.points_earned ?? 1}
@@ -367,7 +367,7 @@ const { data: recentCheckins } = await supabase
           ) : (
             <div className="space-y-2">
               {payments.map((p: any) => (
-                <div key={p.id} className="rounded border p-3">
+                <div key={p.id} className="oura-card p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="font-medium">${p.amount}</div>

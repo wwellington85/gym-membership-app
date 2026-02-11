@@ -69,7 +69,7 @@ export default async function AccountPage({
         </div>
       ) : null}
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="font-medium">Change password</div>
         <div className="text-sm opacity-70">Minimum 8 characters</div>
 
@@ -94,7 +94,7 @@ export default async function AccountPage({
         </form>
       </div>
 
-      <div className="rounded border p-3">
+      <div className="oura-card p-3">
         <div className="font-medium">Session</div>
         <form action={logoutAction} className="mt-3">
           <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50" type="submit">
