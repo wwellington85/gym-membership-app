@@ -225,76 +225,6 @@ html.dark .oura-shell{
 }
 
 /* Cards: tinted glass (less gray, more premium) */
-html.dark .oura-card{
-  /* darker base, still translucent so aurora bleeds through */
-  background:
-    linear-gradient(180deg,
-      rgba(255,255,255,0.05) 0%,
-      rgba(255,255,255,0.015) 45%,
-      rgba(255,255,255,0.00) 100%
-    ),
-    rgba(0,0,0,0.44) !important;
-
-  border: 1px solid rgba(255,255,255,0.075) !important;
-
-  box-shadow:
-    0 22px 90px rgba(0,0,0,0.60),
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    inset 0 0 0 1px rgba(255,255,255,0.03) !important;
-
-  backdrop-filter: blur(28px) saturate(170%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(170%) !important;
-}
-
-html.dark .oura-card::before{
-  /* wet shine: smaller/tighter highlights + screen blend */
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-
-  background:
-    radial-gradient(520px 160px at 22% 0%,
-      rgba(255,255,255,0.26),
-      transparent 56%
-    ),
-    radial-gradient(420px 150px at 88% 10%,
-      rgba(255,255,255,0.12),
-      transparent 60%
-    ),
-    radial-gradient(900px 520px at 50% 120%,
-      rgba(99,102,241,0.06),
-      transparent 60%
-    ) !important;
-
-  opacity: 0.70 !important;
-  mix-blend-mode: screen;
-}
-
-html.dark .oura-card::after{
-  /* crisp rim: slightly stronger to read as glass */
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-
-  padding: 1px;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.14),
-    rgba(255,255,255,0.02)
-  ) !important;
-
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-
-  opacity: 0.42 !important;
-}
-
 /* ============================
    FINAL AURORA BOOST (INDIGO)
    ============================ */
@@ -374,4 +304,3 @@ html.dark .oura-card::after{
 }
 
 
-html.dark .oura-shell::before{content:"staging a79e596";position:absolute;top:10px;right:14px;font-size:11px;opacity:.35;pointer-events:none;}
