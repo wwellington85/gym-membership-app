@@ -39,7 +39,7 @@ export function BottomTabs({ role }: Props) {
   });
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-white z-50 pb-[env(safe-area-inset-bottom)] shrink-0 overflow-x-auto overscroll-x-contain min-w-[88px]">
+    <nav className="fixed bottom-0 left-0 right-0 border-t  z-50 pb-[env(safe-area-inset-bottom)] shrink-0 overflow-x-auto overscroll-x-contain min-w-[88px] oura-tabbar">
       <div className="mx-auto flex max-w-md items-center justify-start px-2 py-2 shrink-0 no-scrollbar overflow-x-auto overflow-y-hidden flex-nowrap min-w-max gap-2 [-webkit-overflow-scrolling:touch] items-stretch w-full touch-pan-x">
         {visibleTabs.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
@@ -48,7 +48,7 @@ export function BottomTabs({ role }: Props) {
               key={t.href}
               href={t.href}
               className={`rounded px-2 py-2 text-sm whitespace-nowrap ${
-                active ? "font-semibold" : "opacity-70"
+                active ? "font-semibold oura-tab-active" : "opacity-70 oura-tab"
               }`}
             >
               {t.label}
