@@ -1,15 +1,116 @@
 import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-function isAccessPlan(code?: string | null) {
-  const c = (code ?? "").toLowerCase();
-  return c.startsWith("club_");
+type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
+
+type Tier = {
+  code: PlanCode;
+  name: string;
+  priceLabel: string;
+  badge?: string;
+  discounts: Array<{ label: string; value: string }>;
+  access: string[];
+notes?: string[];
+};
+
+const TIERS: Tier[] = [
+  {
+    code: "rewards_free",
+    name: "Travellers Rewards",
+    priceLabel: "Free",
+    badge: "Discounts only",
+    discounts: [
+      { label: "Restaurant & Bar", value: "5% off" },
+      { label: "Spa services", value: "5% off" },
+      { label: "Gift shop", value: "5% off" },
+      { label: "Watersports", value: "5% off" },
+      { label: "Complimentary high-speed Wi‑Fi", value: "Included" },
+    ],
+
+    access: [],
+    notes: ["No facility access (gym, pool, towels, lockers, showers)."],
+  },
+  {
+    code: "club_day",
+    name: "Travellers Club Day Pass",
+    priceLabel: "$25 / day",
+    badge: "Full access",
+    discounts: [
+      { label: "Restaurant & Bar", value: "10% off" },
+      { label: "Spa services", value: "10% off" },
+      { label: "Gift shop", value: "10% off" },
+      { label: "Watersports", value: "10% off" },
+      { label: "Complimentary high-speed Wi‑Fi", value: "Included" },
+    ],
+
+    access: [
+      "Gym access",
+      "Pool access",
+      "Beach chairs & towels",
+      "Showers",
+      "Lockers",
+      "Lounge access",
+    ],
+  },
+  {
+    code: "club_weekly",
+    name: "Travellers Club Weekly Pass",
+    priceLabel: "$45 / week",
+    badge: "Full access",
+    discounts: [
+      { label: "Restaurant & Bar", value: "15% off" },
+      { label: "Spa services", value: "10% off" },
+      { label: "Gift shop", value: "10% off" },
+      { label: "Watersports", value: "10% off" },
+      { label: "Complimentary high-speed Wi‑Fi", value: "Included" },
+    ],
+
+    access: [
+      "Gym access",
+      "Pool access",
+      "Beach chairs & towels",
+      "Showers",
+      "Lockers",
+      "Lounge access",
+    ],
+  },
+  {
+    code: "club_monthly_95",
+    name: "Travellers Club Monthly",
+    priceLabel: "$95 / month",
+    badge: "Best value",
+    discounts: [
+      { label: "Restaurant & Bar", value: "20% off" },
+      { label: "Spa services", value: "15% off" },
+      { label: "Gift shop", value: "15% off" },
+      { label: "Watersports", value: "15% off" },
+      { label: "Complimentary high-speed Wi‑Fi", value: "Included" },
+    ],
+
+    access: [
+      "Gym access",
+      "Pool access",
+      "Beach chairs & towels",
+      "Showers",
+      "Lockers",
+      "Lounge access",
+    ],
+    notes: ["Great for locals or longer stays."],
+  },
+];
+
+const UNIVERSAL_BENEFITS = ["Complimentary high-speed Wi-Fi"];
+
+function byCode(code?: string | null): Tier {
+  const c = String(code || "rewards_free") as PlanCode;
+  return TIERS.find((t) => t.code === c) ?? TIERS[0];
 }
 
-export default async function BenefitsPage() {
+export default async function MemberBenefitsPage() {
   const supabase = await createClient();
 
   const {
@@ -24,83 +125,151 @@ export default async function BenefitsPage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!member) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-xl font-semibold">Benefits</h1>
-        <div className="rounded border p-3 text-sm">
-          No membership profile linked yet.
-          <div className="mt-2">
-            <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/join">
-              Join Travellers Club
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (!member) redirect("/join");
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("status, membership_plans(name, code)")
+    .select("id, membership_plans(code, name)")
     .eq("member_id", member.id)
     .maybeSingle();
 
   const planRaw: any = (membership as any)?.membership_plans;
   const plan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-  const access = isAccessPlan(plan?.code);
+  const current = byCode(plan?.code);
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Benefits</h1>
-          <p className="text-sm opacity-70">{plan?.name ?? "Travellers Rewards"}</p>
+          <p className="text-sm opacity-70">What your membership includes</p>
+          <p className="mt-1 text-sm">
+            <span className="opacity-70">Your plan:</span>{" "}
+            <span className="font-medium">{current.name}</span>{" "}
+            <span className="opacity-70">({current.priceLabel})</span>
+          </p>
         </div>
-        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-          Back
-        </Link>
+
+        <BackButton fallbackHref="/member" />
       </div>
 
-      <div className="rounded border p-4 space-y-3">
-        <div className="text-sm">
-          <div className="opacity-70">Membership status</div>
-          <div className="font-medium">{membership?.status ?? "—"}</div>
-        </div>
-
-        <div className="rounded border oura-surface-muted p-3">
-          <div className="font-medium">Discounts</div>
-          <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
-            <li>20% off food</li>
-            <li>20% off watersports</li>
-            <li>10% off gift shop</li>
-            <li>15% off spa services</li>
-          </ul>
-        </div>
-
-        <div className="rounded border oura-surface-muted p-3">
-          <div className="font-medium">Facility access</div>
-          {access ? (
-            <ul className="mt-2 list-disc pl-5 text-sm space-y-1">
-              <li>Gym access</li>
-              <li>Family lounge room</li>
-              <li>Pool + beach towels</li>
-              <li>Lockers + shower access</li>
-            </ul>
-          ) : (
-            <div className="mt-2 text-sm opacity-80">
-              Rewards members receive discounts only. Upgrade to a Travellers Club pass for full access.
+            <div className="oura-card p-3">
+        <div className="font-medium">Included with all plans</div>
+        <div className="mt-2 divide-y divide-white/10">
+          {UNIVERSAL_BENEFITS.map((b) => (
+            <div key={b} className="p-2 text-sm opacity-80">
+              {b}
             </div>
-          )}
+          ))}
+        </div>
+      </div>
+
+<div className="oura-card p-3">
+        <div className="font-medium">Discounts</div>
+        <p className="mt-1 text-sm opacity-70">
+          Discounts may vary by event/promotions. Staff will confirm at checkout.
+        </p>
+
+        <div className="mt-3 divide-y divide-white/10">
+          {current.discounts.map((d) => (
+            <div key={d.label} className="flex items-center justify-between p-2 text-sm">
+              <div className="opacity-80">{d.label}</div>
+              <div className="font-medium">{d.value}</div>
+            </div>
+          ))}
         </div>
 
-        <div className="flex gap-2">
-          <Link href="/member/card" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:oura-surface-muted">
-            View card
-          </Link>
-          <Link href="/join" className="flex-1 rounded border px-3 py-2 text-center text-sm hover:oura-surface-muted">
+        
+
+
+        {current.notes?.length ? (
+          <div className="mt-3 oura-surface-muted p-3 text-sm">
+            <div className="font-medium">Notes</div>
+            <ul className="mt-1 list-disc pl-5 opacity-80">
+              {current.notes.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="oura-card p-3">
+        <div className="font-medium">Facility access</div>
+        {current.access.length === 0 ? (
+          <p className="mt-2 text-sm opacity-70">
+            Your current plan doesn’t include facility access. Upgrade to unlock gym, pool, towels, lockers, and more.
+          </p>
+        ) : (
+          <div className="mt-3 divide-y divide-white/10">
+            {current.access.map((a) => (
+              <div key={a} className="flex items-center justify-between p-2 text-sm">
+                <div className="opacity-80">{a}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-3 flex gap-2">
+          <Link
+            href="/member/settings?returnTo=/member/benefits"
+            className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
+          >
             Change plan
           </Link>
+          <Link
+            href="/member/card?returnTo=/member/benefits"
+            className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
+          >
+            View card
+          </Link>
+        </div>
+      </div>
+
+      <div className="oura-card p-3">
+        <div className="font-medium">Compare tiers</div>
+        <p className="mt-1 text-sm opacity-70">
+          Quick view of what changes when you upgrade.
+        </p>
+
+        <div className="mt-3 divide-y divide-white/10">
+          {TIERS.map((t) => {
+            const isCurrent = t.code === current.code;
+            return (
+              <div
+                key={t.code}
+                className={[
+                  "rounded border p-3",
+                  isCurrent ? "oura-surface-muted" : "opacity-90",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-medium">
+                      {t.name}{" "}
+                      {t.badge ? (
+                        <span className="ml-2 text-xs opacity-70">• {t.badge}</span>
+                      ) : null}
+                    </div>
+                    <div className="text-sm opacity-70">{t.priceLabel}</div>
+                  </div>
+                  {isCurrent ? (
+                    <div className="text-xs font-medium opacity-70">Current</div>
+                  ) : null}
+                </div>
+
+                <div className="mt-2 text-sm opacity-80">
+                  <span className="opacity-70">Top discounts:</span>{" "}
+                  {t.discounts.slice(0, 2).map((d) => d.value).join(" • ")}
+                  {t.access.length ? (
+                    <span className="ml-2 opacity-70">• Facility access</span>
+                  ) : (
+                    <span className="ml-2 opacity-70">• No access</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

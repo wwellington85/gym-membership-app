@@ -310,39 +310,39 @@ export default async function JoinPage({
         {/* Honeypot hidden field */}
         <div className="hidden">
           <label className="text-sm">Website</label>
-          <input name="website" className="w-full rounded border px-3 py-2" />
+          <input name="website" className="hidden" tabIndex={-1} autoComplete="off" />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Full name</label>
-          <input name="full_name" className="w-full rounded border px-3 py-2" placeholder="Your name" required />
+          <input name="full_name" className="w-full oura-input px-3 py-2" placeholder="Your name" required />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Phone (optional)</label>
-          <input name="phone" className="w-full rounded border px-3 py-2" placeholder="876-555-1234" />
+          <input name="phone" className="w-full oura-input px-3 py-2" placeholder="876-555-1234" />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
-          <input name="email" required type="email" className="w-full rounded border px-3 py-2" placeholder="you@email.com" />
+          <input name="email" required type="email" className="w-full oura-input px-3 py-2" placeholder="you@email.com" />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Create a password</label>
-          <input name="password" type="password" required className="w-full rounded border px-3 py-2" placeholder="At least 8 characters" minLength={8} />
+          <input name="password" type="password" required className="w-full oura-input px-3 py-2" placeholder="At least 8 characters" minLength={8} />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Confirm password</label>
-          <input name="password2" type="password" required className="w-full rounded border px-3 py-2" placeholder="Re-enter password" minLength={8} />
+          <input name="password2" type="password" required className="w-full oura-input px-3 py-2" placeholder="Re-enter password" minLength={8} />
         </div>
 
         <div className="text-xs opacity-60">You’ll use this to log in and view your Membership Card and points.</div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Choose an option</label>
-          <select name="requested_plan_code" className="w-full rounded border px-3 py-2" defaultValue="rewards_free">
+          <select name="requested_plan_code" className="w-full oura-input px-3 py-2" defaultValue="rewards_free">
             <option value="rewards_free">{PLAN_LABELS.rewards_free}</option>
             <option value="club_day">{PLAN_LABELS.club_day}</option>
             <option value="club_weekly">{PLAN_LABELS.club_weekly}</option>
@@ -355,7 +355,7 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Preferred start date</label>
-          <input name="requested_start_date" type="date" className="w-full rounded border px-3 py-2" defaultValue={today} />
+          <input name="requested_start_date" type="date" className="w-full oura-input px-3 py-2" defaultValue={today} />
           <p className="text-xs opacity-60">Required for Club passes. Optional for Rewards (Free).</p>
         </div>
 
@@ -363,7 +363,7 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Are you staying at the hotel right now?</label>
-          <select name="is_inhouse_guest" className="w-full rounded border px-3 py-2" defaultValue="">
+          <select name="is_inhouse_guest" className="w-full oura-input px-3 py-2" defaultValue="">
             <option value="">Select</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
@@ -373,7 +373,7 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Notes (optional)</label>
-          <textarea name="notes" className="w-full rounded border px-3 py-2" placeholder="Any info to help staff (e.g., best time to call)" rows={3} />
+          <textarea name="notes" className="w-full oura-input px-3 py-2" placeholder="Any info to help staff (e.g., best time to call)" rows={3} />
         </div>
 
         <div className="space-y-2 rounded border p-3">

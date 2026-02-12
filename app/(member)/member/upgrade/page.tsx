@@ -51,8 +51,8 @@ export default async function UpgradePage(props: { searchParams: Promise<{ plan?
           <h1 className="text-xl font-semibold">Confirm plan</h1>
           <p className="text-sm opacity-70">You’re upgrading to full access.</p>
         </div>
-        <Link href="/member/settings" className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-          Back
+        <Link href="/member/settings" className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:oura-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 group">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5 opacity-80 transition-opacity group-hover:opacity-100"><path fill="currentColor" d="M15.5 19.5a1 1 0 0 1-.7-.3l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 1 1 1.4 1.4L10.9 12l5.3 5.3a1 1 0 0 1-.7 1.7z"/></svg><span className="sr-only">Back</span>
         </Link>
       </div>
 

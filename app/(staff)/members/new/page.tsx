@@ -96,7 +96,7 @@ export default async function NewMemberPage() {
           <input
             name="full_name"
             required
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="e.g., John Brown"
           />
         </div>
@@ -106,7 +106,7 @@ export default async function NewMemberPage() {
           <input
             name="phone"
             required
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="e.g., 876-555-1234"
           />
         </div>
@@ -116,14 +116,14 @@ export default async function NewMemberPage() {
           <input
             name="email"
             type="email"
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="optional"
           />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Membership *</label>
-          <select name="plan_id" required className="w-full rounded border px-3 py-2">
+          <select name="plan_id" required className="w-full oura-input px-3 py-2">
             <option value="">Select a plan</option>
             {(plans ?? []).map((p) => (
               <option key={p.id} value={p.id}>
@@ -135,12 +135,12 @@ export default async function NewMemberPage() {
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Start date *</label>
-          <input name="start_date" type="date" required className="w-full rounded border px-3 py-2" />
+          <input name="start_date" type="date" required className="w-full oura-input px-3 py-2" />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Notes</label>
-          <textarea name="notes" className="w-full rounded border px-3 py-2" rows={3} />
+          <textarea name="notes" className="w-full oura-input px-3 py-2" rows={3} />
         </div>
 
         <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-gray-50">

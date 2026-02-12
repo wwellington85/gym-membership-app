@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
+import { titleCaseName } from "@/lib/format/name";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
@@ -50,9 +52,7 @@ export default async function MemberCardPage() {
             <h1 className="text-xl font-semibold">Membership Card</h1>
             <p className="text-sm opacity-70">Travellers Club</p>
           </div>
-          <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-            Back
-          </Link>
+          <BackButton fallbackHref="/member" />
         </div>
 
         <div className="rounded border p-3 text-sm">
@@ -118,16 +118,14 @@ export default async function MemberCardPage() {
           <h1 className="text-xl font-semibold">Membership Card</h1>
           <p className="text-sm opacity-70">Show this at the gate / front desk</p>
         </div>
-        <Link href="/member" prefetch={false} className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-          Back
-        </Link>
+        <BackButton fallbackHref="/member" />
       </div>
 
       <div className="oura-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-sm opacity-70">Name</div>
-            <div className="text-lg font-semibold">{member.full_name}</div>
+            <div className="text-lg font-semibold">{titleCaseName(member.full_name)}</div>
           </div>
 
           <span

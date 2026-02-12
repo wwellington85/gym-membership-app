@@ -463,7 +463,7 @@ return (
         <input
           name="q"
           defaultValue={q}
-          className="w-full rounded border px-3 py-2"
+          className="w-full oura-input px-3 py-2"
           placeholder="Search name or phone…"
         />
         <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">

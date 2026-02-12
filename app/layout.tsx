@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
+import { Archivo, Poppins } from "next/font/google";
+const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
 
+
+const poppins = Poppins({ subsets: ["latin"], weight: ["300", "400", "500", "600"], variable: "--font-bubble" });
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://127.0.0.1:3000";
@@ -14,12 +18,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
-      <body suppressHydrationWarning className="min-h-screen oura-bg text-[rgb(var(--fg))]">
-        <ThemeProvider attribute="class" defaultTheme="dark" forcedTheme="dark" enableSystem={false}>
-          <div className="mx-auto w-full max-w-md px-4 py-6">
-            <div className="oura-shell p-4 text-[rgb(var(--fg))]">{children}</div>
-          </div>
+    <html lang="en" suppressHydrationWarning className={`${archivo.variable} ${poppins.variable}`}>
+      <body suppressHydrationWarning className="min-h-svh oura-bg text-[rgb(var(--fg))] overflow-hidden font-sans">
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+          <div id="app-portal" />
         </ThemeProvider>
       </body>
     </html>

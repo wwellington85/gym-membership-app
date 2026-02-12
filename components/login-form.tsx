@@ -1,26 +1,20 @@
 "use client";
 
-
+import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { safeReturnTo } from "@/lib/auth/return-to";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 function isValidEmail(v: string) {
   const s = v.trim();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
-import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
-import { safeReturnTo } from "@/lib/auth/return-to";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+
 export function LoginForm({
   className,
   ...props
@@ -35,15 +29,15 @@ export function LoginForm({
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
   const sentType = useMemo(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("sent") || "";
   }, []);
 
-  const [showSent, setShowSent] = useState(() => {
-    return sentType !== "";
-  });
-// Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
+  const [showSent, setShowSent] = useState(() => sentType !== "");
+
+  // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
   const returnToRaw = useMemo(() => {
     if (typeof window === "undefined") return "";
     const v = new URLSearchParams(window.location.search).get("returnTo");
@@ -51,10 +45,6 @@ export function LoginForm({
   }, []);
 
   const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
-
-  
-
-  
 
   const emailOk = useMemo(() => isValidEmail(email), [email]);
 
@@ -66,10 +56,9 @@ export function LoginForm({
       : `/auth/magic-link?email=${encodeURIComponent(clean)}`;
   }, [email, returnTo]);
 
-const handleMagicLinkClick = useCallback(
+  const handleMagicLinkClick = useCallback(
     (e: React.MouseEvent) => {
       const v = (email || "").trim();
-      // Basic email check (just to avoid empty/obvious bad clicks)
       if (!v || !v.includes("@")) {
         e.preventDefault();
         setError("Enter a valid email to receive a login link.");
@@ -84,20 +73,20 @@ const handleMagicLinkClick = useCallback(
     return v ? String(v) : "";
   }, []);
 
-
   const sentMsg = useMemo(() => {
     if (!sentType) return "";
     if (sentType === "1") return "Password reset email sent. Please check your inbox.";
     if (sentType === "magic") return "Login link sent. Please check your email (and spam/junk).";
     return "";
   }, [sentType]);
-useEffect(() => {
+
+  useEffect(() => {
     if (!showSent) return;
 
     const t = window.setTimeout(() => {
       setShowSent(false);
 
-      // Remove sent=1 from URL so refresh doesn't show the banner again
+      // Remove sent=... from URL so refresh doesn't show the banner again
       const url = new URL(window.location.href);
       url.searchParams.delete("sent");
       const qs = url.searchParams.toString();
@@ -106,7 +95,6 @@ useEffect(() => {
 
     return () => window.clearTimeout(t);
   }, [showSent]);
-
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +109,6 @@ useEffect(() => {
       });
       if (signInError) throw signInError;
 
-      // Pull tokens from the client session and sync to server cookies (SSR/middleware relies on cookies).
       const { data: sessionRes, error: sessionErr } = await supabase.auth.getSession();
       if (sessionErr) throw sessionErr;
 
@@ -144,11 +131,13 @@ useEffect(() => {
         throw new Error(j?.error || "Could not sync session.");
       }
 
-      // Ensure the session is persisted before we hit a server route that relies on cookies.
       await supabase.auth.getSession();
 
-      // Let the server decide where to send the user (staff vs member) safely.
-      window.location.assign(returnTo ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}` : "/auth/post-login");
+      window.location.assign(
+        returnTo
+          ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`
+          : "/auth/post-login"
+      );
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {
@@ -158,11 +147,15 @@ useEffect(() => {
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="oura-card">
         <CardHeader>
+          <div className="text-center text-[13px] font-semibold tracking-[0.32em] uppercase text-white/80">
+            Travellers Club
+          </div>
           <CardTitle className="text-2xl">Login</CardTitle>
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
@@ -188,6 +181,7 @@ useEffect(() => {
                     Forgot your password?
                   </Link>
                 </div>
+
                 <Input
                   id="password"
                   type="password"
@@ -195,10 +189,14 @@ useEffect(() => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+
                 <div className="text-xs opacity-70">
                   {emailOk && magicHref ? (
-                    <Link href={magicHref} onClick={handleMagicLinkClick}
-                    className="underline underline-offset-4">
+                    <Link
+                      href={magicHref}
+                      onClick={handleMagicLinkClick}
+                      className="underline underline-offset-4"
+                    >
                       Email me a login link instead
                     </Link>
                   ) : (

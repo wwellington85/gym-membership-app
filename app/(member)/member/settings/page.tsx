@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { BackButton } from "@/components/ui/back-button";
+import { titleCaseName } from "@/lib/format/name";
+
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { PlanPicker } from "@/components/member/plan-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -149,24 +153,13 @@ export default async function MemberSettingsPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Settings</h1>
-          <p className="text-sm opacity-70">Manage your account</p>
+          <p className="text-sm opacity-70">Signed in as</p>
+          <p className="text-sm font-medium">{titleCaseName(member?.full_name) || "Member"}</p>
         </div>
-        <Link
-          href="/member"
-          prefetch={false}
-          className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
-        >
-          Back
-        </Link>
+        <BackButton fallbackHref="/member" />
       </div>
 
-      <div className="rounded border p-4 space-y-3">
-        <div className="text-sm">
-          <div className="opacity-70">Signed in as</div>
-          <div className="font-medium">{user.email ?? "—"}</div>
-        </div>
-
-        <div className="oura-card p-3">
+      <div className="space-y-3"><div className="oura-card p-3">
           <div className="font-medium">Membership plan</div>
 
           <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
@@ -179,29 +172,25 @@ export default async function MemberSettingsPage() {
               <div className="font-medium">{paidThroughLabel}</div>
             </div>
           </div>
+        </div>
 
-          <p className="mt-3 text-sm opacity-70">
-            Choose a plan. Paid plans will take you to secure checkout.
+        <div className="oura-card p-3">
+          <div className="font-medium">Choose a plan</div>
+          <p className="mt-1 text-sm opacity-70">
+            Paid plans will take you to secure checkout.
           </p>
 
-          <form action={savePlan} className="mt-3 space-y-2">
-            <select
+          <form action={savePlan} className="mt-3 space-y-3">
+            <PlanPicker
               name="plan_code"
-              className="w-full rounded border px-3 py-2 text-sm"
-              defaultValue={currentPlanCode}
-            >
-              {(plans ?? []).map((p: any) => (
-                <option key={p.code} value={p.code}>
-                  {p.name} {Number(p.price) > 0 ? `- $${Number(p.price).toFixed(2)}` : ""}
-                </option>
-              ))}
-            </select>
-
-            <button className="w-full rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-              Save plan
-            </button>
-          </form>
+              defaultValue={currentPlanCode as any}
+              currentPlan={currentPlanCode as any}
+                  showSubmit
+              submitLabel="Continue"
+            />
+</form>
         </div>
+
 
         <Link
           href="/auth/update-password"

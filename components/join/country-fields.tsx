@@ -16,7 +16,7 @@ export function CountryFields() {
         <label className="text-sm font-medium">Country</label>
         <select
           name="country"
-          className="w-full rounded border px-3 py-2"
+          className="w-full oura-input px-3 py-2"
           value={country}
           onChange={(e) => setCountry(e.target.value)}
         >
@@ -34,7 +34,7 @@ export function CountryFields() {
           <label className="text-sm font-medium">Which country?</label>
           <input
             name="other_country"
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="Type your country"
             autoComplete="country-name"
           />

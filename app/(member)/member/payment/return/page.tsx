@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BackButton } from "@/components/ui/back-button";
 export default function PaymentReturnPage() {
   return (
     <div className="space-y-4">
@@ -14,9 +15,7 @@ export default function PaymentReturnPage() {
       <div className="rounded border p-4 text-sm space-y-2">
         <div>Tip: If your status hasn’t updated yet, refresh in a moment.</div>
         <div>
-          <Link className="underline underline-offset-4" href="/member">
-            Return to dashboard
-          </Link>
+          <BackButton fallbackHref="/member" />
         </div>
       </div>
     </div>

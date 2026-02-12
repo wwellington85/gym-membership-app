@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 type Role = "admin" | "front_desk" | "security";
 type Props = { role: Role };
@@ -31,23 +33,33 @@ const tabs: Tab[] = [
 export function BottomTabs({ role }: Props) {
   const pathname = usePathname();
   const isAdmin = role === "admin";
+  const [mounted, setMounted] = useState(false);
 
-  const visibleTabs = tabs.filter((t) => {
-    if (t.roles) return t.roles.includes(role);
-    if (t.adminOnly) return isAdmin;
-    return true;
-  });
+  const visibleTabs = useMemo(() => {
+    return tabs.filter((t) => {
+      if (t.roles) return t.roles.includes(role);
+      if (t.adminOnly) return isAdmin;
+      return true;
+    });
+  }, [role, isAdmin]);
 
-  return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t  z-50 pb-[env(safe-area-inset-bottom)] shrink-0 overflow-x-auto overscroll-x-contain min-w-[88px] oura-tabbar">
-      <div className="mx-auto flex max-w-md items-center justify-start px-2 py-2 shrink-0 no-scrollbar overflow-x-auto overflow-y-hidden flex-nowrap min-w-max gap-2 [-webkit-overflow-scrolling:touch] items-stretch w-full touch-pan-x">
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+  if (typeof document === "undefined") return null;
+
+  const host = document.getElementById("app-portal") ?? document.body;
+
+  const nav = (
+    <nav className="fixed bottom-0 left-0 right-0 z-[9999] border-t oura-tabbar pb-[env(safe-area-inset-bottom)] oura-bottom-tabbar">
+      <div className="mx-auto flex max-w-md items-center justify-between gap-2 px-2 py-2">
         {visibleTabs.map((t) => {
           const active = pathname === t.href || pathname.startsWith(t.href + "/");
           return (
             <Link
               key={t.href}
               href={t.href}
-              className={`rounded px-2 py-2 text-sm whitespace-nowrap ${
+              className={`flex-1 rounded px-1 py-2 text-center whitespace-nowrap text-[12px] leading-none sm:text-sm ${
                 active ? "font-semibold oura-tab-active" : "opacity-70 oura-tab"
               }`}
             >
@@ -58,4 +70,6 @@ export function BottomTabs({ role }: Props) {
       </div>
     </nav>
   );
+
+  return createPortal(nav, host);
 }

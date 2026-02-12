@@ -61,7 +61,7 @@ export default function CreateAccountClient() {
             type="password"
             minLength={8}
             required
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="At least 8 characters"
           />
         </div>
@@ -73,7 +73,7 @@ export default function CreateAccountClient() {
             type="password"
             minLength={8}
             required
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
             placeholder="Re-enter password"
           />
         </div>

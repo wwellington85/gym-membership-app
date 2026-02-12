@@ -1,10 +1,4 @@
-import { MemberTabs } from "@/components/nav/member-tabs";
-
 export default function MemberLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <div className="pb-24">{children}</div>
-      <MemberTabs />
-    </>
-  );
+  // NOTE: MemberTabs is rendered in app/(member)/layout.tsx so it can be truly fixed to viewport bottom.
+  return <div className="pb-tabbar">{children}</div>;
 }

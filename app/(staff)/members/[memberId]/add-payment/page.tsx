@@ -96,7 +96,7 @@ export default async function AddPaymentPage({
       <form action={addPayment} className="space-y-3">
         <div className="space-y-1">
           <label className="text-sm font-medium">Paid on *</label>
-          <input name="paid_on" type="date" required className="w-full rounded border px-3 py-2" />
+          <input name="paid_on" type="date" required className="w-full oura-input px-3 py-2" />
         </div>
 
         <div className="space-y-1">
@@ -108,13 +108,13 @@ export default async function AddPaymentPage({
             min="0"
             required
             defaultValue={membership?.membership_plan?.[0]?.price ?? ""}
-            className="w-full rounded border px-3 py-2"
+            className="w-full oura-input px-3 py-2"
           />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Payment method</label>
-          <select name="payment_method" className="w-full rounded border px-3 py-2">
+          <select name="payment_method" className="w-full oura-input px-3 py-2">
             <option value="">Select</option>
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -125,7 +125,7 @@ export default async function AddPaymentPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Notes</label>
-          <textarea name="notes" className="w-full rounded border px-3 py-2" rows={3} />
+          <textarea name="notes" className="w-full oura-input px-3 py-2" rows={3} />
         </div>
 
         <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-gray-50">

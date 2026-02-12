@@ -407,6 +407,16 @@ html, body {
 
 /* ---------- Oura Inputs ---------- */
 .oura-input{
+  /* Base: do NOT paint gray. Let dark override do the glass tint. */
+  background: transparent !important;
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 12px;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.oura-input::placeholder{ color: rgba(210,210,215,0.55); }
+
 /* Chrome autofill (prevents gray/yellow fill on glass inputs) */
 input.oura-input:-webkit-autofill,
 textarea.oura-input:-webkit-autofill,
@@ -427,6 +437,29 @@ select.oura-input:-webkit-autofill{
 html.dark input.oura-input,
 html.dark textarea.oura-input,
 html.dark select.oura-input{
+  background:
+    radial-gradient(520px 180px at 22% 0%, rgb(var(--accent-1) / 0.26), transparent 62%),
+    radial-gradient(420px 160px at 88% 10%, rgb(var(--accent-2) / 0.16), transparent 65%),
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.012)) !important;
+
+  background-color: rgba(10,10,14,0.40) !important;
+
+  border-color: rgba(255,255,255,0.10) !important;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.06),
+    0 10px 30px rgba(0,0,0,0.42) !important;
+
+  color: rgb(var(--fg)) !important;
+}
+
+.dark input.oura-input::placeholder,
+.dark textarea.oura-input::placeholder
+html.dark input.oura-input::placeholder,
+html.dark textarea.oura-input::placeholder{
+  color: rgba(210,210,215,0.55) !important;
+}
+
 /* Chrome autofill (prevents gray/yellow fill) */
 .dark input.oura-input:-webkit-autofill,
 .dark textarea.oura-input:-webkit-autofill,
@@ -434,65 +467,24 @@ html.dark select.oura-input{
 html.dark input.oura-input:-webkit-autofill,
 html.dark textarea.oura-input:-webkit-autofill,
 html.dark select.oura-input:-webkit-autofill{
-
-
-/* =========================================
-   OURA INPUT PLACEHOLDER (single source)
-   Let autoprefixer generate ::-moz-placeholder
-   ========================================= */
-html.dark input.oura-input::placeholder,
-html.dark textarea.oura-input::placeholder{
-  color: rgba(210,210,215,0.55) !important;
-  opacity: 1;
-}
-}
-}
-}
-
-/* =========================================
-   OURA INPUTS (final): indigo wet-glass, not gray
-   ========================================= */
-html.dark input.oura-input,
-html.dark textarea.oura-input,
-html.dark select.oura-input{
-  background:
-    radial-gradient(520px 180px at 18% 0%, rgb(var(--accent-1) / 0.30), transparent 62%),
-    radial-gradient(420px 160px at 88% 10%, rgb(var(--accent-2) / 0.18), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.012)) !important;
-  background-color: rgba(8,8,14,0.48) !important;
-
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  border-radius: 12px;
-
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    0 10px 30px rgba(0,0,0,0.42) !important;
-
-  color: rgb(var(--fg)) !important;
-  backdrop-filter: blur(14px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
-}
-
-html.dark input.oura-input::placeholder,
-html.dark textarea.oura-input::placeholder{
-  color: rgba(210,210,215,0.55) !important;
-}
-
-html.dark input.oura-input:-webkit-autofill,
-html.dark textarea.oura-input:-webkit-autofill,
-html.dark select.oura-input:-webkit-autofill{
   -webkit-text-fill-color: rgb(var(--fg)) !important;
   transition: background-color 9999s ease-in-out 0s;
-  box-shadow: 0 0 0px 1000px rgba(8,8,14,0.58) inset !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
+  box-shadow: 0 0 0px 1000px rgba(10,10,14,0.42) inset !important;
+  border-color: rgba(255,255,255,0.10) !important;
 }
 
-/* Montserrat numerals (used for dashboard metric bubbles) */
-.poppins-numerals {
-  font-family: var(--font-poppins), var(--font-sans), system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
+/* Placeholder color (Firefox + others) */
+html.dark input.oura-input::placeholder,
+html.dark textarea.oura-input::placeholder,
+html.dark input.oura-input::-moz-placeholder,
+html.dark textarea.oura-input::-moz-placeholder{
+  color: rgba(210,210,215,0.55) !important;
 }
 
-
-/* Bubble numbers font */
-.font-bubble { font-family: var(--font-bubble); }
+/* Placeholder color (Firefox + others) */
+html.dark input.oura-input::placeholder,
+html.dark textarea.oura-input::placeholder,
+html.dark input.oura-input::-moz-placeholder,
+html.dark textarea.oura-input::-moz-placeholder{
+  color: rgba(210,210,215,0.55) !important;
+}
