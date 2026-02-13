@@ -91,7 +91,9 @@ export default async function MemberCardPage() {
       ? "Expired"
       : "Free";
 
-  const statusHint =
+  
+  const isFree = computedStatus === "free";
+const statusHint =
     computedStatus === "active"
       ? "Enjoy full access."
       : computedStatus === "pending"
@@ -145,14 +147,18 @@ export default async function MemberCardPage() {
           </span>
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+        <div className={["mt-3 grid gap-3 text-sm", isFree ? "grid-cols-1" : "grid-cols-2"].join(" ")}>
           <div>
             <div className="opacity-70">Plan</div>
             <div className="font-medium">{plan?.name ?? (tier === "rewards_free" ? "Free" : "—")}</div>
           </div>
           <div>
-            <div className="opacity-70">Paid through</div>
-            <div className="font-medium">{paidThroughLabel}</div>
+            {!isFree && (
+            <div>
+              <div className="opacity-70">Paid through</div>
+              <div className="font-medium">{paidThroughLabel}</div>
+            </div>
+            )}
           </div>
         </div>
 

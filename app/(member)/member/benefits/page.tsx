@@ -102,9 +102,6 @@ const TIERS: Tier[] = [
     notes: ["Great for locals or longer stays."],
   },
 ];
-
-const UNIVERSAL_BENEFITS = ["Complimentary high-speed Wi-Fi"];
-
 function byCode(code?: string | null): Tier {
   const c = String(code || "rewards_free") as PlanCode;
   return TIERS.find((t) => t.code === c) ?? TIERS[0];
@@ -151,20 +148,7 @@ export default async function MemberBenefitsPage() {
         </div>
 
         <BackButton fallbackHref="/member" />
-      </div>
-
-            <div className="oura-card p-3">
-        <div className="font-medium">Included with all plans</div>
-        <div className="mt-2 divide-y divide-white/10">
-          {UNIVERSAL_BENEFITS.map((b) => (
-            <div key={b} className="p-2 text-sm opacity-80">
-              {b}
-            </div>
-          ))}
-        </div>
-      </div>
-
-<div className="oura-card p-3">
+      </div><div className="oura-card p-3">
         <div className="font-medium">Discounts</div>
         <p className="mt-1 text-sm opacity-70">
           Discounts may vary by event/promotions. Staff will confirm at checkout.

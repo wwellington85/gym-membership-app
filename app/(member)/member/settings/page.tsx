@@ -79,7 +79,9 @@ export default async function MemberSettingsPage() {
   const msPlan: any = Array.isArray(msPlanRaw) ? msPlanRaw[0] : msPlanRaw;
 
   const currentPlanCode = String(msPlan?.code || "rewards_free");
-  const currentPlanName = String(
+  
+  const isFree = currentPlanCode === "rewards_free";
+const currentPlanName = String(
     msPlan?.name || rewardsPlan?.name || "Travellers Rewards (Free)"
   );
 
@@ -159,17 +161,22 @@ export default async function MemberSettingsPage() {
         <BackButton fallbackHref="/member" />
       </div>
 
-      <div className="space-y-3"><div className="oura-card p-3">
+      <div className="space-y-3">
+        <div className="oura-card p-3">
           <div className="font-medium">Membership plan</div>
 
-          <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+          <div className={["mt-2 grid gap-2 text-sm", isFree ? "grid-cols-1" : "grid-cols-2"].join(" ")}>
             <div>
               <div className="opacity-70">Current plan</div>
               <div className="font-medium">{currentPlanName}</div>
             </div>
             <div>
-              <div className="opacity-70">Paid through</div>
-              <div className="font-medium">{paidThroughLabel}</div>
+              {!isFree && (
+              <div>
+                <div className="opacity-70">Paid through</div>
+                <div className="font-medium">{paidThroughLabel}</div>
+              </div>
+              )}
             </div>
           </div>
         </div>
