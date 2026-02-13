@@ -3,6 +3,28 @@ import { createClient } from "@/lib/supabase/server";
 
 type Role = "admin" | "front_desk" | "security";
 
+function fmtJamaicaDateTime(ts?: string | null) {
+  if (!ts) return "—";
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("en-US", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function paymentMethodLabel(p: any) {
+  return p?.payment_method ?? p?.method ?? p?.provider ?? p?.source ?? "—";
+}
+
+function paymentPaidOn(p: any) {
+  return p?.paid_on ?? p?.paid_at ?? p?.created_at ?? null;
+}
+
 export default async function PaymentsPage({
   searchParams,
 }: {
@@ -29,13 +51,13 @@ export default async function PaymentsPage({
   const role = staffProfile.role as Role;
   if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
 
-  // Join: payments -> memberships -> members
   let query = supabase
     .from("payments")
     .select(
-      "id, amount, paid_on, payment_method, membership_id, memberships(member_id, members(full_name, phone, email))"
+      "id, amount, paid_on, created_at, payment_method, method, membership_id, memberships(member_id, members(full_name, phone, email))"
     )
     .order("paid_on", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(200);
 
   if (q) {
@@ -48,9 +70,11 @@ export default async function PaymentsPage({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Payments</h1>
-        <p className="text-sm opacity-70">Recent payments recorded at the desk</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold">Payments</h1>
+          <p className="text-sm opacity-70">Recent payments recorded at the desk</p>
+        </div>
       </div>
 
       <form action="/payments" method="get" className="flex gap-2">
@@ -60,7 +84,7 @@ export default async function PaymentsPage({
           className="w-full oura-input px-3 py-2"
           placeholder="Search member name, email, or phone…"
         />
-        <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+        <button className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
           Search
         </button>
       </form>
@@ -83,17 +107,21 @@ export default async function PaymentsPage({
           const member = p.memberships?.members;
           const name = member?.full_name || "Member unknown";
           const meta = [member?.email, member?.phone].filter(Boolean).join(" • ");
+
+          const paidOn = fmtJamaicaDateTime(paymentPaidOn(p));
+          const method = paymentMethodLabel(p);
+
           return (
             <div key={p.id} className="oura-card p-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-medium">{name}</div>
                   {meta ? <div className="text-sm opacity-70">{meta}</div> : null}
-                  <div className="text-xs opacity-60">
-                    Paid on: {p.paid_on} • Method: {p.payment_method || "—"}
+                  <div className="text-xs opacity-70">
+                    Paid on: {paidOn} • Method: {method}
                   </div>
                 </div>
-                <div className="font-semibold">${Number(p.amount).toFixed(2)}</div>
+                <div className="font-semibold">${Number(p.amount ?? 0).toFixed(2)}</div>
               </div>
             </div>
           );

@@ -59,7 +59,7 @@ export default async function MembersPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: staffProfile } = await supabase
     .from("staff_profiles")
@@ -67,7 +67,7 @@ export default async function MembersPage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!staffProfile) redirect("/login");
+  if (!staffProfile) redirect("/auth/login");
 
   const role = staffProfile.role as string;
   const isSecurity = role === "security";
@@ -180,7 +180,7 @@ if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) redirect("/login");
+    if (!user) redirect("/auth/login");
 
     // Read points setting (default 1)
     const { data: settingRow } = await supabase
@@ -476,7 +476,11 @@ return (
         <div className="rounded border p-3 text-sm">
           Could not load members.
           <div className="mt-1 text-xs opacity-70">{error.message}</div>
+        
+        <div className="flex items-center gap-2">
+          <Link href="/members/new" className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">+ New Member</Link>
         </div>
+</div>
       ) : null}
 
       {/* Empty */}

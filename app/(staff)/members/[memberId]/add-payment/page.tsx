@@ -23,7 +23,7 @@ export default async function AddPaymentPage({
   // IMPORTANT: include membership id
   const { data: membership, error: membershipError } = await supabase
     .from("memberships")
-    .select("id, paid_through_date, membership_plan:membership_plan(name, price)")
+    .select("id, paid_through_date, membership_plan:membership_plans(name, price)")
     .eq("member_id", memberId)
     .maybeSingle();
 

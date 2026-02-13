@@ -301,12 +301,12 @@ const { data: recentCheckins } = await supabase
         {banner ? (
           <div className={`mt-3 rounded p-3 ${banner.cls}`}>
             <div className="text-sm font-medium">{banner.title}</div>
-            {banner.body ? <div className="mt-1 text-sm opacity-80">{banner.body}</div> : null}
+            {banner.body ? <div className="mt-1 text-sm text-emerald-100/80">{banner.body}</div> : null}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <a
                 href={`tel:${member.phone}`}
-                className="rounded border bg-white px-3 py-1.5 text-xs hover:bg-gray-50"
+                className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-50 hover:bg-emerald-500/20"
               >
                 Call member
               </a>
@@ -314,7 +314,7 @@ const { data: recentCheckins } = await supabase
               {canPayments ? (
                 <Link
                   href={`/members/${member.id}/add-payment`}
-                  className="rounded border bg-white px-3 py-1.5 text-xs hover:bg-gray-50"
+                  className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-50 hover:bg-emerald-500/20"
                 >
                   Record payment
                 </Link>
