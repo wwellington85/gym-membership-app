@@ -30,32 +30,48 @@ function fmtJamaicaDate(ts?: string | null) {
   return d.toLocaleDateString("en-US", { timeZone: "America/Jamaica" });
 }
 
+
 function Bubble({
   value,
   label,
   icon,
+  href,
 }: {
   value: string | number;
   label: string;
   icon: React.ReactNode;
+  href?: string;
 }) {
-  return (
+  const content = (
     <div className="flex flex-col items-center">
-      <div className="relative h-20 w-20 rounded-full border border-white/12 bg-gradient-to-b from-indigo-300/10 via-white/[0.035] to-indigo-200/5 backdrop-blur-md shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10),0_10px_28px_rgba(0,0,0,0.35)]">
-        <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.20),transparent_60%)]" />
-        <div className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(135deg,rgba(99,102,241,0.20),rgba(168,85,247,0.12))]" />
-        <div className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_-14px_22px_rgba(0,0,0,0.40)]" />
+      <div className="relative h-20 w-20 rounded-full border border-white/10 bg-gradient-to-b from-indigo-300/12 via-white/4 to-indigo-200/6 backdrop-blur-md shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08),0_10px_28px_rgba(0,0,0,0.35)] ring-1 ring-white/10">
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(135deg,rgba(99,102,241,0.22),rgba(168,85,247,0.14))]" />
+        <div className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_58%)]" />
+        <div className="pointer-events-none absolute inset-0 rounded-full shadow-[inset_0_-14px_24px_rgba(0,0,0,0.42)]" />
 
-        <div className="relative z-10 flex h-full w-full flex-col items-center justify-center">
-          <div className="mb-1 text-white/80">{icon}</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div className="mb-1 text-white/85">{icon}</div>
           <div className="font-bubble text-[23px] font-light leading-none tracking-[0.03em] tabular-nums text-white">
             {value}
           </div>
         </div>
       </div>
 
-      <div className="mt-2 text-center text-sm text-[rgb(var(--fg))]">{label}</div>
+      <div className="mt-2 min-h-[2.5rem] max-w-[120px] text-center text-[13px] leading-tight text-white/90">{label}</div>
     </div>
+  );
+
+  if (!href) return content;
+
+  return (
+    <Link
+      href={href}
+      prefetch={false}
+      className="group rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+      aria-label={label}
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -202,13 +218,42 @@ const statusLabel =
           <p className="text-sm opacity-70">Welcome, {firstName(member.full_name)}</p>
 
           <div className="mt-4 w-full">
-            <div className="mx-auto w-full max-w-[560px] rounded-2xl bg-white/[0.02] px-3 py-3 ring-1 ring-white/5 shadow-[0_18px_55px_rgba(0,0,0,0.22)]">
+            
               <div className="flex w-full justify-center">
-                <div className="grid w-full max-w-[520px] grid-cols-3 place-items-center gap-6">
-                  <Bubble value={points ?? 0} label="Loyalty points" icon={<Star className="h-4 w-4" strokeWidth={1.75} />} />
-                  <Bubble value={totalCheckins ?? 0} label="Total check-ins" icon={<CalendarCheck className="h-4 w-4" strokeWidth={1.75} />} />
-                  <Bubble value={tierLevel(tier)} label="Tier level" icon={<Layers className="h-4 w-4" strokeWidth={1.75} />} />
-                </div>
+                <div className="mx-auto grid w-full max-w-[520px] grid-cols-3 place-items-center gap-6">
+  <Link
+    href="/member/points"
+    className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+  >
+    <Bubble
+      value={points ?? 0}
+      label="Loyalty points"
+      icon={<Star className="h-4 w-4" strokeWidth={1.75} />}
+    />
+  </Link>
+
+  <Link
+    href="/member/check-ins"
+    className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+  >
+    <Bubble
+      value={totalCheckins ?? 0}
+      label="Total check-ins"
+      icon={<CalendarCheck className="h-4 w-4" strokeWidth={1.75} />}
+    />
+  </Link>
+
+  <Link
+    href="/member/tier"
+    className="block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+  >
+    <Bubble
+      value={tierLevel(tier)}
+      label="Tier level"
+      icon={<Layers className="h-4 w-4" strokeWidth={1.75} />}
+    />
+  </Link>
+
               </div>
             </div>
           </div>
