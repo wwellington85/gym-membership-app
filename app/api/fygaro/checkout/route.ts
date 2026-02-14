@@ -148,5 +148,7 @@ export async function POST(req: Request) {
   const fyUrl = new URL(buttonUrl);
   fyUrl.searchParams.set("jwt", jwt);
 
-  return NextResponse.redirect(fyUrl.toString(), 303);
+    const checkoutUrl = new URL("/member/checkout", req.url);
+  checkoutUrl.searchParams.set("payment", String(payment.id));
+  return NextResponse.redirect(checkoutUrl, 303);
 }
