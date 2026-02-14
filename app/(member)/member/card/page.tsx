@@ -2,9 +2,9 @@ import Link from "next/link";
 import { BackButton } from "@/components/ui/back-button";
 import { titleCaseName } from "@/lib/format/name";
 import { redirect } from "next/navigation";
-import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
 import { computeMembershipStatus, type MembershipTier } from "@/lib/membership/status";
+import { RotatingQr } from "./RotatingQr";
 
 export const dynamic = "force-dynamic";
 
@@ -103,16 +103,6 @@ const statusHint =
       : "Limited perks only.";
 
   const paidThroughLabel = fmtJamaicaDate((membership as any)?.paid_through_date ?? null);
-
-  // QR payload: member id (simple and reliable for scanning)
-  const payload = member.id;
-
-  const dataUrl = await QRCode.toDataURL(payload, {
-    errorCorrectionLevel: "M",
-    margin: 1,
-    scale: 8,
-  });
-
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -166,13 +156,7 @@ const statusHint =
 
         <div className="mt-4 text-sm opacity-70">Member ID</div>
         <div className="font-mono text-sm">{member.id}</div>
-
-        <div className="mt-4 flex items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={dataUrl} alt="Member QR Code" className="h-56 w-56 rounded border" />
-        </div>
-
-        <div className="mt-3 text-center text-xs opacity-70">Staff: scan this QR to check you in.</div>
+        <RotatingQr />
       </div>
     </div>
   );
