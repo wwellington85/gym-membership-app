@@ -11,6 +11,19 @@ type PlanRow = {
   code?: string | null;
 };
 
+
+function todayJamaicaISO() {
+  // en-CA gives YYYY-MM-DD
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+
+
 export default async function NewMemberPage() {
   const supabase = await createClient();
 
@@ -35,7 +48,8 @@ export default async function NewMemberPage() {
         </div>
       ) : null}
 
-      <MemberForm plans={plans} action={createMember} />
+      <MemberForm
+plans={plans} action={createMember} />
     </div>
   );
 }

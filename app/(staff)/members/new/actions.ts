@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { applyMembershipPlan } from "@/lib/membership/applyPlan";
 
 export async function createMember(formData: FormData) {
   const supabase = await createClient();
@@ -96,27 +97,22 @@ export async function createMember(formData: FormData) {
     redirect(`/members/${member.id}?membership_error=1`);
   }
 
-  // Record payment only if paid plan AND staff said they collected it
-  if (collect_payment && price > 0) {
-    const pay = await supabase.from("payments").insert({
-      member_id: member.id,
-      membership_id: membershipId,
-      amount: price,
-      paid_on: start_date,
-      payment_method,
-      notes: null,
-    } as any);
+  // Apply plan + optionally record payment (centralized logic)
+  {
+    const res = await applyMembershipPlan({
+      supabase,
+      membershipId,
+      memberId: member.id,
+      plan: { id: plan.id, price: Number(price), duration_days: Number((plan as any).duration_days ?? 0) },
+      startDate: start_date,
+      recordPayment: collect_payment && price > 0,
+      paymentMethod: payment_method || "cash",
+    });
 
-    if (pay.error) {
-      console.error("[members/new] payment insert failed:", pay.error);
-      redirect(`/members/${member.id}?payment_error=1`);
+    if (res?.error) {
+      console.error("[members/new] applyMembershipPlan failed:", res.error);
+      redirect(`/members/${member.id}?membership_error=1`);
     }
-
-    // best-effort: set last_payment_date (schema supports this in your memberships table)
-    await supabase
-      .from("memberships")
-      .update({ last_payment_date: start_date } as any)
-      .eq("id", membershipId);
   }
 
   redirect(`/members/${member.id}`);

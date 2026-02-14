@@ -28,9 +28,17 @@ export default function MemberForm({
   action,
 }: {
   plans: PlanRow[];
-  action: (formData: FormData) => void;
+  action: (formData: FormData) => void | Promise<void>;
 }) {
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const today = useMemo(() => {
+    // Use Jamaica local date to avoid UTC "tomorrow" issues
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Jamaica",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  }, []);
   const [planId, setPlanId] = useState<string>("");
 
   const selected = useMemo(() => plans.find((p) => p.id === planId) ?? null, [plans, planId]);

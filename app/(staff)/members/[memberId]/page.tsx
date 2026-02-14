@@ -331,43 +331,57 @@ const { data: recentCheckins } = await supabase
         ) : (
           <div className="mt-3 text-sm opacity-70">No plan assigned.</div>
         )}
-        {banner ? (
-          <div className={`mt-3 oura-card p-3 ${banner.cls}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-medium">{banner.title}</div>
-                {banner.body ? <div className="mt-1 text-sm opacity-70">{banner.body}</div> : null}
-              </div>
+        
 
-              <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={`tel:${member.phone}`}
-                  className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
-                >
-                  Call
-                </a>
 
-                {canPayments ? (
-                  <Link
-                    href={`/members/${member.id}/add-payment`}
-                    className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
-                  >
-                    Record payment
-                  </Link>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        ) : null}
+        
         <div className="mt-3 space-y-1 text-sm">
           <div>Plan: {plan?.name ?? "—"}</div>
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
           <div>Last payment: {lastPaymentLabel}</div>
-        </div>
+        
+          {member.notes ? (
+            <div className="mt-2 text-sm">
+              <span className="opacity-70">Notes:</span>{" "}
+              <span className="whitespace-pre-wrap">{member.notes}</span>
+            </div>
+          ) : null}
+</div>
       </div>
 
-      <div className="oura-card p-3">
+      
+
+            {banner ? (
+        <div className={`mt-3 ${banner.cls}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium">{banner.title}</div>
+              {banner.body ? <div className="mt-1 text-sm opacity-70">{banner.body}</div> : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={`tel:${member.phone}`}
+                className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
+              >
+                Call
+              </a>
+
+              {canPayments ? (
+                <Link
+                  href={`/members/${member.id}/add-payment`}
+                  className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
+                >
+                  Record payment
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+<div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Recent check-ins</h2>
           <span className="text-xs opacity-70">{recentCheckins?.length ?? 0}</span>
