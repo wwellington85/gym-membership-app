@@ -161,35 +161,68 @@ const { data: recentCheckins } = await supabase
     });
 
   // Payment list only for Admin/Front Desk
-  const payments = !canPayments || !membership?.id
-    ? []
-    : (await supabase
-        .from("payments")
-        .select("id, amount, paid_on, payment_method, membership_id")
-        .eq("membership_id", membership.id)
-        .order("paid_on", { ascending: false })
-      ).data ?? [];
+  let payments: any[] = [];
+
+  if (canPayments) {
+    // Prefer joined rows (if available on the membership query)
+    const joined = (membership as any)?.payment_rows;
+    if (Array.isArray(joined) && joined.length > 0) {
+      payments = joined;
+    }
+
+    // Fallback: fetch payments by membership_id OR member_id (depends on schema/insert path)
+    if (!payments || payments.length == 0) {
+      if (membership?.id) {
+        payments =
+          (
+            await supabase
+              .from("payments")
+              .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
+              .or(`membership_id.eq.${membership.id},member_id.eq.${memberId}`)
+              .order("paid_on", { ascending: false })
+              .order("created_at", { ascending: false })
+          ).data ?? [];
+      } else {
+        payments =
+          (
+            await supabase
+              .from("payments")
+              .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
+              .eq("member_id", memberId)
+              .order("paid_on", { ascending: false })
+              .order("created_at", { ascending: false })
+          ).data ?? [];
+      }
+    }
+  }
+
+  // Compute last payment from payments list (more reliable than memberships.last_payment_date)
+  const lastPaymentRow = payments && payments.length > 0 ? payments[0] : null;
+  const lastPaymentLabel = lastPaymentRow
+    ? (lastPaymentRow.paid_on ?? (lastPaymentRow.created_at ? String(lastPaymentRow.created_at).slice(0, 10) : "—"))
+    : "—";
 
   // Status banner
+
   let banner: { title: string; body?: string; cls: string } | null = null;
 
   if (status === "past_due") {
     banner = {
       title: "Past Due — Action needed",
       body: delta !== null ? `Membership expired ${Math.abs(delta)} day(s) ago.` : "Membership is expired.",
-      cls: "border border-red-200 bg-red-50",
+      cls: "oura-card p-3 border-l-4 border-l-red-500",
     };
   } else if (status === "due_soon") {
     banner = {
       title: "Due Soon",
       body: delta !== null ? `Membership expires in ${delta} day(s).` : "Membership expires soon.",
-      cls: "border border-amber-200 bg-amber-50",
+      cls: "oura-card p-3 border-l-4 border-l-amber-500",
     };
   } else if (status === "active") {
     banner =
       delta !== null
-        ? { title: "Active", body: `Membership expires in ${delta} day(s).`, cls: "border border-emerald-200 bg-emerald-50" }
-        : { title: "Active", cls: "border border-emerald-200 bg-emerald-50" };
+        ? { title: "Active", body: `Membership expires in ${delta} day(s).`, cls: "oura-card p-3 border-l-4 border-l-emerald-500" }
+        : { title: "Active", cls: "oura-card p-3 border-l-4 border-l-emerald-500" };
   }
 
   return (
@@ -231,14 +264,14 @@ const { data: recentCheckins } = await supabase
 
       {/* banners */}
       {paymentSaved && canPayments ? (
-        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
+        <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Payment saved</div>
           <div className="mt-1 opacity-80">The payment was recorded successfully.</div>
         </div>
       ) : null}
 
       {checkinState === "saved" ? (
-        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
+        <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Checked in</div>
           <div className="mt-1 opacity-80">Visit recorded successfully.</div>
         </div>
@@ -261,7 +294,7 @@ const { data: recentCheckins } = await supabase
         {plan ? (
           <div className="mt-3 rounded border p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm font-medium">
+              <div className="oura-alert-title">
                 {formatPlanType(plan.plan_type)}: {plan.name}
               </div>
               <div className="text-xs opacity-70">
@@ -299,35 +332,38 @@ const { data: recentCheckins } = await supabase
           <div className="mt-3 text-sm opacity-70">No plan assigned.</div>
         )}
         {banner ? (
-          <div className={`mt-3 rounded p-3 ${banner.cls}`}>
-            <div className="text-sm font-medium">{banner.title}</div>
-            {banner.body ? <div className="mt-1 text-sm text-emerald-100/80">{banner.body}</div> : null}
+          <div className={`mt-3 oura-card p-3 ${banner.cls}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium">{banner.title}</div>
+                {banner.body ? <div className="mt-1 text-sm opacity-70">{banner.body}</div> : null}
+              </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <a
-                href={`tel:${member.phone}`}
-                className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-50 hover:bg-emerald-500/20"
-              >
-                Call member
-              </a>
-
-              {canPayments ? (
-                <Link
-                  href={`/members/${member.id}/add-payment`}
-                  className="rounded border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-50 hover:bg-emerald-500/20"
+              <div className="flex flex-wrap items-center gap-2">
+                <a
+                  href={`tel:${member.phone}`}
+                  className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
                 >
-                  Record payment
-                </Link>
-              ) : null}
+                  Call
+                </a>
+
+                {canPayments ? (
+                  <Link
+                    href={`/members/${member.id}/add-payment`}
+                    className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
+                  >
+                    Record payment
+                  </Link>
+                ) : null}
+              </div>
             </div>
           </div>
         ) : null}
-
         <div className="mt-3 space-y-1 text-sm">
           <div>Plan: {plan?.name ?? "—"}</div>
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
-          <div>Last payment: {membership?.last_payment_date ?? "—"}</div>
+          <div>Last payment: {lastPaymentLabel}</div>
         </div>
       </div>
 

@@ -496,3 +496,37 @@ html.dark select.oura-input:-webkit-autofill{
 
 /* Bubble numbers font */
 .font-bubble { font-family: var(--font-bubble); }
+
+/* Oura-style alerts */
+.oura-alert {
+  @apply rounded border p-3 text-sm;
+}
+
+.oura-alert-success {
+  @apply oura-alert border-emerald-200 bg-emerald-50 text-emerald-900;
+  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
+}
+
+.oura-alert-success .oura-alert-title {
+  @apply text-sm font-medium;
+}
+
+.oura-alert-success .oura-alert-body {
+  @apply mt-1 text-sm text-emerald-800/80;
+  @apply dark:text-white/70;
+}
+
+.oura-alert-success .oura-alert-actions a {
+  @apply rounded border bg-white px-3 py-1.5 text-xs hover:bg-gray-50;
+  @apply dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white;
+}
+
+.oura-alert-warning {
+  @apply oura-alert border-amber-200 bg-amber-50 text-amber-900;
+  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
+}
+
+.oura-alert-danger {
+  @apply oura-alert border-red-200 bg-red-50 text-red-900;
+  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
+}
