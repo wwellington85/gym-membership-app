@@ -46,15 +46,6 @@ export default async function CheckinsPage({
           <p className="text-sm opacity-70">Today ({today})</p>
         </div>
         
-        <div className="flex gap-2">
-          <Link href="/checkins/scan" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
-            Scan
-          </Link>
-          <Link href="/members" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
-            Members
-          </Link>
-        </div>
-</div>
 
       {ok === "checked_in" ? (
         <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
@@ -70,6 +61,15 @@ export default async function CheckinsPage({
         </div>
       ) : null}
 
+        <div className="flex gap-2">
+          <Link href="/checkins/scan" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            Scan
+          </Link>
+          <Link href="/members" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            Members
+          </Link>
+        </div>
+</div>
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load check-ins.
