@@ -140,7 +140,6 @@ export default async function ScanCheckinPage({
   const diningOnly = membership?.status === "active" && !gymAccessAllowed;
     // Gym access is separate from loyalty check-ins.
     // Rewards/Free members can still be checked in to earn points.
-    const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
     const canRecordCheckin = membership?.status === "active";
 
     if (!canRecordCheckin) {
