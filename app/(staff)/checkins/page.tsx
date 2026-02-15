@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { AutoClearOk } from "./AutoClearOk";
 
 export const dynamic = "force-dynamic";
 
