@@ -1,21 +1,68 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { verifyQrToken } from "@/lib/qr/token";
 import { QrScanner } from "@/components/checkins/qr-scanner";
 
-function parsePayload(raw: string): { memberId?: string; err?: string } {
+function parsePayload(raw: string): { memberId?: string; token?: string; err?: string } {
   const v = (raw || "").trim();
   if (!v) return { err: "Empty code" };
 
+  // Accept URL payloads from scanner apps (e.g. https://.../?token=... or ?code=...)
+  if (/^https?:\/\//i.test(v)) {
+    try {
+      const u = new URL(v);
+      const qp =
+        u.searchParams.get("token") ||
+        u.searchParams.get("qr") ||
+        u.searchParams.get("code") ||
+        "";
+      const inner = String(qp).trim();
+      if (inner) return parsePayload(inner);
+    } catch {
+      // fall through
+    }
+  }
+
   // Expected formats:
   // 1) member:<uuid>
-  // 2) <uuid>
+  // 2) qr:<token>
+  // 3) <uuid>
+  // 4) <token>  (payload.sig)
   if (v.startsWith("member:")) {
     const id = v.slice("member:".length).trim();
     return { memberId: id || undefined, err: id ? undefined : "Invalid member code" };
   }
+
+  if (v.startsWith("qr:")) {
+    const token = v.slice("qr:".length).trim();
+    return { token: token || undefined, err: token ? undefined : "Invalid QR token" };
+  }
+
+  // If it looks like our signed token format (payload.sig), treat as token.
+  if (v.split(".").length === 2 && v.length > 20) {
+    return { token: v };
+  }
+
   return { memberId: v };
 }
+
+async function resolveMemberIdFromParsed(parsed: { memberId?: string; token?: string; err?: string }) {
+  if (parsed.err) return { ok: false as const, err: parsed.err };
+  if (parsed.memberId) return { ok: true as const, memberId: parsed.memberId };
+
+  const token = String(parsed.token || "").trim();
+  if (!token) return { ok: false as const, err: "Invalid code" };
+
+  const secret = process.env.QR_TOKEN_SECRET || "";
+  if (!secret) return { ok: false as const, err: "Missing QR_TOKEN_SECRET" };
+
+  const v = verifyQrToken(token, secret);
+  if (!v.ok) return { ok: false as const, err: `QR token ${v.reason}` };
+
+  return { ok: true as const, memberId: v.claims.mid };
+}
+
 
 function pct(n?: number | null) {
   const v = typeof n === "number" ? n : 0;
@@ -61,10 +108,13 @@ export default async function ScanCheckinPage({
     "use server";
 
     const raw = String(formData.get("code") || "").trim();
-    const parsed = parsePayload(raw);
-    if (parsed.err || !parsed.memberId) {
-      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(parsed.err || "Invalid code")}`);
+        const parsed = parsePayload(raw);
+    const resolved = await resolveMemberIdFromParsed(parsed);
+    if (!resolved.ok) {
+      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(resolved.err)}`);
     }
+    const memberId = resolved.memberId;
+
 
     const supabase = await createClient();
     const {
@@ -79,7 +129,7 @@ export default async function ScanCheckinPage({
       .select(
         "id, member_id, status, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
       )
-      .eq("member_id", parsed.memberId)
+      .eq("member_id", memberId)
       .maybeSingle();
 
     const plan = Array.isArray((membership as any)?.membership_plans)
@@ -102,7 +152,7 @@ export default async function ScanCheckinPage({
     const pointsEarned = settingRow?.int_value ?? 1;
 
     const { error } = await supabase.from("checkins").insert({
-      member_id: parsed.memberId,
+      member_id: memberId,
       staff_user_id: user.id,
       points_earned: pointsEarned,
     });
@@ -120,14 +170,16 @@ export default async function ScanCheckinPage({
   let member: any = null;
   let membership: any = null;
   let plan: any = null;
-
   if (code) {
     const parsed = parsePayload(code);
-    if (parsed.memberId && !parsed.err) {
+    const resolved = await resolveMemberIdFromParsed(parsed);
+    if (resolved.ok) {
+      const mid = resolved.memberId;
+
       const { data: m } = await supabase
         .from("members")
         .select("id, full_name, phone, email")
-        .eq("id", parsed.memberId)
+        .eq("id", mid)
         .maybeSingle();
 
       member = m;
@@ -137,11 +189,13 @@ export default async function ScanCheckinPage({
         .select(
           "id, member_id, status, paid_through_date, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
-        .eq("member_id", parsed.memberId)
+        .eq("member_id", mid)
         .maybeSingle();
 
       membership = ms;
-      plan = Array.isArray((ms as any)?.membership_plans) ? (ms as any).membership_plans[0] : (ms as any)?.membership_plans;
+      plan = Array.isArray((ms as any)?.membership_plans)
+        ? (ms as any).membership_plans[0]
+        : (ms as any)?.membership_plans;
     }
   }
 
