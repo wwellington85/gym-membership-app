@@ -282,7 +282,7 @@ export default async function ScanCheckinPage({
               <button
                 type="submit"
                 className="w-full rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
-                disabled={!accessAllowed}
+                disabled={String(membership?.status || "").toLowerCase() !== "active"}
               >
                 Record check-in
               </button>
@@ -290,7 +290,7 @@ export default async function ScanCheckinPage({
 
             {!accessAllowed ? (
               <div className="mt-2 text-xs opacity-70">
-                Only members with an active access plan (Club/Pass) can be checked in here.
+                Rewards member — NO GYM/POOL access. Discounts may apply (e.g., restaurant). Still record check-in for loyalty points.
               </div>
             ) : null}
           </div>
