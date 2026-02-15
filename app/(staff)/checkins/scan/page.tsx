@@ -193,7 +193,7 @@ export default async function ScanCheckinPage({
         .select(
           "id, member_id, status, paid_through_date, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
-        .eq("member_id", memberId)
+        .eq("member_id", mid)
         .maybeSingle();
 
       membership = ms;
