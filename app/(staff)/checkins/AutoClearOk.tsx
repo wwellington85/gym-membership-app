@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export function AutoClearOk({
   enabled,
@@ -12,15 +11,16 @@ export function AutoClearOk({
   href: string;
   ms?: number;
 }) {
-  const router = useRouter();
-
   useEffect(() => {
     if (!enabled) return;
-    const t = setTimeout(() => {
-      router.replace(href);
+
+    const t = window.setTimeout(() => {
+      // Always remove query params without triggering navigation
+      window.history.replaceState(null, "", href);
     }, ms);
-    return () => clearTimeout(t);
-  }, [enabled, href, ms, router]);
+
+    return () => window.clearTimeout(t);
+  }, [enabled, href, ms]);
 
   return null;
 }

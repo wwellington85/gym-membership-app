@@ -72,6 +72,8 @@ export default async function CheckinsPage({
         </div>
       ) : null}
 
+      <AutoClearOk enabled={!!ok} href="/checkins" />
+
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load check-ins.
