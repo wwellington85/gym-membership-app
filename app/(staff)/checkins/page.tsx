@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
 function todayJM(): string {
   // returns YYYY-MM-DD in Jamaica time
   return new Intl.DateTimeFormat("en-CA", {
