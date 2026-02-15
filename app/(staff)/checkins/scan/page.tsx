@@ -136,10 +136,15 @@ export default async function ScanCheckinPage({
       ? (membership as any).membership_plans[0]
       : (membership as any)?.membership_plans;
 
-    const accessAllowed = membership?.status === "active" && !!plan?.grants_access;
+    const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
+  const diningOnly = membership?.status === "active" && !gymAccessAllowed;
+    // Gym access is separate from loyalty check-ins.
+    // Rewards/Free members can still be checked in to earn points.
+    const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
+    const canRecordCheckin = membership?.status === "active";
 
-    if (!accessAllowed) {
-      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Access not allowed (inactive or rewards-only).")}`);
+    if (!canRecordCheckin) {
+      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Membership is not active.")}`);
     }
 
     // Points per check-in
@@ -189,7 +194,7 @@ export default async function ScanCheckinPage({
         .select(
           "id, member_id, status, paid_through_date, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
-        .eq("member_id", mid)
+        .eq("member_id", memberId)
         .maybeSingle();
 
       membership = ms;
@@ -199,7 +204,8 @@ export default async function ScanCheckinPage({
     }
   }
 
-  const accessAllowed = membership?.status === "active" && !!plan?.grants_access;
+  const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
+  const diningOnly = membership?.status === "active" && !gymAccessAllowed;
 
   return (
     <div className="space-y-4">
@@ -252,7 +258,7 @@ export default async function ScanCheckinPage({
           <div className="oura-card p-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-medium">Access</div>
-              <div className="text-sm font-semibold">{accessAllowed ? "Allowed" : "Not allowed"}</div>
+              <div className="text-sm font-semibold">{gymAccessAllowed ? "Allowed" : diningOnly ? "Dining Only" : "Not active"}</div>
             </div>
             <div className="mt-2 text-xs opacity-70">
               Plan: {plan?.name ?? "—"} • Type: {plan?.plan_type ?? "—"} • Status: {membership?.status ?? "—"}
@@ -288,9 +294,9 @@ export default async function ScanCheckinPage({
               </button>
             </form>
 
-            {!accessAllowed ? (
+            {diningOnly ? (
               <div className="mt-2 text-xs opacity-70">
-                Rewards member — NO GYM/POOL access. Discounts may apply (e.g., restaurant). Still record check-in for loyalty points.
+                Dining Only: Rewards members can earn loyalty points and use discounts, but do not have gym access.
               </div>
             ) : null}
           </div>
