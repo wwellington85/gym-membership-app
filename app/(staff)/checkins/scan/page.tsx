@@ -163,7 +163,7 @@ export default async function ScanCheckinPage({
 
     if (error) {
       if ((error as any).code === "23505") {
-        redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Already checked in today.")}`);
+        redirect(`/checkins?ok=already_checked_in`);
       }
       redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(error.message)}`);
     }
