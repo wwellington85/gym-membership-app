@@ -47,23 +47,7 @@ export default async function CheckinsPage({
           <h1 className="text-xl font-semibold">Check-ins</h1>
           <p className="text-sm opacity-70">Today ({today})</p>
         </div>
-        
-
-      {ok === "checked_in" ? (
-        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
-          <div className="font-medium">Checked in</div>
-          <div className="mt-1 opacity-80">Visit recorded successfully.</div>
-        </div>
-      ) : null}
-
-      {ok === "already_checked_in" ? (
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-          <div className="font-medium">Already checked in</div>
-          <div className="mt-1 opacity-80">This member was already checked in today.</div>
-        </div>
-      ) : null}
-
-        <div className="flex gap-2">
+<div className="flex gap-2">
           <Link href="/checkins/scan" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
             Scan
           </Link>
@@ -72,6 +56,21 @@ export default async function CheckinsPage({
           </Link>
         </div>
 </div>
+
+      {ok === "checked_in" ? (
+        <div className="oura-card p-3 text-sm">
+          <div className="font-medium">Checked in</div>
+          <div className="mt-1 opacity-70">Visit recorded successfully.</div>
+        </div>
+      ) : null}
+
+      {ok === "already_checked_in" ? (
+        <div className="oura-card p-3 text-sm">
+          <div className="font-medium">Already checked in</div>
+          <div className="mt-1 opacity-70">This member was already checked in today.</div>
+        </div>
+      ) : null}
+
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load check-ins.
