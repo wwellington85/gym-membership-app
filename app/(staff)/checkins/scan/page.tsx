@@ -168,8 +168,8 @@ export default async function ScanCheckinPage({
       redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(error.message)}`);
     }
 
-    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&ok=checked_in`);
-  }
+    redirect(`/checkins?ok=checked_in`);
+}
 
   let member: any = null;
   let membership: any = null;
