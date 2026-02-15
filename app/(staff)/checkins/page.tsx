@@ -59,20 +59,6 @@ export default async function CheckinsPage({
         </div>
 </div>
 
-      {ok === "checked_in" ? (
-        <div className="oura-card p-3 text-sm">
-          <div className="font-medium">Checked in</div>
-          <div className="mt-1 opacity-70">Visit recorded successfully.</div>
-        </div>
-      ) : null}
-
-      {ok === "already_checked_in" ? (
-        <div className="oura-card p-3 text-sm">
-          <div className="font-medium">Already checked in</div>
-          <div className="mt-1 opacity-70">This member was already checked in today.</div>
-        </div>
-      ) : null}
-
       <AutoClearOk enabled={!!ok} href="/checkins" />
 
       {error ? (
