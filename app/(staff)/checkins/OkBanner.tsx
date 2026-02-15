@@ -46,11 +46,11 @@ export function OkBanner({ ok }: Props) {
   if (!effectiveOk || !open || !msg) return null;
 
   return (
-    <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
+    <div className="oura-card p-3 text-sm text-foreground border" >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-medium">{msg.title}</div>
-          <div className="mt-1 opacity-80">{msg.body}</div>
+          <div className="font-medium text-foreground">{msg.title}</div>
+          <div className="mt-1 text-foreground/70">{msg.body}</div>
         </div>
         <button
           type="button"
@@ -58,7 +58,7 @@ export function OkBanner({ ok }: Props) {
             setOpen(false);
             router.replace("/checkins");
           }}
-          className="rounded border px-2 py-1 text-xs hover:bg-white"
+          className="rounded border px-2 py-1 text-xs hover:oura-surface-muted text-foreground"
         >
           Close
         </button>
