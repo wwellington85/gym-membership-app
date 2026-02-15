@@ -1,37 +1,68 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export function OkBanner({ ok, ms = 2500 }: { ok?: string; ms?: number }) {
-  const [visible, setVisible] = useState(Boolean(ok));
+type Props = { ok?: string };
+
+function messageFor(ok: string) {
+  switch (ok) {
+    case "checked_in":
+      return { title: "Checked in", body: "Visit recorded successfully." };
+    case "already_checked_in":
+      return { title: "Already checked in", body: "This member was already checked in today." };
+    default:
+      return { title: "Success", body: "Done." };
+  }
+}
+
+export function OkBanner({ ok }: Props) {
+  const router = useRouter();
+  const sp = useSearchParams();
+
+  const effectiveOk = ok || sp.get("ok") || "";
+  const [open, setOpen] = useState(Boolean(effectiveOk));
+
+  const msg = useMemo(() => (effectiveOk ? messageFor(effectiveOk) : null), [effectiveOk]);
 
   useEffect(() => {
-    if (!ok) return;
+    if (!effectiveOk) return;
 
-    // Clear query param immediately so URL becomes /checkins
-    try {
-      window.history.replaceState(null, "", "/checkins");
-    } catch {}
+    setOpen(true);
 
-    // Always hide after timeout
-    setVisible(true);
-    const t = window.setTimeout(() => setVisible(false), ms);
-    return () => window.clearTimeout(t);
-  }, [ok, ms]);
+    const t = setTimeout(() => {
+      // Remove ok=... from URL without a full reload
+      const params = new URLSearchParams(Array.from(sp.entries()));
+      params.delete("ok");
+      const q = params.toString();
+      router.replace(q ? `/checkins?${q}` : "/checkins");
+      setOpen(false);
+    }, 2000);
 
-  if (!ok || !visible) return null;
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveOk]);
 
-  const message =
-    ok === "already_checked_in"
-      ? "Already checked in — this member was already checked in today."
-      : ok === "checked_in"
-      ? "Checked in — visit recorded successfully."
-      : "Success.";
+  if (!effectiveOk || !open || !msg) return null;
 
   return (
     <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
-      <div className="font-medium">Success</div>
-      <div className="mt-1 opacity-80">{message}</div>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="font-medium">{msg.title}</div>
+          <div className="mt-1 opacity-80">{msg.body}</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            router.replace("/checkins");
+          }}
+          className="rounded border px-2 py-1 text-xs hover:bg-white"
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }

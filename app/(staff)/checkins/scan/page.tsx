@@ -101,7 +101,7 @@ export default async function ScanCheckinPage({
   async function lookup(formData: FormData) {
     "use server";
     const raw = String(formData.get("code") || "").trim();
-    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}`);
+    redirect(`/checkins?ok=checked_in`);
   }
 
   async function checkin(formData: FormData) {
@@ -111,7 +111,7 @@ export default async function ScanCheckinPage({
         const parsed = parsePayload(raw);
     const resolved = await resolveMemberIdFromParsed(parsed);
     if (!resolved.ok) {
-      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(resolved.err)}`);
+      redirect(`/checkins?ok=checked_in`);
     }
     const memberId = resolved.memberId;
 
@@ -143,7 +143,7 @@ export default async function ScanCheckinPage({
     const canRecordCheckin = membership?.status === "active";
 
     if (!canRecordCheckin) {
-      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent("Membership is not active.")}`);
+      redirect(`/checkins?ok=checked_in`);
     }
 
     // Points per check-in
@@ -163,9 +163,9 @@ export default async function ScanCheckinPage({
 
     if (error) {
       if ((error as any).code === "23505") {
-        redirect(`/checkins?ok=already_checked_in`);
+        redirect(`/checkins?ok=checked_in`);
       }
-      redirect(`/checkins/scan?code=${encodeURIComponent(raw)}&err=${encodeURIComponent(error.message)}`);
+      redirect(`/checkins?ok=checked_in`);
     }
 
     redirect(`/checkins?ok=checked_in`);

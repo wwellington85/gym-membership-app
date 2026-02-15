@@ -44,6 +44,7 @@ export default async function CheckinsPage({
 
   return (
     <div className="space-y-4">
+      <OkBanner ok={ok} />
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Check-ins</h1>
