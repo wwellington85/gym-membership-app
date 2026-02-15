@@ -11,10 +11,17 @@ function todayJM(): string {
   }).format(new Date());
 }
 
-export default async function CheckinsPage() {
+export default async function CheckinsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ ok?: string }>;
+}) {
   const supabase = await createClient();
 
   const today = todayJM();
+
+  const sp = (await searchParams) ?? {};
+  const ok = sp.ok ?? "";
 
   // Pull today's check-ins (by checked_in_at date in Jamaica time)
   const { data: rows, error } = await supabase
@@ -48,6 +55,20 @@ export default async function CheckinsPage() {
           </Link>
         </div>
 </div>
+
+      {ok === "checked_in" ? (
+        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
+          <div className="font-medium">Checked in</div>
+          <div className="mt-1 opacity-80">Visit recorded successfully.</div>
+        </div>
+      ) : null}
+
+      {ok === "already_checked_in" ? (
+        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
+          <div className="font-medium">Already checked in</div>
+          <div className="mt-1 opacity-80">This member was already checked in today.</div>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="rounded border p-3 text-sm">
