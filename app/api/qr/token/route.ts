@@ -34,20 +34,17 @@ async function issueToken() {
   if (!member?.id) {
     return NextResponse.json({ ok: false, error: "Member not found" }, { status: 404 });
   }
-
   const now = Math.floor(Date.now() / 1000);
-  const ttl = Number(process.env.QR_TOKEN_TTL_SECONDS || 45); // short-lived prevents screenshot sharing
+  const ttl = Number(process.env.QR_TOKEN_TTL_SECONDS || 60); // short-lived prevents screenshot sharing
+  const safeTtl = ttl >= 10 ? ttl : 60;
+
   const claims: QrClaims = {
     mid: member.id,
     iat: now,
-    exp: now + (ttl > 10 ? ttl : 45),
+    exp: now + safeTtl,
     jti: randId(),
-  } as any;
-
-  // python doesn't know TS ternary; keep logic simple by generating after
-  claims.exp = now + (ttl > 10 ? ttl : 45)
-
-  const token = signQrToken(claims, secret);
+  };
+const token = signQrToken(claims, secret);
   return NextResponse.json({ ok: true, token, exp: claims.exp });
 }
 
