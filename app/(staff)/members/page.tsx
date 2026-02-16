@@ -83,7 +83,7 @@ export default async function MembersPage({
   const base = supabase
     .from("members")
     .select(
-      "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price))"
+      "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa))"
     )
     .order("created_at", { ascending: false })
     .limit(isSecurity ? 20 : 50);
