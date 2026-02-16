@@ -28,9 +28,18 @@ function formatPlanType(t?: string | null) {
   return "Plan";
 }
 
-function pct(v?: number | null) {
-  const n = typeof v === "number" ? v : 0;
-  return `${Math.round(n * 100)}%`;
+function pct(n: number | string | null | undefined) {
+  const v =
+    typeof n === "number"
+      ? n
+      : typeof n === "string"
+      ? Number.parseFloat(n)
+      : 0;
+
+  const safe = Number.isFinite(v) ? v : 0;
+
+  // values are stored as 0.15 etc
+  return `${Math.round(safe * 100)}%`;
 }
 
 function money(v?: number | null) {
