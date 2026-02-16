@@ -5,6 +5,7 @@ import { titleCaseName } from "@/lib/format/name";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanPicker } from "@/components/member/plan-picker";
+import { TIERS } from "@/lib/plans/tiers";
 
 export const dynamic = "force-dynamic";
 
@@ -146,7 +147,7 @@ const currentPlanName = String(
 
   const { data: plans } = await supabase
     .from("membership_plans")
-    .select("code, name, price, duration_days, is_active")
+    .select("code, name, price, duration_days, is_active, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa")
     .eq("is_active", true)
     .order("price", { ascending: true });
 
@@ -195,9 +196,90 @@ const currentPlanName = String(
                   showSubmit
               submitLabel="Continue"
             />
+
 </form>
         </div>
 
+        {(() => {
+          const rows = (plans ?? []).filter((x: any) => !!x?.code);
+          const byCode = new Map<string, any>();
+          rows.forEach((r: any) => byCode.set(String(r.code), r));
+
+          const pct = (v: any) => {
+            const n = Number(v ?? 0);
+            if (!Number.isFinite(n)) return "—";
+            return `${Math.round(n * 100)}% off`;
+          };
+
+          return (
+            <div className="oura-card p-3">
+              <div className="font-medium">Compare tiers</div>
+              <p className="mt-1 text-sm opacity-70">Quick view of what changes when you upgrade.</p>
+
+              <div className="mt-3 space-y-3">
+                {TIERS.map((t) => {
+                  const db = byCode.get(String(t.code)) || null;
+
+                  return (
+                    <div key={t.code} className="oura-card p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-medium">{t.name}</div>
+                          <div className="mt-1 text-sm opacity-70">
+                            {t.badge ? `${t.badge} • ` : ""}{t.priceLabel}
+                          </div>
+                        </div>
+
+                        <div className="text-xs opacity-70">
+                          {String(t.code) === String(currentPlanCode) ? "Current" : ""}
+                        </div>
+                      </div>
+
+                      <div className="mt-3 space-y-2 text-sm">
+                        {/* Access bullets (display copy stays hard-coded via TIERS) */}
+                        {t.access?.length ? (
+                          <div className="space-y-1">
+                            {t.access.map((a) => (
+                              <div key={a} className="opacity-85">{a}</div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="opacity-70">Discounts only (no facility access).</div>
+                        )}
+
+                        {/* Discounts from DB */}
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div className="oura-surface-muted rounded border border-white/10 p-2">
+                            <div className="text-xs opacity-70">Food</div>
+                            <div className="font-medium">{db ? pct(db.discount_food) : "—"}</div>
+                          </div>
+                          <div className="oura-surface-muted rounded border border-white/10 p-2">
+                            <div className="text-xs opacity-70">Watersports</div>
+                            <div className="font-medium">{db ? pct(db.discount_watersports) : "—"}</div>
+                          </div>
+                          <div className="oura-surface-muted rounded border border-white/10 p-2">
+                            <div className="text-xs opacity-70">Gift Shop</div>
+                            <div className="font-medium">{db ? pct(db.discount_giftshop) : "—"}</div>
+                          </div>
+                          <div className="oura-surface-muted rounded border border-white/10 p-2">
+                            <div className="text-xs opacity-70">Spa</div>
+                            <div className="font-medium">{db ? pct(db.discount_spa) : "—"}</div>
+                          </div>
+                        </div>
+
+                        {t.notes?.length ? (
+                          <div className="oura-surface-muted mt-2 rounded border border-white/10 p-2 text-xs opacity-80">
+                            {t.notes.join(" ")}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
         <Link
           href="/auth/update-password"
