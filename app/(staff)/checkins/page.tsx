@@ -118,7 +118,7 @@ export default async function CheckinsPage({
                 const cls =
                   a.kind === "ok"
                     ? "bg-emerald-400/15 text-emerald-50 border-emerald-300/40 ring-emerald-200/20 shadow-emerald-500/10"
-                    : a.kind === "warn" ? "bg-[#C8A24A]/15 text-[#F3E7C0] border-[#C8A24A]/45"
+                    : a.kind === "warn" ? "bg-[#C8A24A]/28 text-[#FFF3CC] border-[#C8A24A]/75 ring-[#C8A24A]/35 shadow-[#C8A24A]/25"
                     : a.kind === "bad"
                     ? "bg-red-400/15 text-red-50 border-red-300/40 ring-red-200/20 shadow-red-500/10"
                     : "bg-white/6 text-white/80 border-white/15 ring-white/10";
@@ -126,7 +126,7 @@ export default async function CheckinsPage({
                 return (
                   <span
                     className={[
-                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold leading-none shadow-sm backdrop-blur ring-1 ring-inset",
+                      "inline-flex items-center rounded-full border px-3.5 py-1 text-[11px] font-semibold leading-none uppercase tracking-wide shadow-sm backdrop-blur ring-1 ring-inset",
                       cls,
                     ].join(" ")}
                   >
