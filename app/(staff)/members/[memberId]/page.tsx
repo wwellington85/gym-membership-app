@@ -97,7 +97,7 @@ export default async function MemberProfilePage({
   const activeRes = await supabase
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
+      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
     )
     .eq("member_id", memberId)
     .eq("status", "active")
@@ -120,9 +120,22 @@ export default async function MemberProfilePage({
 
     membership = latestRes.data;
   }
-const plan = Array.isArray(membership?.membership_plans)
-    ? membership.membership_plans[0]
-    : membership?.membership_plans;
+let plan = Array.isArray((membership as any)?.membership_plans)
+    ? (membership as any).membership_plans[0]
+    : (membership as any)?.membership_plans;
+
+// Fallback: nested join may be blocked/empty under RLS; load plan directly by FK.
+if (!plan && (membership as any)?.membership_plan_id) {
+  const { data: planRow } = await supabase
+    .from("membership_plans")
+    .select(
+      "id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa"
+    )
+    .eq("id", String((membership as any).membership_plan_id))
+    .maybeSingle();
+
+  plan = planRow as any;
+}
 const { data: recentCheckins } = await supabase
     .from("checkins")
     .select("id, checked_in_at, points_earned, notes")
