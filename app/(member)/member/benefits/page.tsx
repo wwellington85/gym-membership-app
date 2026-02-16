@@ -126,13 +126,30 @@ export default async function MemberBenefitsPage() {
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("id, membership_plans(code, name)")
+    .select("id, membership_plans(code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)")
     .eq("member_id", member.id)
     .maybeSingle();
 
   const planRaw: any = (membership as any)?.membership_plans;
   const plan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
   const current = byCode(plan?.code);
+
+  function pct(n: any) {
+    const v = Number(n ?? 0);
+    const p = Math.round(v * 100);
+    return `${p}% off`;
+  }
+
+  const currentDiscounts =
+    plan && typeof plan === "object"
+      ? [
+          { label: "Restaurant & Bar", value: pct((plan as any).discount_food) },
+          { label: "Spa services", value: pct((plan as any).discount_spa) },
+          { label: "Gift shop", value: pct((plan as any).discount_giftshop) },
+          { label: "Watersports", value: pct((plan as any).discount_watersports) },
+          { label: "Complimentary high-speed Wi-Fi", value: "Included" },
+        ]
+      : current.discounts;
 
   return (
     <div className="space-y-4">
@@ -155,7 +172,7 @@ export default async function MemberBenefitsPage() {
         </p>
 
         <div className="mt-3 divide-y divide-white/10">
-          {current.discounts.map((d) => (
+          {currentDiscounts.map((d) => (
             <div key={d.label} className="flex items-center justify-between p-2 text-sm">
               <div className="opacity-80">{d.label}</div>
               <div className="font-medium">{d.value}</div>
