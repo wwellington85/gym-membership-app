@@ -91,15 +91,36 @@ export default async function MemberProfilePage({
 
   if (memberError || !member) return notFound();
 
-  const { data: membership } = await supabase
+  let membership: any = null;
+
+  // Prefer active membership (what staff cares about). Fall back to the most recent membership.
+  const activeRes = await supabase
     .from("memberships")
     .select(
       "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
     )
     .eq("member_id", memberId)
+    .eq("status", "active")
+    .order("start_date", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  const plan = Array.isArray(membership?.membership_plans)
+  membership = activeRes.data;
+
+  if (!membership) {
+    const latestRes = await supabase
+      .from("memberships")
+      .select(
+        "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
+      )
+      .eq("member_id", memberId)
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    membership = latestRes.data;
+  }
+const plan = Array.isArray(membership?.membership_plans)
     ? membership.membership_plans[0]
     : membership?.membership_plans;
 const { data: recentCheckins } = await supabase
