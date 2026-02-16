@@ -117,17 +117,17 @@ export default async function CheckinsPage({
                 const a = accessLabelFor(String(r.member_id));
                 const cls =
                   a.kind === "ok"
-                    ? "bg-emerald-500/10 text-emerald-100 border-emerald-300/30"
+                    ? "bg-emerald-400/15 text-emerald-50 border-emerald-300/40 ring-emerald-200/20 shadow-emerald-500/10"
                     : a.kind === "warn"
-                    ? "bg-amber-500/10 text-amber-100 border-amber-300/30"
+                    ? "bg-amber-400/15 text-amber-50 border-amber-300/40 ring-amber-200/20 shadow-amber-500/10"
                     : a.kind === "bad"
-                    ? "bg-red-500/10 text-red-100 border-red-300/30"
-                    : "bg-white/5 text-white/70 border-white/15";
+                    ? "bg-red-400/15 text-red-50 border-red-300/40 ring-red-200/20 shadow-red-500/10"
+                    : "bg-white/6 text-white/80 border-white/15 ring-white/10";
 
                 return (
                   <span
                     className={[
-                      "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium leading-none",
+                      "inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold leading-none shadow-sm backdrop-blur ring-1 ring-inset",
                       cls,
                     ].join(" ")}
                   >
