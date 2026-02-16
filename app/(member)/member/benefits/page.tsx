@@ -49,7 +49,7 @@ export default async function MemberBenefitsPage() {
 
 
   // Load plan discounts for Compare tiers from DB (keeps UI copy but makes discounts source-of-truth)
-  const tierCodes = TIERS.map((t) => t.code);
+  const tierCodes = compareTiers.map((t) => t.code);
   const { data: planRows } = await supabase
     .from("membership_plans")
     .select("code, discount_food, discount_watersports, discount_giftshop, discount_spa, grants_access")
