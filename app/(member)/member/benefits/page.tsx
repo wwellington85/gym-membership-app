@@ -151,6 +151,37 @@ export default async function MemberBenefitsPage() {
         ]
       : current.discounts;
 
+
+  // Load plan discounts for Compare tiers from DB (keeps UI copy but makes discounts source-of-truth)
+  const tierCodes = TIERS.map((t) => t.code);
+  const { data: planRows } = await supabase
+    .from("membership_plans")
+    .select("code, discount_food, discount_watersports, discount_giftshop, discount_spa, grants_access")
+    .in("code", tierCodes);
+
+  const planByCode = new Map<string, any>();
+  (planRows ?? []).forEach((r: any) => planByCode.set(String(r.code), r));
+
+  function tierDiscountsFromPlanRow(row: any, fallback: any[]) {
+    if (!row) return fallback;
+    return [
+      { label: "Restaurant & Bar", value: pct(row.discount_food) },
+      { label: "Spa services", value: pct(row.discount_spa) },
+      { label: "Gift shop", value: pct(row.discount_giftshop) },
+      { label: "Watersports", value: pct(row.discount_watersports) },
+      { label: "Complimentary high-speed Wi-Fi", value: "Included" },
+    ];
+  }
+
+  const compareTiers = TIERS.map((t) => {
+    const row = planByCode.get(t.code);
+    return {
+      ...t,
+      // keep your existing labels/badges/access copy; just source discounts from DB if available
+      discounts: tierDiscountsFromPlanRow(row, t.discounts),
+    };
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -234,7 +265,7 @@ export default async function MemberBenefitsPage() {
         </p>
 
         <div className="mt-3 divide-y divide-white/10">
-          {TIERS.map((t) => {
+          {compareTiers.map((t) => {
             const isCurrent = t.code === current.code;
             return (
               <div
