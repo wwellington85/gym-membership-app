@@ -111,22 +111,23 @@ export default async function CheckinsPage({
         {todayRows.map((r: any) => (
           <div key={r.id} className="oura-card p-3">
             <div className="font-medium">{r.members?.full_name ?? "Member"}</div>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex items-center justify-between gap-2">
               <span className="text-sm opacity-70">{r.members?.phone ?? r.member_id}</span>
               {(() => {
                 const a = accessLabelFor(String(r.member_id));
                 const cls =
                   a.kind === "ok"
-                    ? "bg-green-50"
+                    ? "bg-emerald-500/10 text-emerald-100 border-emerald-300/30"
                     : a.kind === "warn"
-                    ? "bg-amber-50"
+                    ? "bg-amber-500/10 text-amber-100 border-amber-300/30"
                     : a.kind === "bad"
-                    ? "bg-red-50"
-                    : "oura-surface-muted";
+                    ? "bg-red-500/10 text-red-100 border-red-300/30"
+                    : "bg-white/5 text-white/70 border-white/15";
+
                 return (
                   <span
                     className={[
-                      "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+                      "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium leading-none",
                       cls,
                     ].join(" ")}
                   >
