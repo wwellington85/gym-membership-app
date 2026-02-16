@@ -86,7 +86,7 @@ export default async function MemberBenefitsPage() {
           <p className="text-sm opacity-70">What your membership includes</p>
           <p className="mt-1 text-sm">
             <span className="opacity-70">Your plan:</span>{" "}
-            <span className="font-medium">{current.name}</span>{" "}
+            <span className="font-medium">{plan?.name ?? current.name}</span>{" "}
             <span className="opacity-70">({current.priceLabel})</span>
           </p>
         </div>
