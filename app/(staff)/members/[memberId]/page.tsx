@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
 
 function daysFromToday(ymd: string) {
@@ -90,9 +91,11 @@ export default async function MemberProfilePage({
 
   if (!staffProfile) redirect("/login");
 
+  const admin = createAdminClient();
+
   const role = staffProfile.role as string;const canPayments = ["admin", "front_desk"].includes(role);
 
-  const { data: member, error: memberError } = await supabase
+  const { data: member, error: memberError } = await admin
     .from("members")
     .select("id, full_name, phone, email, notes, created_at")
     .eq("id", memberId)
@@ -103,7 +106,7 @@ export default async function MemberProfilePage({
   let membership: any = null;
 
   // Prefer active membership (what staff cares about). Fall back to the most recent membership.
-  const activeRes = await supabase
+  const activeRes = await admin
     .from("memberships")
     .select(
       "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
@@ -145,14 +148,14 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
   plan = planRow as any;
 }
-const { data: recentCheckins } = await supabase
+const { data: recentCheckins } = await admin
     .from("checkins")
     .select("id, checked_in_at, points_earned, notes")
     .eq("member_id", memberId)
     .order("checked_in_at", { ascending: false })
     .limit(5);
 
-  const { data: loyalty } = await supabase
+  const { data: loyalty } = await admin
     .from("member_loyalty_points")
     .select("points")
     .eq("member_id", memberId)
