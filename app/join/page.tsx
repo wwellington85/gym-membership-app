@@ -6,6 +6,12 @@ import { JoinSuccessBanner } from "@/components/join/success-banner";
 
 type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
 
+type JoinPlanOption = {
+  code: string;
+  label: string;
+  grants_access: boolean;
+};
+
 const PLAN_LABELS: Record<PlanCode, string> = {
   rewards_free: "Travellers Rewards (Free) — Discounts only",
   club_day: "Travellers Club Day Pass — $25",
@@ -22,6 +28,17 @@ function todayJM(): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+function isMissingVisibleOnJoinColumn(error: any) {
+  return /visible_on_join/i.test(String(error?.message || ""));
+}
+
+function toJoinPlanLabel(code: string, name: string | null, price: number | null) {
+  const normalized = code as PlanCode;
+  if (normalized in PLAN_LABELS) return PLAN_LABELS[normalized];
+  if (name && typeof price === "number") return `${name} — $${price}`;
+  return name || code;
 }
 
 export default async function JoinPage({
@@ -44,7 +61,49 @@ export default async function JoinPage({
 }) {
   const sp = (await searchParams) ?? {};
   const today = todayJM();
-  const prefillPlan = (sp.requested_plan_code || "rewards_free") as PlanCode;
+  const adminForPlans = createAdminClient();
+  let joinPlansError: string | null = null;
+
+  const withVisibility = await adminForPlans
+    .from("membership_plans")
+    .select("code, name, price, grants_access")
+    .eq("is_active", true)
+    .eq("visible_on_join", true)
+    .order("price", { ascending: true });
+
+  const planRows =
+    withVisibility.error && isMissingVisibleOnJoinColumn(withVisibility.error)
+      ? (
+          await adminForPlans
+            .from("membership_plans")
+            .select("code, name, price, grants_access")
+            .eq("is_active", true)
+            .order("price", { ascending: true })
+        ).data
+      : withVisibility.data;
+
+  if (withVisibility.error && !isMissingVisibleOnJoinColumn(withVisibility.error)) {
+    joinPlansError = withVisibility.error.message;
+  }
+
+  const joinPlanOptions: JoinPlanOption[] =
+    (planRows ?? [])
+      .map((p: any) => ({
+        code: String(p.code || ""),
+        label: toJoinPlanLabel(String(p.code || ""), p.name ?? null, p.price ?? null),
+        grants_access: !!p.grants_access,
+      }))
+      .filter((p) => p.code) || [];
+
+  const fallbackOptions: JoinPlanOption[] = [
+    { code: "rewards_free", label: PLAN_LABELS.rewards_free, grants_access: false },
+    { code: "club_day", label: PLAN_LABELS.club_day, grants_access: true },
+    { code: "club_weekly", label: PLAN_LABELS.club_weekly, grants_access: true },
+    { code: "club_monthly_95", label: PLAN_LABELS.club_monthly_95, grants_access: true },
+  ];
+
+  const selectablePlans = joinPlanOptions.length > 0 ? joinPlanOptions : fallbackOptions;
+  const prefillPlan = sp.requested_plan_code || selectablePlans[0]?.code || "rewards_free";
   const prefillStart = sp.requested_start_date || today;
   const prefillCountry = sp.country || "Jamaica";
   const prefillWaiver = sp.waiver === "1";
@@ -60,8 +119,7 @@ export default async function JoinPage({
     const phone = String(formData.get("phone") || "").trim();
     const email = String(formData.get("email") || "").trim().toLowerCase();
 
-    const requested_plan_code = String(formData.get("requested_plan_code") || "")
-      .trim() as PlanCode;
+    const requested_plan_code = String(formData.get("requested_plan_code") || "").trim();
 
     let requested_start_date = String(formData.get("requested_start_date") || "").trim(); // YYYY-MM-DD or ""
     const country = String(formData.get("country") || "Jamaica").trim();
@@ -91,8 +149,8 @@ export default async function JoinPage({
 
     if (!full_name) fail("Please enter your name");
 
-    const allowed: PlanCode[] = ["rewards_free", "club_day", "club_weekly", "club_monthly_95"];
-    if (!requested_plan_code || !allowed.includes(requested_plan_code)) {
+    const allowedCodes = new Set(selectablePlans.map((p) => p.code));
+    if (!requested_plan_code || !allowedCodes.has(requested_plan_code)) {
       fail("Please select a membership option");
     }
 
@@ -107,7 +165,9 @@ export default async function JoinPage({
       fail("Passwords do not match");
     }
 
-    const isAccess = ACCESS_PLANS.includes(requested_plan_code);
+    const isAccess =
+      selectablePlans.find((p) => p.code === requested_plan_code)?.grants_access ??
+      ACCESS_PLANS.includes(requested_plan_code as PlanCode);
 
     // Normalize start date: Free plan should NOT set one.
     if (!isAccess) requested_start_date = "";
@@ -325,6 +385,11 @@ export default async function JoinPage({
         </div>
       ) : null}
       {sp.success === "1" ? <JoinSuccessBanner /> : null}
+      {joinPlansError ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Plan list could not be fully loaded. Showing default options.
+        </div>
+      ) : null}
 
       <form action={submitApplication} className="space-y-3 rounded border p-4">
         {/* Honeypot hidden field */}
@@ -363,10 +428,11 @@ export default async function JoinPage({
         <div className="space-y-1">
           <label className="text-sm font-medium">Choose an option</label>
           <select name="requested_plan_code" className="w-full oura-input px-3 py-2" defaultValue={prefillPlan}>
-            <option value="rewards_free">{PLAN_LABELS.rewards_free}</option>
-            <option value="club_day">{PLAN_LABELS.club_day}</option>
-            <option value="club_weekly">{PLAN_LABELS.club_weekly}</option>
-            <option value="club_monthly_95">{PLAN_LABELS.club_monthly_95}</option>
+            {selectablePlans.map((p) => (
+              <option key={p.code} value={p.code}>
+                {p.label}
+              </option>
+            ))}
           </select>
           <p className="text-xs opacity-60">
             Club passes include full facility access + member discounts. Rewards (Free) provides discounts only.
