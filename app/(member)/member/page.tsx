@@ -3,6 +3,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { firstName } from "@/lib/format/name";
 import { computeMembershipStatus, type MembershipTier } from "@/lib/membership/status";
+import {
+  getCurrentUnseenRenewalNotifications,
+  markCurrentRenewalNotificationsSeen,
+  queueRenewalNotificationsForMembership,
+  renewalMessageForDays,
+} from "@/lib/membership/renewal-notifications";
 import { Star, CalendarCheck, Layers } from "lucide-react";
 
 function normalizeTier(planCode?: string | null): MembershipTier {
@@ -28,6 +34,25 @@ function fmtJamaicaDate(ts?: string | null) {
     /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00Z`) : new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("en-US", { timeZone: "America/Jamaica" });
+}
+
+function ymdJamaica() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+function daysUntilJamaica(isoDate?: string | null) {
+  const target = String(isoDate ?? "").slice(0, 10);
+  if (!target) return null;
+  const today = ymdJamaica();
+  const a = new Date(`${today}T00:00:00.000Z`);
+  const b = new Date(`${target}T00:00:00.000Z`);
+  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return null;
+  return Math.floor((b.getTime() - a.getTime()) / 86400000);
 }
 
 
@@ -139,6 +164,42 @@ const statusLabel =
       : membershipRow?.paid_through
       ? fmtJamaicaDate(membershipRow.paid_through)
       : "—";
+  const paidThroughIso = String(membershipRow?.paid_through ?? "").slice(0, 10);
+
+  async function dismissRenewalNotice() {
+    "use server";
+    const supabase = await createClient();
+    await markCurrentRenewalNotificationsSeen({
+      supabase,
+      memberId,
+      paidThroughDate: paidThroughIso,
+    });
+    redirect("/member");
+  }
+
+  if (!isFree && membershipRow?.id && paidThroughIso) {
+    await queueRenewalNotificationsForMembership({
+      supabase,
+      memberId,
+      membershipId: String(membershipRow.id),
+      paidThroughDate: paidThroughIso,
+    });
+  }
+
+  const renewalNotices =
+    !isFree && paidThroughIso
+      ? await getCurrentUnseenRenewalNotifications({
+          supabase,
+          memberId,
+          paidThroughDate: paidThroughIso,
+        })
+      : [];
+
+  const daysLeft = daysUntilJamaica(paidThroughIso);
+  const hasRenewalNotice = renewalNotices.length > 0 && daysLeft !== null && daysLeft <= 14;
+  const renewalNoticeTone =
+    daysLeft !== null && daysLeft <= 3 ? "border-amber-300 bg-amber-50" : "border-sky-300 bg-sky-50";
+  const renewalNoticeTextTone = daysLeft !== null && daysLeft <= 3 ? "text-amber-900" : "text-sky-900";
   // Check-ins (try multiple table/column combos so it works regardless of naming)
   async function fetchCheckins() {
     const candidates = [
@@ -322,6 +383,25 @@ const statusLabel =
           </div>
         </div>
       </div>
+
+      {hasRenewalNotice ? (
+        <div className={["rounded border p-3 text-sm", renewalNoticeTone, renewalNoticeTextTone].join(" ")}>
+          <div className="font-medium">Renewal reminder</div>
+          <div className="mt-1">
+            {renewalMessageForDays(daysLeft ?? 0, paidThroughLabel)}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href="/member/settings" className="rounded border px-3 py-2 text-xs hover:bg-white/40">
+              Renew now
+            </Link>
+            <form action={dismissRenewalNotice}>
+              <button className="rounded border px-3 py-2 text-xs hover:bg-white/40" type="submit">
+                Dismiss
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
 
       <div className="oura-card p-3">
         <div className="font-medium">Recent check-ins</div>

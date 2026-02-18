@@ -29,6 +29,20 @@ type BenefitRow = {
   is_active: boolean;
 };
 
+type ScheduledUpdateRow = {
+  id: string;
+  plan_id: string;
+  effective_on: string;
+  discount_food: number | null;
+  discount_spa: number | null;
+  discount_giftshop: number | null;
+  discount_watersports: number | null;
+  grants_access: boolean | null;
+  visible_on_join: boolean | null;
+  note: string | null;
+  applied_at: string | null;
+};
+
 async function requireAdminUser() {
   const supabase = await createClient();
   const {
@@ -62,6 +76,34 @@ function isMissingBenefitsTable(error: any) {
   const code = String(error?.code ?? "");
   const message = String(error?.message ?? "");
   return code === "PGRST205" || /membership_plan_benefits/i.test(message);
+}
+
+function isMissingScheduledUpdatesTable(error: any) {
+  const code = String(error?.code ?? "");
+  const message = String(error?.message ?? "");
+  return code === "PGRST205" || /membership_plan_scheduled_updates/i.test(message);
+}
+
+function maybePctToDb(input: FormDataEntryValue | null) {
+  const raw = String(input ?? "").trim();
+  if (!raw) return null;
+  return pctToDb(raw);
+}
+
+function boolModeToValue(input: FormDataEntryValue | null): boolean | null {
+  const v = String(input ?? "keep").trim();
+  if (v === "yes") return true;
+  if (v === "no") return false;
+  return null;
+}
+
+function todayJM() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }
 
 export default async function RewardsManagerPage({
@@ -144,6 +186,85 @@ export default async function RewardsManagerPage({
     benefitsByPlan.set(key, arr);
   });
 
+  let scheduledUpdatesFeatureUnavailable = false;
+
+  // Auto-apply due scheduled updates.
+  {
+    const dueRes = await admin
+      .from("membership_plan_scheduled_updates")
+      .select(
+        "id, plan_id, effective_on, discount_food, discount_spa, discount_giftshop, discount_watersports, grants_access, visible_on_join"
+      )
+      .is("applied_at", null)
+      .lte("effective_on", todayJM())
+      .order("effective_on", { ascending: true });
+
+    if (dueRes.error && isMissingScheduledUpdatesTable(dueRes.error)) {
+      scheduledUpdatesFeatureUnavailable = true;
+    } else if (dueRes.error) {
+      console.error("Could not load due scheduled updates:", dueRes.error);
+    } else {
+      for (const u of dueRes.data ?? []) {
+        const payload: any = {};
+        if (u.discount_food !== null) payload.discount_food = u.discount_food;
+        if (u.discount_spa !== null) payload.discount_spa = u.discount_spa;
+        if (u.discount_giftshop !== null) payload.discount_giftshop = u.discount_giftshop;
+        if (u.discount_watersports !== null) payload.discount_watersports = u.discount_watersports;
+        if (u.grants_access !== null) payload.grants_access = u.grants_access;
+        if (u.visible_on_join !== null) payload.visible_on_join = u.visible_on_join;
+
+        if (Object.keys(payload).length > 0) {
+          let updateErr: any = null;
+          const updated = await admin.from("membership_plans").update(payload).eq("id", u.plan_id);
+          updateErr = updated.error;
+
+          if (updateErr && /visible_on_join/i.test(String(updateErr.message || ""))) {
+            const fallbackPayload = { ...payload };
+            delete fallbackPayload.visible_on_join;
+            updateErr = Object.keys(fallbackPayload).length
+              ? (await admin.from("membership_plans").update(fallbackPayload).eq("id", u.plan_id)).error
+              : null;
+          }
+
+          if (updateErr) {
+            console.error("Could not apply scheduled update:", updateErr);
+            continue;
+          }
+        }
+
+        await admin
+          .from("membership_plan_scheduled_updates")
+          .update({ applied_at: new Date().toISOString() })
+          .eq("id", u.id);
+      }
+    }
+  }
+
+  const scheduledRes = await admin
+    .from("membership_plan_scheduled_updates")
+    .select(
+      "id, plan_id, effective_on, discount_food, discount_spa, discount_giftshop, discount_watersports, grants_access, visible_on_join, note, applied_at"
+    )
+    .in("plan_id", planIds)
+    .order("effective_on", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (scheduledRes.error && isMissingScheduledUpdatesTable(scheduledRes.error)) {
+    scheduledUpdatesFeatureUnavailable = true;
+  }
+
+  const scheduledUpdatesByPlan = new Map<string, ScheduledUpdateRow[]>();
+  if (!scheduledRes.error) {
+    (scheduledRes.data ?? []).forEach((u: any) => {
+      const key = String(u.plan_id);
+      const arr = scheduledUpdatesByPlan.get(key) ?? [];
+      arr.push(u as ScheduledUpdateRow);
+      scheduledUpdatesByPlan.set(key, arr);
+    });
+  } else if (!isMissingScheduledUpdatesTable(scheduledRes.error)) {
+    console.error("Could not load scheduled updates:", scheduledRes.error);
+  }
+
   const { data: settingRow } = await admin
     .from("app_settings")
     .select("int_value")
@@ -202,6 +323,54 @@ export default async function RewardsManagerPage({
 
     if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=plan");
+  }
+
+  async function schedulePlanUpdate(formData: FormData) {
+    "use server";
+    await requireAdminUser();
+
+    const admin = createAdminClient();
+    const planId = String(formData.get("plan_id") ?? "").trim();
+    const effectiveOn = String(formData.get("effective_on") ?? "").trim();
+    const note = String(formData.get("note") ?? "").trim();
+    if (!planId || !effectiveOn) {
+      redirect("/more/rewards?err=Plan%20and%20effective%20date%20are%20required");
+    }
+
+    const payload = {
+      plan_id: planId,
+      effective_on: effectiveOn,
+      discount_food: maybePctToDb(formData.get("discount_food")),
+      discount_spa: maybePctToDb(formData.get("discount_spa")),
+      discount_giftshop: maybePctToDb(formData.get("discount_giftshop")),
+      discount_watersports: maybePctToDb(formData.get("discount_watersports")),
+      grants_access: boolModeToValue(formData.get("grants_access_mode")),
+      visible_on_join: boolModeToValue(formData.get("visible_on_join_mode")),
+      note: note || null,
+    };
+
+    const { error } = await admin.from("membership_plan_scheduled_updates").insert(payload);
+    if (error && isMissingScheduledUpdatesTable(error)) {
+      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates");
+    }
+    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    redirect("/more/rewards?ok=scheduled");
+  }
+
+  async function deleteScheduledUpdate(formData: FormData) {
+    "use server";
+    await requireAdminUser();
+
+    const admin = createAdminClient();
+    const scheduleId = String(formData.get("schedule_id") ?? "").trim();
+    if (!scheduleId) redirect("/more/rewards?err=Missing%20scheduled%20update%20id");
+
+    const { error } = await admin.from("membership_plan_scheduled_updates").delete().eq("id", scheduleId);
+    if (error && isMissingScheduledUpdatesTable(error)) {
+      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates");
+    }
+    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    redirect("/more/rewards?ok=schedule_removed");
   }
 
   async function addBenefit(formData: FormData) {
@@ -339,6 +508,11 @@ export default async function RewardsManagerPage({
           Join visibility toggle is temporarily unavailable. Run the latest migration to enable it.
         </div>
       ) : null}
+      {scheduledUpdatesFeatureUnavailable ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Scheduled updates are temporarily unavailable. Run the latest migration to enable them.
+        </div>
+      ) : null}
 
       <div className="oura-card p-4">
         <div className="font-medium">Loyalty points</div>
@@ -473,6 +647,102 @@ export default async function RewardsManagerPage({
                   <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">Save plan rewards</button>
                 </div>
               </form>
+
+              <div className="mt-4 border-t pt-3">
+                <div className="font-medium">Schedule future change</div>
+                <p className="text-xs opacity-70">Set changes now and they apply automatically on the effective date (Jamaica time).</p>
+                <form action={schedulePlanUpdate} className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
+                  <input type="hidden" name="plan_id" value={p.id} />
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Effective date</span>
+                    <input name="effective_on" type="date" className="w-full rounded border px-2 py-2 text-sm" required />
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Restaurant (%)</span>
+                    <input name="discount_food" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Spa (%)</span>
+                    <input name="discount_spa" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Gift shop (%)</span>
+                    <input name="discount_giftshop" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Watersports (%)</span>
+                    <input name="discount_watersports" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Facility access</span>
+                    <select name="grants_access_mode" className="w-full rounded border px-2 py-2 text-sm" defaultValue="keep">
+                      <option value="keep">Keep current</option>
+                      <option value="yes">Set to yes</option>
+                      <option value="no">Set to no</option>
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90">
+                    <span className="opacity-70">Join visibility</span>
+                    <select
+                      name="visible_on_join_mode"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                      defaultValue="keep"
+                      disabled={!joinVisibilityFieldAvailable}
+                    >
+                      <option value="keep">Keep current</option>
+                      <option value="yes">Visible on join</option>
+                      <option value="no">Hide from join</option>
+                    </select>
+                  </label>
+                  <label className="space-y-1 text-xs opacity-90 md:col-span-2">
+                    <span className="opacity-70">Note (optional)</span>
+                    <input name="note" className="w-full rounded border px-2 py-2 text-sm" placeholder="Why this change is scheduled" />
+                  </label>
+                  <button
+                    disabled={scheduledUpdatesFeatureUnavailable}
+                    className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Schedule update
+                  </button>
+                </form>
+
+                <div className="mt-3 space-y-2">
+                  {(scheduledUpdatesByPlan.get(p.id) ?? []).length === 0 ? (
+                    <div className="text-sm opacity-70">No scheduled updates for this plan.</div>
+                  ) : (
+                    (scheduledUpdatesByPlan.get(p.id) ?? []).map((u) => (
+                      <form key={u.id} action={deleteScheduledUpdate} className="rounded border p-2 text-sm">
+                        <input type="hidden" name="schedule_id" value={u.id} />
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className="font-medium">
+                              Effective: {u.effective_on} {u.applied_at ? "• Applied" : "• Pending"}
+                            </div>
+                            <div className="mt-1 text-xs opacity-80">
+                              {[
+                                u.discount_food !== null ? `Restaurant ${pctFromDb(u.discount_food)}%` : "",
+                                u.discount_spa !== null ? `Spa ${pctFromDb(u.discount_spa)}%` : "",
+                                u.discount_giftshop !== null ? `Gift ${pctFromDb(u.discount_giftshop)}%` : "",
+                                u.discount_watersports !== null ? `Watersports ${pctFromDb(u.discount_watersports)}%` : "",
+                                u.grants_access === null ? "" : u.grants_access ? "Access: yes" : "Access: no",
+                                u.visible_on_join === null ? "" : u.visible_on_join ? "Join: visible" : "Join: hidden",
+                              ]
+                                .filter(Boolean)
+                                .join(" • ") || "No field changes"}
+                            </div>
+                            {u.note ? <div className="mt-1 text-xs opacity-70">Note: {u.note}</div> : null}
+                          </div>
+                          {!u.applied_at ? (
+                            <button className="rounded border border-red-300 px-2 py-1 text-xs hover:bg-red-950/20">
+                              Remove
+                            </button>
+                          ) : null}
+                        </div>
+                      </form>
+                    ))
+                  )}
+                </div>
+              </div>
 
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Custom benefits for this plan</div>
