@@ -177,14 +177,14 @@ export default async function RewardsManagerPage({
     const sortOrderRaw = Number(formData.get("sort_order") ?? 100);
     const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, Math.floor(sortOrderRaw)) : 100;
 
-    if (!planId || !label || !value) {
-      redirect("/more/rewards?err=Plan%2C%20benefit%20label%2C%20and%20value%20are%20required");
+    if (!planId || !label) {
+      redirect("/more/rewards?err=Plan%20and%20benefit%20label%20are%20required");
     }
 
     const { error } = await admin.from("membership_plan_benefits").insert({
       plan_id: planId,
       label,
-      value,
+      value: value || "",
       sort_order: sortOrder,
       is_active: true,
     });
@@ -208,15 +208,15 @@ export default async function RewardsManagerPage({
     const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, Math.floor(sortOrderRaw)) : 100;
     const isActive = formData.get("is_active") === "on";
 
-    if (!benefitId || !label || !value) {
-      redirect("/more/rewards?err=Benefit%20label%20and%20value%20are%20required");
+    if (!benefitId || !label) {
+      redirect("/more/rewards?err=Benefit%20label%20is%20required");
     }
 
     const { error } = await admin
       .from("membership_plan_benefits")
       .update({
         label,
-        value,
+        value: value || "",
         sort_order: sortOrder,
         is_active: isActive,
         updated_at: new Date().toISOString(),
@@ -228,6 +228,26 @@ export default async function RewardsManagerPage({
     }
     if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=benefit_saved");
+  }
+
+  async function removeBenefit(formData: FormData) {
+    "use server";
+    await requireAdminUser();
+
+    const admin = createAdminClient();
+    const benefitId = String(formData.get("benefit_id") ?? "").trim();
+    if (!benefitId) redirect("/more/rewards?err=Missing%20benefit%20id");
+
+    const { error } = await admin
+      .from("membership_plan_benefits")
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq("id", benefitId);
+
+    if (error && isMissingBenefitsTable(error)) {
+      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits");
+    }
+    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    redirect("/more/rewards?ok=benefit_removed");
   }
 
   return (
@@ -360,6 +380,8 @@ export default async function RewardsManagerPage({
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Custom benefits for this plan</div>
                 <p className="text-xs opacity-70">These appear on the member Benefits screen.</p>
+                <p className="text-xs opacity-60">Display order: lower numbers appear first.</p>
+                <p className="text-xs opacity-60">Value examples: <span className="font-medium">15% off</span>, <span className="font-medium">2 free passes</span>, or leave blank for <span className="font-medium">Included</span>.</p>
 
                 <form action={addBenefit} className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
                   <input type="hidden" name="plan_id" value={p.id} />
@@ -370,13 +392,16 @@ export default async function RewardsManagerPage({
                   />
                   <input
                     name="value"
-                    placeholder="Benefit value"
+                    placeholder="Benefit value (optional)"
                     className="rounded border px-2 py-2 text-sm"
                   />
                   <input
                     name="sort_order"
                     type="number"
+                    aria-label="Display order"
+                    title="Display order"
                     defaultValue={100}
+                    placeholder="Display order"
                     className="rounded border px-2 py-2 text-sm"
                   />
                   <button
@@ -402,24 +427,34 @@ export default async function RewardsManagerPage({
                         <input
                           name="value"
                           defaultValue={b.value}
+                          placeholder="Included (leave blank)"
                           className="rounded border px-2 py-2 text-sm md:col-span-2"
                         />
                         <input
                           name="sort_order"
                           type="number"
                           defaultValue={b.sort_order}
+                          aria-label="Display order"
+                          title="Display order"
                           className="rounded border px-2 py-2 text-sm"
                         />
                         <label className="flex items-center gap-2 text-sm">
                           <input name="is_active" type="checkbox" defaultChecked={b.is_active} />
                           <span>Active</span>
                         </label>
-                        <div className="md:col-span-6">
+                        <div className="md:col-span-6 flex flex-wrap items-center gap-2">
                           <button
                             disabled={benefitsFeatureUnavailable}
                             className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Save benefit
+                          </button>
+                          <button
+                            formAction={removeBenefit}
+                            disabled={benefitsFeatureUnavailable}
+                            className="rounded border border-red-300 px-3 py-2 text-sm text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            Remove benefit
                           </button>
                         </div>
                       </form>

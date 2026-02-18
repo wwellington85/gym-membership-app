@@ -10,6 +10,11 @@ function isMissingBenefitsTable(error: any) {
   return code === "PGRST205" || /membership_plan_benefits/i.test(message);
 }
 
+function benefitValueOrIncluded(raw: any) {
+  const v = String(raw ?? "").trim();
+  return v ? v : "Included";
+}
+
 export default async function MemberBenefitsPage() {
   const supabase = await createClient();
 
@@ -159,7 +164,7 @@ export default async function MemberBenefitsPage() {
               {safeCurrentExtraBenefits.map((b: any) => (
                 <div key={b.id} className="flex items-center justify-between p-2 text-sm">
                   <div className="opacity-80">{b.label}</div>
-                  <div className="font-medium">{b.value}</div>
+                  <div className="font-medium">{benefitValueOrIncluded(b.value)}</div>
                 </div>
               ))}
             </div>
@@ -257,7 +262,7 @@ export default async function MemberBenefitsPage() {
                     <span className="opacity-70">Extra perks:</span>{" "}
                     {t.extraBenefits
                       .slice(0, 2)
-                      .map((b: any) => `${b.label}: ${b.value}`)
+                      .map((b: any) => `${b.label}: ${benefitValueOrIncluded(b.value)}`)
                       .join(" • ")}
                   </div>
                 ) : null}
