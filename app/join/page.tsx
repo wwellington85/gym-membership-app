@@ -316,7 +316,13 @@ export default async function JoinPage({
       </div>
 
       {sp.err ? (
-        <div className="rounded border border-red-200 bg-red-50 p-3 text-sm">Error: {sp.err}</div>
+        <div
+          role="alert"
+          aria-live="polite"
+          className="rounded border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-900"
+        >
+          Please check and try again: {sp.err}
+        </div>
       ) : null}
       {sp.success === "1" ? <JoinSuccessBanner /> : null}
 

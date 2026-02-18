@@ -115,7 +115,7 @@ export default async function DashboardPage() {
         <p className="text-sm opacity-70">Membership + gym activity overview</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         
 
         <Link href="/members?filter=active&access=1" className="block rounded border p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10">
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
 
         <Link
           href="/members?filter=past_due_needs_contact"
-          className="rounded border p-3 hover:bg-gray-50 col-span-2"
+          className="col-span-2 rounded border p-3 hover:bg-gray-50 md:col-span-2"
         >
           <div className="text-sm opacity-70">Past Due (Needs Contact)</div>
           <div className="text-2xl font-semibold">{pastDueNeedsContact.length}</div>

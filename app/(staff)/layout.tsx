@@ -22,12 +22,18 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     await supabase.auth.signOut();
     redirect("/auth/login");
   }
+  const isSecurity = staffProfile.role === "security";
 
   return (
     <>
-      <div className="mx-auto w-full max-w-md h-svh overflow-y-auto overscroll-y-contain px-4 pt-4 pb-28">
+      <div
+        className={[
+          "mx-auto w-full h-svh overflow-y-auto overscroll-y-contain pt-4 pb-28",
+          isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6",
+        ].join(" ")}
+      >
         <StaffTopbar />
-        <div className="mt-4 oura-shell p-4">{children}</div>
+        <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
       </div>
 
       <BottomTabs role={staffProfile.role} />

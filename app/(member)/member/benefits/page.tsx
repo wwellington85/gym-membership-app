@@ -3,6 +3,13 @@ import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TIERS, byCode } from "@/lib/plans/tiers";
+
+function isMissingBenefitsTable(error: any) {
+  const code = String(error?.code ?? "");
+  const message = String(error?.message ?? "");
+  return code === "PGRST205" || /membership_plan_benefits/i.test(message);
+}
+
 export default async function MemberBenefitsPage() {
   const supabase = await createClient();
 
@@ -22,7 +29,9 @@ export default async function MemberBenefitsPage() {
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("id, membership_plans(code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)")
+    .select(
+      "id, membership_plans(id, code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+    )
     .eq("member_id", member.id)
     .maybeSingle();
 
@@ -47,16 +56,51 @@ export default async function MemberBenefitsPage() {
         ]
       : current.discounts;
 
+  const currentPlanId = String(plan?.id ?? "");
+  const { data: currentExtraBenefits, error: currentBenefitsErr } = currentPlanId
+    ? await supabase
+        .from("membership_plan_benefits")
+        .select("id, label, value, sort_order")
+        .eq("plan_id", currentPlanId)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+    : { data: [] as any[] };
+  const safeCurrentExtraBenefits = currentBenefitsErr && isMissingBenefitsTable(currentBenefitsErr)
+    ? []
+    : (currentExtraBenefits ?? []);
 
   // Load plan discounts for Compare tiers from DB (keeps UI copy but makes discounts source-of-truth)
   const tierCodes = TIERS.map((t) => t.code);
   const { data: planRows } = await supabase
     .from("membership_plans")
-    .select("code, discount_food, discount_watersports, discount_giftshop, discount_spa, grants_access")
+    .select("id, code, discount_food, discount_watersports, discount_giftshop, discount_spa, grants_access")
     .in("code", tierCodes);
 
   const planByCode = new Map<string, any>();
   (planRows ?? []).forEach((r: any) => planByCode.set(String(r.code), r));
+
+  const tierPlanIds = (planRows ?? []).map((r: any) => String(r.id)).filter(Boolean);
+  const { data: tierBenefitRows, error: tierBenefitsErr } = tierPlanIds.length
+    ? await supabase
+        .from("membership_plan_benefits")
+        .select("id, plan_id, label, value, sort_order")
+        .in("plan_id", tierPlanIds)
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true })
+    : { data: [] as any[] };
+  const safeTierBenefitRows = tierBenefitsErr && isMissingBenefitsTable(tierBenefitsErr)
+    ? []
+    : (tierBenefitRows ?? []);
+
+  const tierBenefitsByPlanId = new Map<string, Array<{ label: string; value: string }>>();
+  safeTierBenefitRows.forEach((r: any) => {
+    const pid = String(r.plan_id);
+    const arr = tierBenefitsByPlanId.get(pid) ?? [];
+    arr.push({ label: String(r.label), value: String(r.value) });
+    tierBenefitsByPlanId.set(pid, arr);
+  });
 
   function tierDiscountsFromPlanRow(row: any, fallback: any[]) {
     if (!row) return fallback;
@@ -75,6 +119,7 @@ export default async function MemberBenefitsPage() {
       ...t,
       // keep your existing labels/badges/access copy; just source discounts from DB if available
       discounts: tierDiscountsFromPlanRow(row, t.discounts),
+      extraBenefits: tierBenefitsByPlanId.get(String(row?.id ?? "")) ?? [],
     };
   });
 
@@ -107,8 +152,19 @@ export default async function MemberBenefitsPage() {
           ))}
         </div>
 
-        
-
+        {safeCurrentExtraBenefits.length > 0 ? (
+          <div className="mt-4 rounded border p-3">
+            <div className="text-sm font-medium">Extra benefits for your plan</div>
+            <div className="mt-2 divide-y divide-white/10">
+              {safeCurrentExtraBenefits.map((b: any) => (
+                <div key={b.id} className="flex items-center justify-between p-2 text-sm">
+                  <div className="opacity-80">{b.label}</div>
+                  <div className="font-medium">{b.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {current.notes?.length ? (
           <div className="mt-3 oura-surface-muted p-3 text-sm">
@@ -195,6 +251,16 @@ export default async function MemberBenefitsPage() {
                     <span className="ml-2 opacity-70">• No access</span>
                   )}
                 </div>
+
+                {t.extraBenefits?.length ? (
+                  <div className="mt-2 text-xs opacity-80">
+                    <span className="opacity-70">Extra perks:</span>{" "}
+                    {t.extraBenefits
+                      .slice(0, 2)
+                      .map((b: any) => `${b.label}: ${b.value}`)
+                      .join(" • ")}
+                  </div>
+                ) : null}
               </div>
             );
           })}
