@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { RewardsOkBanner } from "@/components/staff/rewards-ok-banner";
 
 type PlanRow = {
   id: string;
@@ -113,6 +114,8 @@ export default async function RewardsManagerPage({
 }) {
   const sp = (await searchParams) ?? {};
   const benefitView = sp.benefit_view === "inactive" || sp.benefit_view === "all" ? sp.benefit_view : "active";
+  const clearOkHref =
+    benefitView === "active" ? "/more/rewards" : `/more/rewards?benefit_view=${benefitView}`;
 
   await requireAdminUser();
 
@@ -487,11 +490,7 @@ export default async function RewardsManagerPage({
         </Link>
       </div>
 
-      {sp.ok ? (
-        <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
-          Saved.
-        </div>
-      ) : null}
+      {sp.ok ? <RewardsOkBanner clearHref={clearOkHref} /> : null}
 
       {sp.err ? (
         <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
