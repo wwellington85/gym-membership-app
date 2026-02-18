@@ -750,9 +750,9 @@ export default async function RewardsManagerPage({
                 <p className="text-xs opacity-60">Display order: lower numbers appear first.</p>
                 <p className="text-xs opacity-60">Value examples: <span className="font-medium">15% off</span>, <span className="font-medium">2 free passes</span>, or leave blank for <span className="font-medium">Included</span>.</p>
 
-                <form action={addBenefit} className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
+                <form action={addBenefit} className="mt-2 grid grid-cols-1 items-end gap-2 md:grid-cols-12">
                   <input type="hidden" name="plan_id" value={p.id} />
-                  <label className="space-y-1 text-xs opacity-90">
+                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
                     <span className="opacity-70">Benefit label</span>
                     <input
                       name="label"
@@ -760,7 +760,7 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
+                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
                     <span className="opacity-70">Benefit value (optional)</span>
                     <input
                       name="value"
@@ -768,7 +768,7 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
+                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
                     <span className="opacity-70">Display Order</span>
                     <input
                       name="sort_order"
@@ -781,7 +781,7 @@ export default async function RewardsManagerPage({
                   </label>
                   <button
                     disabled={benefitsFeatureUnavailable}
-                    className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 md:col-span-3"
                   >
                     Add benefit
                   </button>
@@ -792,73 +792,82 @@ export default async function RewardsManagerPage({
                     <div className="text-sm opacity-70">No custom benefits yet.</div>
                   ) : (
                     planBenefits.map((b) => (
-                      <form key={b.id} action={updateBenefit} className="grid grid-cols-1 gap-2 rounded border p-2 md:grid-cols-6">
-                        <input type="hidden" name="benefit_id" value={b.id} />
-                        <input
-                          name="label"
-                          defaultValue={b.label}
-                          className="rounded border px-2 py-2 text-sm md:col-span-2"
-                        />
-                        <input
-                          name="value"
-                          defaultValue={b.value}
-                          placeholder="Included (leave blank)"
-                          className="rounded border px-2 py-2 text-sm md:col-span-2"
-                        />
-                        <label className="space-y-1 text-xs opacity-90">
-                          <span className="opacity-70">Display Order</span>
+                      <div key={b.id} className="rounded border p-2">
+                        <form action={updateBenefit} className="grid grid-cols-1 gap-2 md:grid-cols-12">
+                          <input type="hidden" name="benefit_id" value={b.id} />
                           <input
-                            name="sort_order"
-                            type="number"
-                            defaultValue={b.sort_order}
-                            aria-label="Display order"
-                            title="Display order"
-                            className="w-full rounded border px-2 py-2 text-sm"
+                            name="label"
+                            defaultValue={b.label}
+                            className="rounded border px-2 py-2 text-sm md:col-span-3"
                           />
-                        </label>
-                        <label className="flex items-center gap-2 text-sm">
-                          <input name="is_active" type="checkbox" defaultChecked={b.is_active} />
-                          <span>Active</span>
-                        </label>
-                        <div className="md:col-span-6 flex flex-wrap items-center gap-2">
-                          <button
-                            disabled={benefitsFeatureUnavailable}
-                            className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            Save benefit
-                          </button>
+                          <input
+                            name="value"
+                            defaultValue={b.value}
+                            placeholder="Included (leave blank)"
+                            className="rounded border px-2 py-2 text-sm md:col-span-3"
+                          />
+                          <label className="space-y-1 text-xs opacity-90 md:col-span-3">
+                            <span className="opacity-70">Display Order</span>
+                            <input
+                              name="sort_order"
+                              type="number"
+                              defaultValue={b.sort_order}
+                              aria-label="Display order"
+                              title="Display order"
+                              className="w-full rounded border px-2 py-2 text-sm"
+                            />
+                          </label>
+                          <label className="flex items-center gap-2 text-sm md:col-span-3">
+                            <input name="is_active" type="checkbox" defaultChecked={b.is_active} />
+                            <span>Active</span>
+                          </label>
+                          <div className="md:col-span-12">
+                            <button
+                              disabled={benefitsFeatureUnavailable}
+                              className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Save benefit
+                            </button>
+                          </div>
+                        </form>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
                           {b.is_active ? (
-                            <button
-                              formAction={setBenefitActive}
-                              name="next_active"
-                              value="0"
-                              disabled={benefitsFeatureUnavailable}
-                              className="rounded border border-amber-300 px-3 py-2 text-sm hover:bg-amber-950/20 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Mark inactive
-                            </button>
+                            <form action={setBenefitActive}>
+                              <input type="hidden" name="benefit_id" value={b.id} />
+                              <input type="hidden" name="next_active" value="0" />
+                              <button
+                                disabled={benefitsFeatureUnavailable}
+                                className="rounded border border-amber-300 px-3 py-2 text-sm hover:bg-amber-950/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Mark inactive
+                              </button>
+                            </form>
                           ) : (
-                            <button
-                              formAction={setBenefitActive}
-                              name="next_active"
-                              value="1"
-                              disabled={benefitsFeatureUnavailable}
-                              className="rounded border border-emerald-300 px-3 py-2 text-sm hover:bg-emerald-950/20 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Mark active
-                            </button>
+                            <form action={setBenefitActive}>
+                              <input type="hidden" name="benefit_id" value={b.id} />
+                              <input type="hidden" name="next_active" value="1" />
+                              <button
+                                disabled={benefitsFeatureUnavailable}
+                                className="rounded border border-emerald-300 px-3 py-2 text-sm hover:bg-emerald-950/20 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Mark active
+                              </button>
+                            </form>
                           )}
                           {!b.is_active ? (
-                            <button
-                              formAction={deleteBenefit}
-                              disabled={benefitsFeatureUnavailable}
-                              className="rounded border border-red-300 px-3 py-2 text-sm text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              Delete permanently
-                            </button>
+                            <form action={deleteBenefit}>
+                              <input type="hidden" name="benefit_id" value={b.id} />
+                              <button
+                                disabled={benefitsFeatureUnavailable}
+                                className="rounded border border-red-300 px-3 py-2 text-sm text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Delete permanently
+                              </button>
+                            </form>
                           ) : null}
                         </div>
-                      </form>
+                      </div>
                     ))
                   )}
                 </div>
