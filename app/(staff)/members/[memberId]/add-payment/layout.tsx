@@ -13,7 +13,7 @@ export default async function AddPaymentLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: staffProfile } = await supabase
     .from("staff_profiles")
@@ -21,7 +21,7 @@ export default async function AddPaymentLayout({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!staffProfile) redirect("/login");
+  if (!staffProfile) redirect("/auth/login");
 
   // Only admin + front desk
   if (!["admin", "front_desk"].includes(staffProfile.role)) {

@@ -81,7 +81,7 @@ export default async function MemberProfilePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: staffProfile } = await supabase
     .from("staff_profiles")
@@ -89,7 +89,7 @@ export default async function MemberProfilePage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!staffProfile) redirect("/login");
+  if (!staffProfile) redirect("/auth/login");
 
   const admin = createAdminClient();
 
@@ -175,7 +175,7 @@ const { data: recentCheckins } = await admin
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) redirect("/login");
+    if (!user) redirect("/auth/login");
 
     const { data: settingRow } = await supabase
       .from("app_settings")

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { CountryFields } from "@/components/join/country-fields";
+import { JoinSuccessBanner } from "@/components/join/success-banner";
 
 type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
 
@@ -26,10 +27,27 @@ function todayJM(): string {
 export default async function JoinPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ err?: string }>;
+  searchParams?: Promise<{
+    err?: string;
+    success?: string;
+    full_name?: string;
+    phone?: string;
+    email?: string;
+    requested_plan_code?: string;
+    requested_start_date?: string;
+    country?: string;
+    other_country?: string;
+    is_inhouse_guest?: string;
+    notes?: string;
+    waiver?: string;
+  }>;
 }) {
   const sp = (await searchParams) ?? {};
   const today = todayJM();
+  const prefillPlan = (sp.requested_plan_code || "rewards_free") as PlanCode;
+  const prefillStart = sp.requested_start_date || today;
+  const prefillCountry = sp.country || "Jamaica";
+  const prefillWaiver = sp.waiver === "1";
 
   async function submitApplication(formData: FormData) {
     "use server";
@@ -50,26 +68,43 @@ export default async function JoinPage({
     const other_country = String(formData.get("other_country") || "").trim();
     const is_inhouse_guest = String(formData.get("is_inhouse_guest") || "").trim();
     const notes = String(formData.get("notes") || "").trim();
+    const waiverAccepted = String(formData.get("waiver") || "").trim() === "on";
 
     const password = String(formData.get("password") || "");
     const password2 = String(formData.get("password2") || "");
 
-    if (!full_name) redirect("/join?err=Please%20enter%20your%20name");
+    const fail = (message: string): never => {
+      const params = new URLSearchParams();
+      params.set("err", message);
+      if (full_name) params.set("full_name", full_name);
+      if (phone) params.set("phone", phone);
+      if (email) params.set("email", email);
+      if (requested_plan_code) params.set("requested_plan_code", requested_plan_code);
+      if (requested_start_date) params.set("requested_start_date", requested_start_date);
+      if (country) params.set("country", country);
+      if (other_country) params.set("other_country", other_country);
+      if (is_inhouse_guest) params.set("is_inhouse_guest", is_inhouse_guest);
+      if (notes) params.set("notes", notes);
+      if (waiverAccepted) params.set("waiver", "1");
+      return redirect(`/join?${params.toString()}`);
+    };
+
+    if (!full_name) fail("Please enter your name");
 
     const allowed: PlanCode[] = ["rewards_free", "club_day", "club_weekly", "club_monthly_95"];
     if (!requested_plan_code || !allowed.includes(requested_plan_code)) {
-      redirect("/join?err=Please%20select%20a%20membership%20option");
+      fail("Please select a membership option");
     }
 
     if (email && !email.includes("@")) {
-      redirect("/join?err=Please%20enter%20a%20valid%20email");
+      fail("Please enter a valid email");
     }
 
     if (!password || password.length < 8) {
-      redirect("/join?err=Please%20choose%20a%20password%20(8%2B%20characters)");
+      fail("Please choose a password (8+ characters)");
     }
     if (password !== password2) {
-      redirect("/join?err=Passwords%20do%20not%20match");
+      fail("Passwords do not match");
     }
 
     const isAccess = ACCESS_PLANS.includes(requested_plan_code);
@@ -79,7 +114,7 @@ export default async function JoinPage({
 
     // Start date is required only for access plans
     if (isAccess && !requested_start_date) {
-      redirect("/join?err=Please%20select%20a%20start%20date");
+      fail("Please select a start date");
     }
 
     const supabase = await createClient();
@@ -113,20 +148,17 @@ export default async function JoinPage({
         const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
         if (signInErr) {
           console.error("JOIN createUser network error:", createErr);
-          redirect(
-            `/join?err=${encodeURIComponent(
-              "Connection issue while creating your account. Please try again."
-            )}`
-          );
+          fail("Connection issue while creating your account. Please try again.");
         }
 
         alreadySignedIn = true;
 
         const { data: ures, error: uerr } = await supabase.auth.getUser();
-        if (uerr || !ures?.user?.id) {
-          redirect(`/join?err=${encodeURIComponent(uerr?.message || "Could not load your account")}`);
+        const signedInUserId = ures?.user?.id ?? null;
+        if (uerr || !signedInUserId) {
+          fail(uerr?.message || "Could not load your account");
         }
-        userId = ures.user.id;
+        userId = signedInUserId;
       } else {
         const alreadyExists =
           /already\s*registered|already\s*exists|user\s*already\s*exists|duplicate/i.test(msg);
@@ -135,7 +167,7 @@ export default async function JoinPage({
           console.error("JOIN createUser error:", createErr);
           const friendly =
             msg || "Could not create account. Please check your connection and try again.";
-          redirect(`/join?err=${encodeURIComponent(friendly)}`);
+          fail(friendly);
         }
 
         // Existing user path: sign in and continue
@@ -148,18 +180,19 @@ export default async function JoinPage({
         alreadySignedIn = true;
 
         const { data: ures, error: uerr } = await supabase.auth.getUser();
-        if (uerr || !ures?.user?.id) {
-          redirect(`/join?err=${encodeURIComponent(uerr?.message || "Could not load your account")}`);
+        const existingUserId = ures?.user?.id ?? null;
+        if (uerr || !existingUserId) {
+          fail(uerr?.message || "Could not load your account");
         }
 
-        userId = ures.user.id;
+        userId = existingUserId;
       }
     } else {
       userId = createdUser.user.id;
     }
 
     if (!userId) {
-      redirect(`/join?err=${encodeURIComponent("Could not determine user id")}`);
+      fail("Could not determine user id");
     }
 
     // 2) Ensure members row exists (service role bypasses members_insert_staff RLS restriction)
@@ -179,7 +212,7 @@ export default async function JoinPage({
 
       if (memberErr) {
         console.error("JOIN ensure member error:", memberErr);
-        redirect(`/join?err=${encodeURIComponent(memberErr.message)}`);
+        fail(memberErr.message);
       }
     }
 
@@ -188,7 +221,7 @@ export default async function JoinPage({
       const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
       if (signInErr) {
         console.error("JOIN signIn error:", signInErr);
-        redirect(`/join?err=${encodeURIComponent(signInErr.message)}`);
+        fail(signInErr.message);
       }
     }
 
@@ -205,40 +238,19 @@ export default async function JoinPage({
       is_inhouse_guest: is_inhouse_guest === "yes" ? true : is_inhouse_guest === "no" ? false : null,
     };
 
-    if (requested_start_date) payload.requested_start_date = requested_start_date;
+    payload.requested_start_date = requested_start_date || null;
 
-    const waiver = String(formData.get("waiver") || "").trim();
-    if (waiver) {
+    if (waiverAccepted) {
       payload.waiver_accepted = true;
       payload.waiver_accepted_at = new Date().toISOString();
     }
-    // Write membership application (idempotent):
-    // Because the DB unique index uses expressions (lower(email)), we avoid ON CONFLICT here.
-    // Instead: find latest pending/contacted for this email and update, otherwise insert.
-
-    const { data: existing, error: findErr } = await supabase
-      .from("membership_applications")
-      .select("id,status,requested_start_date")
-      .eq("email", email)
-      .in("status", ["pending", "contacted"])
-      .order("created_at", { ascending: false })
-      .maybeSingle();
-
-    if (findErr) {
-      redirect(`/join?err=${encodeURIComponent(findErr.message)}`);
-    }
-
-    if (existing?.id) {
-      const { error: updErr } = await supabase
-        .from("membership_applications")
-        .update(payload)
-        .eq("id", existing.id);
-
-      if (updErr) redirect(`/join?err=${encodeURIComponent(updErr.message)}`);
-    } else {
-      const { error: insErr } = await supabase.from("membership_applications").insert(payload);
-      if (insErr) redirect(`/join?err=${encodeURIComponent(insErr.message)}`);
-    }
+    // Write membership application (idempotent) using upsert.
+    payload.status = "pending";
+    const { error: appUpsertErr } = await supabase.from("membership_applications").upsert(payload, {
+      onConflict: "email,requested_start_date,status",
+      ignoreDuplicates: false,
+    });
+    if (appUpsertErr) fail(appUpsertErr.message);
     // 5) Ensure memberships row exists (default to rewards_free)
     {
       const { data: memRow, error: memRowErr } = await admin
@@ -247,9 +259,10 @@ export default async function JoinPage({
         .eq("user_id", userId)
         .maybeSingle();
 
-      if (memRowErr || !memRow?.id) {
+      const memberId = memRow?.id ?? null;
+      if (memRowErr || !memberId) {
         console.error("JOIN members lookup for membership bootstrap error:", memRowErr);
-        redirect("/join?err=" + encodeURIComponent(memRowErr?.message || "Could not load member record"));
+        fail(memRowErr?.message || "Could not load member record");
       }
 
       const { data: rewards, error: rewardsErr } = await admin
@@ -270,7 +283,7 @@ export default async function JoinPage({
         .from("memberships")
         .upsert(
           {
-            member_id: memRow.id,
+            member_id: memberId,
             plan_id: rewards?.id ?? null,
             status: "active",
             start_date: todayISO,
@@ -305,6 +318,7 @@ export default async function JoinPage({
       {sp.err ? (
         <div className="rounded border border-red-200 bg-red-50 p-3 text-sm">Error: {sp.err}</div>
       ) : null}
+      {sp.success === "1" ? <JoinSuccessBanner /> : null}
 
       <form action={submitApplication} className="space-y-3 rounded border p-4">
         {/* Honeypot hidden field */}
@@ -315,17 +329,17 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Full name</label>
-          <input name="full_name" className="w-full oura-input px-3 py-2" placeholder="Your name" required />
+          <input name="full_name" className="w-full oura-input px-3 py-2" placeholder="Your name" required defaultValue={sp.full_name || ""} />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Phone (optional)</label>
-          <input name="phone" className="w-full oura-input px-3 py-2" placeholder="876-555-1234" />
+          <input name="phone" className="w-full oura-input px-3 py-2" placeholder="876-555-1234" defaultValue={sp.phone || ""} />
         </div>
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Email</label>
-          <input name="email" required type="email" className="w-full oura-input px-3 py-2" placeholder="you@email.com" />
+          <input name="email" required type="email" className="w-full oura-input px-3 py-2" placeholder="you@email.com" defaultValue={sp.email || ""} />
         </div>
 
         <div className="space-y-1">
@@ -342,7 +356,7 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Choose an option</label>
-          <select name="requested_plan_code" className="w-full oura-input px-3 py-2" defaultValue="rewards_free">
+          <select name="requested_plan_code" className="w-full oura-input px-3 py-2" defaultValue={prefillPlan}>
             <option value="rewards_free">{PLAN_LABELS.rewards_free}</option>
             <option value="club_day">{PLAN_LABELS.club_day}</option>
             <option value="club_weekly">{PLAN_LABELS.club_weekly}</option>
@@ -355,15 +369,15 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Preferred start date</label>
-          <input name="requested_start_date" type="date" className="w-full oura-input px-3 py-2" defaultValue={today} />
+          <input name="requested_start_date" type="date" className="w-full oura-input px-3 py-2" defaultValue={prefillStart} />
           <p className="text-xs opacity-60">Required for Club passes. Optional for Rewards (Free).</p>
         </div>
 
-        <CountryFields />
+        <CountryFields initialCountry={prefillCountry} initialOtherCountry={sp.other_country || ""} />
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Are you staying at the hotel right now?</label>
-          <select name="is_inhouse_guest" className="w-full oura-input px-3 py-2" defaultValue="">
+          <select name="is_inhouse_guest" className="w-full oura-input px-3 py-2" defaultValue={sp.is_inhouse_guest || ""}>
             <option value="">Select</option>
             <option value="yes">Yes</option>
             <option value="no">No</option>
@@ -373,12 +387,12 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Notes (optional)</label>
-          <textarea name="notes" className="w-full oura-input px-3 py-2" placeholder="Any info to help staff (e.g., best time to call)" rows={3} />
+          <textarea name="notes" className="w-full oura-input px-3 py-2" placeholder="Any info to help staff (e.g., best time to call)" rows={3} defaultValue={sp.notes || ""} />
         </div>
 
         <div className="space-y-2 rounded border p-3">
           <label className="flex items-start gap-2 text-sm">
-            <input name="waiver" type="checkbox" required className="mt-1" />
+            <input name="waiver" type="checkbox" required className="mt-1" defaultChecked={prefillWaiver} />
             <span>
               I understand the risks involved with using the facilities (including the gym) and release Travellers Beach Resort from liability.
             </span>
@@ -397,4 +411,3 @@ function addDaysISO(baseISO: string, days: number) {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
-

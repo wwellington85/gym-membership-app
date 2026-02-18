@@ -2,13 +2,19 @@
 
 import { useMemo, useState } from "react";
 
-export function CountryFields() {
+type Props = {
+  initialCountry?: string;
+  initialOtherCountry?: string;
+};
+
+export function CountryFields({ initialCountry = "Jamaica", initialOtherCountry = "" }: Props) {
   const options = useMemo(
     () => ["Jamaica", "United States", "Canada", "United Kingdom", "Other"],
     []
   );
 
-  const [country, setCountry] = useState<string>("Jamaica");
+  const normalizedInitialCountry = options.includes(initialCountry) ? initialCountry : "Jamaica";
+  const [country, setCountry] = useState<string>(normalizedInitialCountry);
 
   return (
     <>
@@ -37,6 +43,7 @@ export function CountryFields() {
             className="w-full oura-input px-3 py-2"
             placeholder="Type your country"
             autoComplete="country-name"
+            defaultValue={initialOtherCountry}
           />
           <p className="text-xs opacity-60">Only shown when “Other” is selected.</p>
         </div>

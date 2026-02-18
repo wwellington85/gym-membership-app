@@ -29,7 +29,7 @@ export async function changeMemberPlanAction(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/auth/login");
 
   const { data: staffProfile } = await supabase
     .from("staff_profiles")
