@@ -19,7 +19,9 @@ export async function changeMemberPlanAction(formData: FormData) {
   const startDate = String(formData.get("start_date") ?? "").trim();
 
   const recordPayment = String(formData.get("record_payment") ?? "no") === "yes";
-  const paymentMethod = String(formData.get("payment_method") ?? "cash");
+  const paymentMethod = String(formData.get("payment_method") ?? "cash").trim();
+  const paymentNotes = String(formData.get("payment_notes") ?? "").trim();
+  const complimentaryReason = String(formData.get("complimentary_reason") ?? "").trim();
 
   if (!memberId || !planId || !startDate) {
     redirect(`/members/${memberId}?plan_error=missing_fields`);
@@ -40,6 +42,9 @@ export async function changeMemberPlanAction(formData: FormData) {
   const role = (staffProfile?.role ?? "") as string;
   const canPayments = ["admin", "front_desk"].includes(role);
   if (!canPayments) redirect(`/members/${memberId}?plan_error=forbidden`);
+  if (recordPayment && paymentMethod === "complimentary" && !complimentaryReason) {
+    redirect(`/members/${memberId}?plan_error=complimentary_reason_required`);
+  }
 
   // Load plan
   const { data: plan, error: planErr } = await supabase
@@ -78,7 +83,7 @@ export async function changeMemberPlanAction(formData: FormData) {
       start_date: startDate,
       paid_through_date: paidThrough,
       status: "active",
-      last_payment_date: recordPayment && Number(plan.price) > 0 ? startDate : null,
+      last_payment_date: recordPayment ? startDate : null,
     } as any)
     .eq("id", membership.id);
 
@@ -87,13 +92,19 @@ export async function changeMemberPlanAction(formData: FormData) {
   }
 
   // Optional payment insert (desk payments)
-  if (recordPayment && Number(plan.price) > 0) {
+  if (recordPayment) {
+    const amount = paymentMethod === "complimentary" ? 0 : Number(plan.price ?? 0);
+    const notes = paymentMethod === "complimentary"
+      ? `Complimentary: ${complimentaryReason}`
+      : paymentNotes || null;
+
     const { error: payErr } = await supabase.from("payments").insert({
       membership_id: membership.id,
       member_id: memberId,
-      amount: Number(plan.price),
+      amount,
       paid_on: startDate,
       payment_method: paymentMethod,
+      notes,
     } as any);
 
     if (payErr) {

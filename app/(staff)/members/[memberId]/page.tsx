@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
+import { changeMemberPlanAction } from "./actions";
+import { ChangePlanForm } from "./ChangePlanForm";
 
 function daysFromToday(ymd: string) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -68,12 +70,14 @@ export default async function MemberProfilePage({
   searchParams,
 }: {
   params: Promise<{ memberId: string }>;
-  searchParams?: Promise<{ payment?: string; checkin?: string }>;
+  searchParams?: Promise<{ payment?: string; checkin?: string; plan?: string; plan_error?: string }>;
 }) {
   const { memberId } = await params;
   const sp = (await searchParams) ?? {};
   const paymentSaved = sp.payment === "saved";
   const checkinState = sp.checkin ?? ""; // "saved" | "already" | ""
+  const planSaved = sp.plan === "saved";
+  const planError = sp.plan_error ?? "";
 
   const supabase = await createClient();
 
@@ -120,7 +124,7 @@ export default async function MemberProfilePage({
   membership = activeRes.data;
 
   if (!membership) {
-    const latestRes = await supabase
+    const latestRes = await admin
       .from("memberships")
       .select(
         "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
@@ -138,7 +142,7 @@ let plan = Array.isArray((membership as any)?.membership_plans)
 
 // Fallback: nested join may be blocked/empty under RLS; load plan directly by FK.
 if (!plan && (membership as any)?.membership_plan_id) {
-  const { data: planRow } = await supabase
+  const { data: planRow } = await admin
     .from("membership_plans")
     .select(
       "id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa"
@@ -221,7 +225,7 @@ const { data: recentCheckins } = await admin
       if (membership?.id) {
         payments =
           (
-            await supabase
+            await admin
               .from("payments")
               .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
               .or(`membership_id.eq.${membership.id},member_id.eq.${memberId}`)
@@ -231,7 +235,7 @@ const { data: recentCheckins } = await admin
       } else {
         payments =
           (
-            await supabase
+            await admin
               .from("payments")
               .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
               .eq("member_id", memberId)
@@ -247,6 +251,23 @@ const { data: recentCheckins } = await admin
   const lastPaymentLabel = lastPaymentRow
     ? (lastPaymentRow.paid_on ?? (lastPaymentRow.created_at ? String(lastPaymentRow.created_at).slice(0, 10) : "—"))
     : "—";
+
+  const { data: activePlans } = await admin
+    .from("membership_plans")
+    .select("id, name, price, duration_days, plan_type")
+    .eq("is_active", true)
+    .order("price", { ascending: true });
+
+  const planErrorMessage =
+    planError === "complimentary_reason_required"
+      ? "Complimentary requires a reason."
+      : planError === "forbidden"
+      ? "You are not allowed to change plans."
+      : planError === "plan_not_found"
+      ? "Selected plan was not found."
+      : planError
+      ? "Could not save plan change. Please try again."
+      : "";
 
   // Status banner
 
@@ -313,6 +334,19 @@ const { data: recentCheckins } = await admin
         <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Payment saved</div>
           <div className="mt-1 opacity-80">The payment was recorded successfully.</div>
+        </div>
+      ) : null}
+
+      {planSaved && canPayments ? (
+        <div className="oura-alert-success p-3 text-sm">
+          <div className="font-medium">Plan updated</div>
+          <div className="mt-1 opacity-80">Membership plan and payment record were updated.</div>
+        </div>
+      ) : null}
+
+      {planErrorMessage ? (
+        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+          {planErrorMessage}
         </div>
       ) : null}
 
@@ -395,6 +429,23 @@ const { data: recentCheckins } = await admin
           ) : null}
 </div>
       </div>
+
+      {canPayments ? (
+        <div className="oura-card p-3">
+          <div className="font-medium">Change plan</div>
+          <div className="mt-1 text-sm opacity-70">
+            Update this member’s plan and optionally record payment now.
+          </div>
+          <div className="mt-3">
+            <ChangePlanForm
+              memberId={member.id}
+              currentPlanId={(membership as any)?.membership_plan_id ?? null}
+              plans={(activePlans ?? []) as any[]}
+              action={changeMemberPlanAction}
+            />
+          </div>
+        </div>
+      ) : null}
 
       
 
