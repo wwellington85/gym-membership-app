@@ -220,29 +220,51 @@ const { data: recentCheckins } = await admin
       payments = joined;
     }
 
-    // Fallback: fetch payments by membership_id OR member_id (depends on schema/insert path)
+    // Fallback: fetch payments by member_id and all membership_ids (covers legacy + current insert paths).
     if (!payments || payments.length == 0) {
-      if (membership?.id) {
-        payments =
-          (
+      const paymentSelect = "id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes";
+
+      const byMember =
+        (
+          await admin
+            .from("payments")
+            .select(paymentSelect)
+            .eq("member_id", memberId)
+            .order("paid_on", { ascending: false })
+            .order("created_at", { ascending: false })
+        ).data ?? [];
+
+      const membershipsForMember =
+        (
+          await admin
+            .from("memberships")
+            .select("id")
+            .eq("member_id", memberId)
+        ).data ?? [];
+
+      const membershipIds = membershipsForMember.map((m: any) => m.id).filter(Boolean);
+      const byMembershipIds = membershipIds.length
+        ? (
             await admin
               .from("payments")
-              .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
-              .or(`membership_id.eq.${membership.id},member_id.eq.${memberId}`)
+              .select(paymentSelect)
+              .in("membership_id", membershipIds)
               .order("paid_on", { ascending: false })
               .order("created_at", { ascending: false })
-          ).data ?? [];
-      } else {
-        payments =
-          (
-            await admin
-              .from("payments")
-              .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes")
-              .eq("member_id", memberId)
-              .order("paid_on", { ascending: false })
-              .order("created_at", { ascending: false })
-          ).data ?? [];
-      }
+          ).data ?? []
+        : [];
+
+      const merged = [...byMember, ...byMembershipIds];
+      const dedup = new Map<string, any>();
+      merged.forEach((p: any) => {
+        if (p?.id && !dedup.has(String(p.id))) dedup.set(String(p.id), p);
+      });
+
+      payments = Array.from(dedup.values()).sort((a: any, b: any) => {
+        const aKey = String(a?.paid_on || a?.created_at || "");
+        const bKey = String(b?.paid_on || b?.created_at || "");
+        return bKey.localeCompare(aKey);
+      });
     }
   }
 
@@ -250,7 +272,7 @@ const { data: recentCheckins } = await admin
   const lastPaymentRow = payments && payments.length > 0 ? payments[0] : null;
   const lastPaymentLabel = lastPaymentRow
     ? (lastPaymentRow.paid_on ?? (lastPaymentRow.created_at ? String(lastPaymentRow.created_at).slice(0, 10) : "—"))
-    : "—";
+    : (membership?.last_payment_date ?? "—");
 
   const { data: activePlans } = await admin
     .from("membership_plans")
