@@ -103,6 +103,8 @@ const statusHint =
       : "Limited perks only.";
 
   const paidThroughLabel = fmtJamaicaDate((membership as any)?.paid_through_date ?? null);
+  const cardNumberRaw = String(member.id).replace(/-/g, "").toUpperCase().slice(0, 16);
+  const cardNumber = cardNumberRaw.replace(/(.{4})/g, "$1 ").trim();
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
@@ -118,6 +120,7 @@ const statusHint =
           <div>
             <div className="text-sm opacity-70">Name</div>
             <div className="text-lg font-semibold">{titleCaseName(member.full_name)}</div>
+            <div className="mt-1 font-mono text-sm tracking-[0.1em]">{cardNumber}</div>
           </div>
 
           <span
@@ -154,8 +157,6 @@ const statusHint =
 
         <div className="mt-3 text-xs opacity-70">{statusHint}</div>
 
-        <div className="mt-4 text-xs uppercase tracking-[0.12em] opacity-70">Member ID</div>
-        <div className="mt-1 font-mono text-base tracking-[0.08em]">{String(member.id).replace(/-/g, "").toUpperCase()}</div>
         <RotatingQr />
       </div>
     </div>
