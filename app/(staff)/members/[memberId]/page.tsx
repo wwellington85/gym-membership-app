@@ -254,7 +254,17 @@ const { data: recentCheckins } = await admin
           ).data ?? []
         : [];
 
-      const merged = [...byMember, ...byMembershipIds];
+      const byMembershipJoin =
+        (
+          await admin
+            .from("payments")
+            .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes, memberships!inner(member_id)")
+            .eq("memberships.member_id", memberId)
+            .order("paid_on", { ascending: false })
+            .order("created_at", { ascending: false })
+        ).data ?? [];
+
+      const merged = [...byMember, ...byMembershipIds, ...byMembershipJoin];
       const dedup = new Map<string, any>();
       merged.forEach((p: any) => {
         if (p?.id && !dedup.has(String(p.id))) dedup.set(String(p.id), p);

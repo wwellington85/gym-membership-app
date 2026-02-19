@@ -62,6 +62,16 @@ export default async function AddPaymentPage({
 
     if (error) throw new Error(`Payment insert failed: ${error.message}`);
 
+    // Keep memberships.last_payment_date reliable for member profile summaries.
+    const { error: memUpdateErr } = await supabase
+      .from("memberships")
+      .update({ last_payment_date: paid_on } as any)
+      .eq("id", mship.id);
+
+    if (memUpdateErr) {
+      throw new Error(`Membership update failed: ${memUpdateErr.message}`);
+    }
+
     redirect(`/members/${memberId}\?payment=saved`);
   }
 
