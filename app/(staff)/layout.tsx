@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { StaffTopbar } from "@/components/nav/staff-topbar";
+import { HistoryTracker } from "@/components/ui/history-tracker";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -32,6 +33,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6",
         ].join(" ")}
       >
+        <HistoryTracker />
         <StaffTopbar />
         <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
       </div>
