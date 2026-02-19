@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { titleCaseName } from "@/lib/format/name";
 
 export default async function AddPaymentPage({
   params,
@@ -23,9 +24,12 @@ export default async function AddPaymentPage({
   // IMPORTANT: include membership id
   const { data: membership, error: membershipError } = await supabase
     .from("memberships")
-    .select("id, paid_through_date, membership_plan:membership_plans(name, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)")
+    .select("id, paid_through_date, membership_plans(name, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)")
     .eq("member_id", memberId)
     .maybeSingle();
+
+  const planRaw: any = (membership as any)?.membership_plans;
+  const currentPlan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
 
   async function addPayment(formData: FormData) {
     "use server";
@@ -80,15 +84,15 @@ export default async function AddPaymentPage({
       <div>
         <h1 className="text-xl font-semibold">Add Payment</h1>
         <p className="text-sm opacity-70">
-          {member.full_name} • {member.phone}
+          {titleCaseName(member.full_name)} • {member.phone}
         </p>
       </div>
 
       <div className="rounded border p-3 text-sm">
         <div className="font-medium">Current Membership</div>
         <div className="mt-1 opacity-80">
-          {membership?.membership_plan?.[0]?.name ?? "—"}
-          {membership?.membership_plan?.[0]?.price != null ? ` • $${membership.membership_plan[0].price}` : ""}
+          {currentPlan?.name ?? "—"}
+          {currentPlan?.price != null ? ` • $${currentPlan.price}` : ""}
         </div>
         <div className="mt-1 text-xs opacity-70">
           Paid-through: {membership?.paid_through_date ?? "—"}
@@ -117,7 +121,7 @@ export default async function AddPaymentPage({
             step="0.01"
             min="0"
             required
-            defaultValue={membership?.membership_plan?.[0]?.price ?? ""}
+            defaultValue={currentPlan?.price ?? ""}
             className="w-full oura-input px-3 py-2"
           />
         </div>

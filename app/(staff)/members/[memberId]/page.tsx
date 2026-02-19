@@ -55,6 +55,10 @@ function fmtJamaica(ts?: string | null) {
   return new Date(ts).toLocaleString("en-US", { timeZone: "America/Jamaica" });
 }
 
+function paymentDateValue(p: any) {
+  return p?.paid_on ?? p?.paid_at ?? p?.created_at ?? null;
+}
+
 function jamaicaDayRangeUtc() {
   const offsetMs = 5 * 60 * 60 * 1000; // Jamaica UTC-5
   const now = new Date();
@@ -214,74 +218,53 @@ const { data: recentCheckins } = await admin
   let payments: any[] = [];
 
   if (canPayments) {
-    // Prefer joined rows (if available on the membership query)
-    const joined = (membership as any)?.payment_rows;
-    if (Array.isArray(joined) && joined.length > 0) {
-      payments = joined;
-    }
+    const paymentSelect = "id, amount, paid_on, paid_at, created_at, payment_method, membership_id, member_id, notes";
 
-    // Fallback: fetch payments by member_id and all membership_ids (covers legacy + current insert paths).
-    if (!payments || payments.length == 0) {
-      const paymentSelect = "id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes";
+    const byMember =
+      (
+        await admin
+          .from("payments")
+          .select(paymentSelect)
+          .eq("member_id", memberId)
+          .order("created_at", { ascending: false })
+      ).data ?? [];
 
-      const byMember =
-        (
+    const membershipsForMember =
+      (
+        await admin
+          .from("memberships")
+          .select("id")
+          .eq("member_id", memberId)
+      ).data ?? [];
+
+    const membershipIds = membershipsForMember.map((m: any) => m.id).filter(Boolean);
+    const byMembershipIds = membershipIds.length
+      ? (
           await admin
             .from("payments")
             .select(paymentSelect)
-            .eq("member_id", memberId)
-            .order("paid_on", { ascending: false })
+            .in("membership_id", membershipIds)
             .order("created_at", { ascending: false })
-        ).data ?? [];
+        ).data ?? []
+      : [];
 
-      const membershipsForMember =
-        (
-          await admin
-            .from("memberships")
-            .select("id")
-            .eq("member_id", memberId)
-        ).data ?? [];
+    const merged = [...byMember, ...byMembershipIds];
+    const dedup = new Map<string, any>();
+    merged.forEach((p: any) => {
+      if (p?.id && !dedup.has(String(p.id))) dedup.set(String(p.id), p);
+    });
 
-      const membershipIds = membershipsForMember.map((m: any) => m.id).filter(Boolean);
-      const byMembershipIds = membershipIds.length
-        ? (
-            await admin
-              .from("payments")
-              .select(paymentSelect)
-              .in("membership_id", membershipIds)
-              .order("paid_on", { ascending: false })
-              .order("created_at", { ascending: false })
-          ).data ?? []
-        : [];
-
-      const byMembershipJoin =
-        (
-          await admin
-            .from("payments")
-            .select("id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes, memberships!inner(member_id)")
-            .eq("memberships.member_id", memberId)
-            .order("paid_on", { ascending: false })
-            .order("created_at", { ascending: false })
-        ).data ?? [];
-
-      const merged = [...byMember, ...byMembershipIds, ...byMembershipJoin];
-      const dedup = new Map<string, any>();
-      merged.forEach((p: any) => {
-        if (p?.id && !dedup.has(String(p.id))) dedup.set(String(p.id), p);
-      });
-
-      payments = Array.from(dedup.values()).sort((a: any, b: any) => {
-        const aKey = String(a?.paid_on || a?.created_at || "");
-        const bKey = String(b?.paid_on || b?.created_at || "");
-        return bKey.localeCompare(aKey);
-      });
-    }
+    payments = Array.from(dedup.values()).sort((a: any, b: any) => {
+      const aKey = String(paymentDateValue(a) ?? "");
+      const bKey = String(paymentDateValue(b) ?? "");
+      return bKey.localeCompare(aKey);
+    });
   }
 
   // Compute last payment from payments list (more reliable than memberships.last_payment_date)
   const lastPaymentRow = payments && payments.length > 0 ? payments[0] : null;
   const lastPaymentLabel = lastPaymentRow
-    ? (lastPaymentRow.paid_on ?? (lastPaymentRow.created_at ? String(lastPaymentRow.created_at).slice(0, 10) : "—"))
+    ? (paymentDateValue(lastPaymentRow) ? String(paymentDateValue(lastPaymentRow)).slice(0, 10) : "—")
     : (membership?.last_payment_date ?? "—");
 
   const { data: activePlans } = await admin
@@ -550,7 +533,7 @@ const { data: recentCheckins } = await admin
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="font-medium">${p.amount}</div>
-                      <div className="text-sm opacity-70">Paid on: {p.paid_on}</div>
+                      <div className="text-sm opacity-70">Paid on: {paymentDateValue(p) ? String(paymentDateValue(p)).slice(0, 10) : "—"}</div>
                       {p.payment_method ? (
                         <div className="text-xs opacity-70">Method: {p.payment_method}</div>
                       ) : null}
