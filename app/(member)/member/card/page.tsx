@@ -154,8 +154,8 @@ const statusHint =
 
         <div className="mt-3 text-xs opacity-70">{statusHint}</div>
 
-        <div className="mt-4 text-sm opacity-70">Member ID</div>
-        <div className="font-mono text-sm">…{String(member.id).slice(-6)}</div>
+        <div className="mt-4 text-xs uppercase tracking-[0.12em] opacity-70">Member ID</div>
+        <div className="mt-1 font-mono text-base tracking-[0.08em]">{String(member.id).replace(/-/g, "").toUpperCase()}</div>
         <RotatingQr />
       </div>
     </div>
