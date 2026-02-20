@@ -60,7 +60,7 @@ export function BottomTabs({ role }: Props) {
               key={t.href}
               href={t.href}
               className={`flex-1 rounded px-1 py-2 text-center whitespace-nowrap text-[12px] leading-none sm:text-sm ${
-                active ? "font-semibold oura-tab-active" : "opacity-70 oura-tab"
+                active ? "font-semibold oura-tab-active" : "oura-tab"
               }`}
             >
               {t.label}
