@@ -285,12 +285,6 @@ return (
           </div>
         ) : null}
 
-        {!q ? (
-          <div className="rounded border p-3 text-sm opacity-70">
-            Enter a name or phone number to begin.
-          </div>
-        ) : null}
-
         {q && members.length === 0 && !error ? (
           <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
             <div className="font-medium">No match found</div>
@@ -410,6 +404,37 @@ return (
                   Showing first 5 additional matches.
                 </div>
               ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {/* Always show a member list below search for security */}
+        {members.length > 0 ? (
+          <div className="oura-card p-3">
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{q ? "Member list" : "Recent members"}</div>
+              <div className="text-xs opacity-70">{q ? members.length : Math.min(members.length, 10)}</div>
+            </div>
+
+            <div className="mt-2 space-y-2">
+              {(q ? members : members.slice(0, 10)).map((m: any) => (
+                <Link
+                  key={m.id}
+                  href={`/members/${m.id}`}
+                  className="block rounded border p-3 hover:bg-gray-50"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="font-medium">{m.full_name}</div>
+                      <div className="text-sm opacity-70">{m.phone}</div>
+                    </div>
+                    <div className="text-right text-xs opacity-70">
+                      <div>{badge(m.membership?.status)}</div>
+                      <div>{m.membership?.paid_through_date ?? ""}</div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         ) : null}
