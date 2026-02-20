@@ -45,6 +45,7 @@ export function ChangePlanForm({
   const [planId, setPlanId] = useState<string>(currentPlanId ?? "");
   const [recordPayment, setRecordPayment] = useState<"no" | "yes">("no");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "bank_transfer" | "other" | "complimentary">("cash");
+  const [paymentDiscountPercent, setPaymentDiscountPercent] = useState<string>("0");
   const [paymentReason, setPaymentReason] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [startDate, setStartDate] = useState<string>(todayYmd());
@@ -53,6 +54,11 @@ export function ChangePlanForm({
   const isPaid = (selected?.price ?? 0) > 0;
 
   const needsCompReason = recordPayment === "yes" && paymentMethod === "complimentary";
+  const discountNumber = Math.max(0, Math.min(100, Number.parseFloat(paymentDiscountPercent || "0") || 0));
+  const discountedAmount =
+    paymentMethod === "complimentary"
+      ? 0
+      : Math.max(0, Number((((selected?.price ?? 0) * (1 - discountNumber / 100)).toFixed(2))));
 
   return (
     <form action={action} className="space-y-3">
@@ -130,6 +136,27 @@ export function ChangePlanForm({
 
           {recordPayment === "yes" ? (
             <div className="grid grid-cols-1 gap-3">
+              {paymentMethod !== "complimentary" ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Discount (%)</label>
+                  <input
+                    name="payment_discount_percent"
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={paymentDiscountPercent}
+                    onChange={(e) => setPaymentDiscountPercent(e.target.value)}
+                    className="w-full oura-input px-3 py-2"
+                  />
+                  <div className="text-xs opacity-70">
+                    Manager override for this payment only.
+                  </div>
+                </div>
+              ) : (
+                <input type="hidden" name="payment_discount_percent" value="0" />
+              )}
+
               <div className="space-y-1">
                 <label className="text-sm font-medium">
                   {needsCompReason ? "Complimentary reason *" : "Payment notes"}
@@ -174,8 +201,11 @@ export function ChangePlanForm({
             <span className="font-medium">
               {paymentMethod === "complimentary" && recordPayment === "yes"
                 ? "$0.00 (complimentary)"
-                : money(selected?.price ?? 0)}
+                : money(discountedAmount)}
             </span>
+            {recordPayment === "yes" && paymentMethod !== "complimentary" && discountNumber > 0 ? (
+              <span> ({discountNumber}% off)</span>
+            ) : null}
             .
           </div>
         </div>
@@ -237,6 +267,7 @@ export function ChangePlanForm({
             </div>
           ) : null}
           <input type="hidden" name="payment_notes" value={paymentNotes} />
+          <input type="hidden" name="payment_discount_percent" value="0" />
         </div>
       ) : null}
 

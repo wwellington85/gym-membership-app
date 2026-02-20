@@ -22,6 +22,9 @@ export async function changeMemberPlanAction(formData: FormData) {
   const paymentMethod = String(formData.get("payment_method") ?? "cash").trim();
   const paymentNotes = String(formData.get("payment_notes") ?? "").trim();
   const complimentaryReason = String(formData.get("complimentary_reason") ?? "").trim();
+  const paymentDiscountPercentRaw = String(formData.get("payment_discount_percent") ?? "0").trim();
+  const parsedDiscount = Number.parseFloat(paymentDiscountPercentRaw || "0");
+  const paymentDiscountPercent = Number.isFinite(parsedDiscount) ? parsedDiscount : 0;
 
   if (!memberId || !planId || !startDate) {
     redirect(`/members/${memberId}?plan_error=missing_fields`);
@@ -44,6 +47,9 @@ export async function changeMemberPlanAction(formData: FormData) {
   if (!canPayments) redirect(`/members/${memberId}?plan_error=forbidden`);
   if (recordPayment && paymentMethod === "complimentary" && !complimentaryReason) {
     redirect(`/members/${memberId}?plan_error=complimentary_reason_required`);
+  }
+  if (recordPayment && paymentMethod !== "complimentary" && (paymentDiscountPercent < 0 || paymentDiscountPercent > 100)) {
+    redirect(`/members/${memberId}?plan_error=invalid_discount`);
   }
 
   // Load plan
@@ -93,10 +99,21 @@ export async function changeMemberPlanAction(formData: FormData) {
 
   // Optional payment insert (desk payments)
   if (recordPayment) {
-    const amount = paymentMethod === "complimentary" ? 0 : Number(plan.price ?? 0);
-    const notes = paymentMethod === "complimentary"
-      ? `Complimentary: ${complimentaryReason}`
-      : paymentNotes || null;
+    const baseAmount = Number(plan.price ?? 0);
+    const amount =
+      paymentMethod === "complimentary"
+        ? 0
+        : Math.max(0, Number((baseAmount * (1 - paymentDiscountPercent / 100)).toFixed(2)));
+
+    const discountNote =
+      paymentMethod !== "complimentary" && paymentDiscountPercent > 0
+        ? `Discount applied: ${paymentDiscountPercent}% (base $${baseAmount.toFixed(2)}).`
+        : "";
+
+    const notes =
+      paymentMethod === "complimentary"
+        ? `Complimentary: ${complimentaryReason}`
+        : [discountNote, paymentNotes].filter(Boolean).join(" ") || null;
 
     const { error: payErr } = await supabase.from("payments").insert({
       membership_id: membership.id,

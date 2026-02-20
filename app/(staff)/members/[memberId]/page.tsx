@@ -276,6 +276,8 @@ const { data: recentCheckins } = await admin
   const planErrorMessage =
     planError === "complimentary_reason_required"
       ? "Complimentary requires a reason."
+      : planError === "invalid_discount"
+      ? "Discount must be between 0% and 100%."
       : planError === "forbidden"
       ? "You are not allowed to change plans."
       : planError === "plan_not_found"
