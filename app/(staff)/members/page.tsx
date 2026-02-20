@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 
 
@@ -71,6 +72,7 @@ export default async function MembersPage({
 
   const role = staffProfile.role as string;
   const isSecurity = role === "security";
+  const admin = createAdminClient();
 
   const q = (sp.q ?? "").trim();
   const filter = (sp.filter ?? "all") as Filter;
@@ -80,7 +82,7 @@ export default async function MembersPage({
   const confirm = sp.confirm ?? ""; // "1" | ""
 
   // Base query (includes membership summary)
-  const base = supabase
+  const base = admin
     .from("members")
     .select(
       "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa))"
