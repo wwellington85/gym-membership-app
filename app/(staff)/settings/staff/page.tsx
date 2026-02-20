@@ -35,6 +35,10 @@ function sortLabel(sort: SortKey) {
   }
 }
 
+function buildPasswordSetupRedirect(origin: string) {
+  const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
+  return `${origin}/auth/confirm?next=${next}`;
+}
 
 
 
@@ -161,7 +165,7 @@ export default async function StaffManagementPage({
     const admin = createAdminClient();
 
     const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/auth/invite?returnTo=${encodeURIComponent("/dashboard")}`,
+      redirectTo: buildPasswordSetupRedirect(origin),
       data: { is_staff: true },
     });
     if (error) redirect(withParam(backTo, "err", error.message));
@@ -284,7 +288,7 @@ export default async function StaffManagementPage({
     const origin = await getOrigin();
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/invite?returnTo=${encodeURIComponent("/dashboard")}`,
+      redirectTo: buildPasswordSetupRedirect(origin),
     });
 
     if (error) redirect(withParam(backTo, "err", error.message));
