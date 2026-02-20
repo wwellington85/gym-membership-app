@@ -35,6 +35,13 @@ function sortLabel(sort: SortKey) {
   }
 }
 
+function roleLabel(role: string) {
+  if (role === "admin") return "Management (Admin)";
+  if (role === "front_desk") return "Front Desk";
+  if (role === "security") return "Security";
+  return role;
+}
+
 function buildPasswordSetupRedirect(origin: string) {
   const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
   return `${origin}/auth/confirm?next=${next}`;
@@ -321,7 +328,7 @@ export default async function StaffManagementPage({
             required
           />
           <select name="role" className="w-full rounded border px-3 py-2" defaultValue="front_desk">
-            <option value="admin">Admin</option>
+            <option value="admin">Management (Admin)</option>
             <option value="front_desk">Front Desk</option>
             <option value="security">Security</option>
           </select>
@@ -343,7 +350,7 @@ export default async function StaffManagementPage({
           <div className="grid grid-cols-2 gap-2">
             <select name="role" defaultValue={roleFilter} className="w-full rounded border px-3 py-2 text-sm">
               <option value="all">All roles</option>
-              <option value="admin">Admin</option>
+              <option value="admin">Management (Admin)</option>
               <option value="front_desk">Front Desk</option>
               <option value="security">Security</option>
             </select>
@@ -397,7 +404,7 @@ export default async function StaffManagementPage({
                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
                 title="Remove role filter"
               >
-                Role: <span className="font-medium">{roleFilter}</span> <span className="opacity-60">✕</span>
+                Role: <span className="font-medium">{roleLabel(roleFilter)}</span> <span className="opacity-60">✕</span>
               </a>
             ) : null}
 
@@ -450,7 +457,7 @@ export default async function StaffManagementPage({
               <div key={s.user_id} className="oura-card p-3">
                 <div>
                   <div className="text-sm font-medium">{s.email ?? "(no email on file)"}</div>
-                  <div className="text-xs opacity-70">Role: {s.role}</div>
+                  <div className="text-xs opacity-70">Role: {roleLabel(s.role)}</div>
                   <div className="text-xs opacity-70">Status: {active ? "Active" : "Inactive"}</div>
                 </div>
 
@@ -459,7 +466,7 @@ export default async function StaffManagementPage({
                     <input type="hidden" name="returnTo" value={returnTo} />
                     <input type="hidden" name="user_id" value={s.user_id} />
                     <select name="role" defaultValue={s.role} className="w-full rounded border px-3 py-2 text-sm">
-                      <option value="admin">Admin</option>
+                      <option value="admin">Management (Admin)</option>
                       <option value="front_desk">Front Desk</option>
                       <option value="security">Security</option>
                     </select>
