@@ -40,9 +40,17 @@ export default function MemberForm({
     }).format(new Date());
   }, []);
   const [planId, setPlanId] = useState<string>("");
+  const [collectPayment, setCollectPayment] = useState<"yes" | "">("yes");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "online" | "comp">("cash");
+  const [discountPercent, setDiscountPercent] = useState<string>("0");
 
   const selected = useMemo(() => plans.find((p) => p.id === planId) ?? null, [plans, planId]);
   const isPaid = (selected?.price ?? 0) > 0;
+  const discountNumber = Math.max(0, Math.min(100, Number.parseFloat(discountPercent || "0") || 0));
+  const discountedAmount =
+    paymentMethod === "comp"
+      ? 0
+      : Math.max(0, Number((((selected?.price ?? 0) * (1 - discountNumber / 100)).toFixed(2))));
 
   return (
     <form action={action} className="space-y-3">
@@ -92,7 +100,12 @@ export default function MemberForm({
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-xs opacity-70">Record payment?</label>
-              <select name="collect_payment" className="w-full oura-input px-3 py-2" defaultValue="yes">
+              <select
+                name="collect_payment"
+                className="w-full oura-input px-3 py-2"
+                value={collectPayment}
+                onChange={(e) => setCollectPayment((e.target.value as "yes" | "") || "")}
+              >
                 <option value="">No</option>
                 <option value="yes">Yes</option>
               </select>
@@ -100,7 +113,13 @@ export default function MemberForm({
 
             <div className="space-y-1">
               <label className="text-xs opacity-70">Method</label>
-              <select name="payment_method" className="w-full oura-input px-3 py-2" defaultValue="cash">
+              <select
+                name="payment_method"
+                className="w-full oura-input px-3 py-2"
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value as any)}
+                disabled={collectPayment !== "yes"}
+              >
                 <option value="cash">Cash</option>
                 <option value="card">Card</option>
                 <option value="online">Online</option>
@@ -109,8 +128,36 @@ export default function MemberForm({
             </div>
           </div>
 
+          {collectPayment === "yes" && paymentMethod !== "comp" ? (
+            <div className="space-y-1">
+              <label className="text-xs opacity-70">Discount (%)</label>
+              <input
+                name="payment_discount_percent"
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                className="w-full oura-input px-3 py-2"
+                value={discountPercent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+              />
+            </div>
+          ) : (
+            <input type="hidden" name="payment_discount_percent" value="0" />
+          )}
+
           <div className="text-xs opacity-70">
-            Amount will be recorded automatically from the selected plan: <span className="font-medium">{formatPrice(selected?.price ?? 0)}</span>
+            Amount to record:{" "}
+            <span className="font-medium">
+              {collectPayment !== "yes"
+                ? "No payment"
+                : paymentMethod === "comp"
+                ? "$0 (comp)"
+                : formatPrice(discountedAmount)}
+            </span>
+            {collectPayment === "yes" && paymentMethod !== "comp" && discountNumber > 0 ? (
+              <span> ({discountNumber}% off)</span>
+            ) : null}
           </div>
         </div>
       ) : null}

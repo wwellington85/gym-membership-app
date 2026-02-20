@@ -15,8 +15,20 @@ export async function applyMembershipPlan(args: {
   startDate: string;
   recordPayment: boolean;
   paymentMethod: string;
+  paymentAmount?: number;
+  paymentNotes?: string | null;
 }) {
-  const { supabase, membershipId, memberId, plan, startDate, recordPayment, paymentMethod } = args;
+  const {
+    supabase,
+    membershipId,
+    memberId,
+    plan,
+    startDate,
+    recordPayment,
+    paymentMethod,
+    paymentAmount,
+    paymentNotes,
+  } = args;
 
   const durationDays = Number(plan.duration_days ?? 0);
   const isNoExpiry = durationDays >= 3650;
@@ -41,12 +53,18 @@ export async function applyMembershipPlan(args: {
 
   // Optional payment insert
   if (recordPayment && Number(plan.price) > 0) {
+    const amount =
+      typeof paymentAmount === "number" && Number.isFinite(paymentAmount)
+        ? Math.max(0, Number(paymentAmount.toFixed(2)))
+        : Number(plan.price);
+
     const { error: payErr } = await supabase.from("payments").insert({
       membership_id: membershipId,
       member_id: memberId,
-      amount: Number(plan.price),
+      amount,
       paid_on: startDate,
       payment_method: paymentMethod,
+      notes: paymentNotes ?? null,
     } as any);
 
     if (payErr) return { error: payErr };

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Archivo, Poppins } from "next/font/google";
+import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
 
 
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning className={`${archivo.variable} ${poppins.variable}`}>
       <body suppressHydrationWarning className="min-h-svh oura-bg text-[rgb(var(--fg))] overflow-hidden font-sans">
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          <ServiceWorkerRegister />
           {children}
           <div id="app-portal" />
         </ThemeProvider>

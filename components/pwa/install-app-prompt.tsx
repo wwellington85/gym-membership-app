@@ -45,6 +45,7 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
   const [visible, setVisible] = useState(false);
   const [iosLike, setIosLike] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [showSteps, setShowSteps] = useState(false);
 
   const title = audience === "staff" ? "Install Staff App" : "Install Membership App";
   const subtitle =
@@ -127,8 +128,7 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
     const sessionCount = readNumber(SESSION_COUNT_KEY);
 
     if (!deferredPrompt) {
-      markDismissed(sessionCount);
-      setVisible(false);
+      setShowSteps(true);
       return;
     }
 
@@ -152,6 +152,11 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
     setVisible(false);
   }
 
+  function handleAlreadyInstalled() {
+    localStorage.setItem(INSTALLED_KEY, "1");
+    setVisible(false);
+  }
+
   return (
     <div className="mb-3 rounded border border-white/20 bg-black/25 p-3 text-sm">
       <div className="font-semibold">{title}</div>
@@ -160,10 +165,26 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
       {canOneTapInstall ? (
         <div className="mt-2 opacity-80">Install for full-screen access and faster launch.</div>
       ) : iosLike ? (
-        <div className="mt-2 opacity-80">In Safari, tap Share then Add to Home Screen.</div>
+        <div className="mt-2 opacity-80">Tap Install to view iPhone steps (Safari required).</div>
       ) : (
         <div className="mt-2 opacity-80">Use your browser menu and choose Install app.</div>
       )}
+
+      {showSteps && !canOneTapInstall ? (
+        <div className="mt-2 rounded border border-white/15 p-2 text-xs opacity-90">
+          {iosLike ? (
+            <>
+              1) Open this site in Safari.
+              <br />
+              2) Tap Share.
+              <br />
+              3) Tap Add to Home Screen.
+            </>
+          ) : (
+            <>Open browser menu and choose Install app or Add to Home screen.</>
+          )}
+        </div>
+      ) : null}
 
       <div className="mt-3 flex items-center gap-2">
         <button
@@ -171,7 +192,14 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
           onClick={handleInstallNow}
           className="rounded border px-3 py-1.5 text-sm hover:oura-surface-muted"
         >
-          {canOneTapInstall ? "Install now" : "Got it"}
+          {canOneTapInstall ? "Install now" : "Install"}
+        </button>
+        <button
+          type="button"
+          onClick={handleAlreadyInstalled}
+          className="rounded border px-3 py-1.5 text-sm opacity-80 hover:opacity-100"
+        >
+          Already installed
         </button>
         <button
           type="button"

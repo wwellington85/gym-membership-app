@@ -16,9 +16,15 @@ export async function createMember(formData: FormData) {
 
   const collect_payment = String(formData.get("collect_payment") ?? "") === "yes";
   const payment_method = String(formData.get("payment_method") ?? "").trim() || "cash";
+  const paymentDiscountPercentRaw = String(formData.get("payment_discount_percent") ?? "0").trim();
+  const parsedDiscount = Number.parseFloat(paymentDiscountPercentRaw || "0");
+  const paymentDiscountPercent = Number.isFinite(parsedDiscount) ? parsedDiscount : 0;
 
   if (!full_name || !phone || !plan_id || !start_date) {
     redirect("/members/new?error=missing_fields");
+  }
+  if (collect_payment && payment_method !== "comp" && (paymentDiscountPercent < 0 || paymentDiscountPercent > 100)) {
+    redirect("/members/new?error=invalid_discount");
   }
 
   const email = emailRaw.length ? emailRaw : null;
@@ -36,6 +42,14 @@ export async function createMember(formData: FormData) {
   }
 
   const price = typeof (plan as any).price === "number" ? (plan as any).price : 0;
+  const discountedAmount =
+    payment_method === "comp"
+      ? 0
+      : Math.max(0, Number((Number(price) * (1 - paymentDiscountPercent / 100)).toFixed(2)));
+  const paymentNotes =
+    collect_payment && payment_method !== "comp" && paymentDiscountPercent > 0
+      ? `Discount applied: ${paymentDiscountPercent}% (base $${Number(price).toFixed(2)}).`
+      : null;
 
   // Create member
   const { data: member, error: memberErr } = await supabase
@@ -107,6 +121,8 @@ export async function createMember(formData: FormData) {
       startDate: start_date,
       recordPayment: collect_payment && price > 0,
       paymentMethod: payment_method || "cash",
+      paymentAmount: discountedAmount,
+      paymentNotes,
     });
 
     if (res?.error) {

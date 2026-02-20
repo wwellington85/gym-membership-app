@@ -11,20 +11,12 @@ type PlanRow = {
   code?: string | null;
 };
 
-
-function todayJamaicaISO() {
-  // en-CA gives YYYY-MM-DD
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Jamaica",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-
-
-export default async function NewMemberPage() {
+export default async function NewMemberPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ error?: string }>;
+}) {
+  const sp = (await searchParams) ?? {};
   const supabase = await createClient();
 
   const { data: plansRaw, error: plansError } = await supabase
@@ -48,8 +40,13 @@ export default async function NewMemberPage() {
         </div>
       ) : null}
 
-      <MemberForm
-plans={plans} action={createMember} />
+      {sp.error === "invalid_discount" ? (
+        <div className="text-sm font-medium text-red-200">
+          Discount must be between 0% and 100%.
+        </div>
+      ) : null}
+
+      <MemberForm plans={plans} action={createMember} />
     </div>
   );
 }
