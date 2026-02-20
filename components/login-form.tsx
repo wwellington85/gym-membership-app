@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 function isValidEmail(v: string) {
   const s = v.trim();
@@ -183,20 +184,22 @@ export function LoginForm({
                   </Link>
                 </div>
 
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pr-10"
+                  />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="text-xs underline underline-offset-4 opacity-80 hover:opacity-100"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 opacity-80 hover:opacity-100"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    {showPassword ? "Hide password" : "Show password"}
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
 

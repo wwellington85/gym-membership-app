@@ -128,23 +128,26 @@ export default function MemberForm({
             </div>
           </div>
 
-          {collectPayment === "yes" && paymentMethod !== "comp" ? (
-            <div className="space-y-1">
-              <label className="text-xs opacity-70">Discount (%)</label>
-              <input
-                name="payment_discount_percent"
-                type="number"
-                min="0"
-                max="100"
-                step="1"
-                className="w-full oura-input px-3 py-2"
-                value={discountPercent}
-                onChange={(e) => setDiscountPercent(e.target.value)}
-              />
-            </div>
-          ) : (
-            <input type="hidden" name="payment_discount_percent" value="0" />
-          )}
+          <div className="space-y-1">
+            <label className="text-xs opacity-70">Apply discount (%)</label>
+            <input
+              name="payment_discount_percent"
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              className="w-full oura-input px-3 py-2 disabled:opacity-60"
+              value={discountPercent}
+              onChange={(e) => setDiscountPercent(e.target.value)}
+              disabled={collectPayment !== "yes" || paymentMethod === "comp"}
+            />
+            {collectPayment !== "yes" ? (
+              <div className="text-xs opacity-70">Turn on “Record payment” to apply a discount.</div>
+            ) : null}
+            {collectPayment === "yes" && paymentMethod === "comp" ? (
+              <div className="text-xs opacity-70">Discount is not used for complimentary payments.</div>
+            ) : null}
+          </div>
 
           <div className="text-xs opacity-70">
             Amount to record:{" "}

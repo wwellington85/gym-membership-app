@@ -43,7 +43,8 @@ export function ChangePlanForm({
   action: (formData: FormData) => void;
 }) {
   const [planId, setPlanId] = useState<string>(currentPlanId ?? "");
-  const [recordPayment, setRecordPayment] = useState<"no" | "yes">("no");
+  const initialPlan = useMemo(() => plans.find((p) => p.id === (currentPlanId ?? "")) ?? null, [plans, currentPlanId]);
+  const [recordPayment, setRecordPayment] = useState<"no" | "yes">((initialPlan?.price ?? 0) > 0 ? "yes" : "no");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "bank_transfer" | "other" | "complimentary">("cash");
   const [paymentDiscountPercent, setPaymentDiscountPercent] = useState<string>("0");
   const [paymentReason, setPaymentReason] = useState("");
@@ -71,8 +72,11 @@ export function ChangePlanForm({
           required
           value={planId}
           onChange={(e) => {
-            setPlanId(e.target.value);
-            setRecordPayment("no");
+            const nextPlanId = e.target.value;
+            const nextPlan = plans.find((p) => p.id === nextPlanId) ?? null;
+            setPlanId(nextPlanId);
+            setRecordPayment((nextPlan?.price ?? 0) > 0 ? "yes" : "no");
+            setPaymentDiscountPercent("0");
           }}
           className="w-full oura-input px-3 py-2"
         >
@@ -136,26 +140,25 @@ export function ChangePlanForm({
 
           {recordPayment === "yes" ? (
             <div className="grid grid-cols-1 gap-3">
-              {paymentMethod !== "complimentary" ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Discount (%)</label>
-                  <input
-                    name="payment_discount_percent"
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={paymentDiscountPercent}
-                    onChange={(e) => setPaymentDiscountPercent(e.target.value)}
-                    className="w-full oura-input px-3 py-2"
-                  />
-                  <div className="text-xs opacity-70">
-                    Manager override for this payment only.
-                  </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Apply discount (%)</label>
+                <input
+                  name="payment_discount_percent"
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={paymentDiscountPercent}
+                  onChange={(e) => setPaymentDiscountPercent(e.target.value)}
+                  className="w-full oura-input px-3 py-2 disabled:opacity-60"
+                  disabled={paymentMethod === "complimentary"}
+                />
+                <div className="text-xs opacity-70">
+                  {paymentMethod === "complimentary"
+                    ? "Discount is not used for complimentary payments."
+                    : "Management override for this payment only."}
                 </div>
-              ) : (
-                <input type="hidden" name="payment_discount_percent" value="0" />
-              )}
+              </div>
 
               <div className="space-y-1">
                 <label className="text-sm font-medium">
