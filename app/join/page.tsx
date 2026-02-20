@@ -9,6 +9,10 @@ type PlanCode = "rewards_free" | "club_day" | "club_weekly" | "club_monthly_95";
 type JoinPlanOption = {
   code: string;
   label: string;
+  name: string;
+  price: number;
+  duration_days: number;
+  plan_type?: string | null;
   grants_access: boolean;
 };
 
@@ -41,6 +45,24 @@ function toJoinPlanLabel(code: string, name: string | null, price: number | null
   return name || code;
 }
 
+function money(v: number) {
+  return v <= 0 ? "Free" : `$${v}`;
+}
+
+function formatDuration(days: number) {
+  if (days >= 3650) return "No expiry";
+  if (days === 1) return "1 day";
+  if (days === 7) return "7 days";
+  if (days === 30) return "30 days";
+  return `${days} days`;
+}
+
+function planBlurb(p: JoinPlanOption) {
+  if (!p.grants_access) return "Discounts only. No gym/pool facility access.";
+  if ((p.plan_type || "").toLowerCase() === "pass") return "Full facility access for the selected pass period.";
+  return "Full facility access plus member discounts.";
+}
+
 export default async function JoinPage({
   searchParams,
 }: {
@@ -66,7 +88,7 @@ export default async function JoinPage({
 
   const withVisibility = await adminForPlans
     .from("membership_plans")
-    .select("code, name, price, grants_access")
+    .select("code, name, price, duration_days, plan_type, grants_access")
     .eq("is_active", true)
     .eq("visible_on_join", true)
     .order("price", { ascending: true });
@@ -76,7 +98,7 @@ export default async function JoinPage({
       ? (
           await adminForPlans
             .from("membership_plans")
-            .select("code, name, price, grants_access")
+            .select("code, name, price, duration_days, plan_type, grants_access")
             .eq("is_active", true)
             .order("price", { ascending: true })
         ).data
@@ -91,15 +113,51 @@ export default async function JoinPage({
       .map((p: any) => ({
         code: String(p.code || ""),
         label: toJoinPlanLabel(String(p.code || ""), p.name ?? null, p.price ?? null),
+        name: String(p.name || p.code || ""),
+        price: Number(p.price ?? 0),
+        duration_days: Number(p.duration_days ?? 0),
+        plan_type: p.plan_type ?? null,
         grants_access: !!p.grants_access,
       }))
       .filter((p) => p.code) || [];
 
   const fallbackOptions: JoinPlanOption[] = [
-    { code: "rewards_free", label: PLAN_LABELS.rewards_free, grants_access: false },
-    { code: "club_day", label: PLAN_LABELS.club_day, grants_access: true },
-    { code: "club_weekly", label: PLAN_LABELS.club_weekly, grants_access: true },
-    { code: "club_monthly_95", label: PLAN_LABELS.club_monthly_95, grants_access: true },
+    {
+      code: "rewards_free",
+      label: PLAN_LABELS.rewards_free,
+      name: "Travellers Rewards (Free)",
+      price: 0,
+      duration_days: 3650,
+      plan_type: "rewards",
+      grants_access: false,
+    },
+    {
+      code: "club_day",
+      label: PLAN_LABELS.club_day,
+      name: "Travellers Club Day Pass",
+      price: 25,
+      duration_days: 1,
+      plan_type: "pass",
+      grants_access: true,
+    },
+    {
+      code: "club_weekly",
+      label: PLAN_LABELS.club_weekly,
+      name: "Travellers Club Weekly Pass",
+      price: 45,
+      duration_days: 7,
+      plan_type: "pass",
+      grants_access: true,
+    },
+    {
+      code: "club_monthly_95",
+      label: PLAN_LABELS.club_monthly_95,
+      name: "Travellers Club Monthly",
+      price: 95,
+      duration_days: 30,
+      plan_type: "club",
+      grants_access: true,
+    },
   ];
 
   const selectablePlans = joinPlanOptions.length > 0 ? joinPlanOptions : fallbackOptions;
@@ -366,7 +424,7 @@ export default async function JoinPage({
   }
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-4 px-4 py-8">
+    <div className="w-full space-y-4 py-5 sm:py-6">
       <div>
         <h1 className="text-xl font-semibold">Travellers Club Signup</h1>
         <p className="text-sm opacity-70">
@@ -427,13 +485,35 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Choose an option</label>
-          <select name="requested_plan_code" className="w-full oura-input px-3 py-2" defaultValue={prefillPlan}>
-            {selectablePlans.map((p) => (
-              <option key={p.code} value={p.code}>
-                {p.label}
-              </option>
-            ))}
-          </select>
+          <div className="space-y-2">
+            {selectablePlans.map((p) => {
+              return (
+                <label
+                  key={p.code}
+                  className="flex cursor-pointer items-start gap-3 rounded border border-white/20 p-3 transition hover:border-white/40"
+                >
+                  <input
+                    type="radio"
+                    name="requested_plan_code"
+                    value={p.code}
+                    defaultChecked={p.code === prefillPlan}
+                    className="mt-1 h-4 w-4 shrink-0"
+                    required
+                  />
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-medium">{p.name}</div>
+                      <div className="mt-1 text-xs opacity-80">{planBlurb(p)}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold">{money(p.price)}</div>
+                      <div className="text-xs opacity-70">{formatDuration(p.duration_days)}</div>
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
           <p className="text-xs opacity-60">
             Club passes include full facility access + member discounts. Rewards (Free) provides discounts only.
           </p>
@@ -441,7 +521,12 @@ export default async function JoinPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Preferred start date</label>
-          <input name="requested_start_date" type="date" className="w-full oura-input px-3 py-2" defaultValue={prefillStart} />
+          <input
+            name="requested_start_date"
+            type="date"
+            className="w-full min-w-0 max-w-full oura-input px-3 py-2"
+            defaultValue={prefillStart}
+          />
           <p className="text-xs opacity-60">Required for Club passes. Optional for Rewards (Free).</p>
         </div>
 
