@@ -58,6 +58,11 @@ function isSyntheticStaffEmail(email?: string | null) {
   return !!email && email.toLowerCase().endsWith("@staff.local");
 }
 
+function buildPasswordSetupRedirect(origin: string) {
+  const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
+  return `${origin}/auth/confirm?next=${next}`;
+}
+
 
 
 export default async function StaffManagementPage({
@@ -155,6 +160,7 @@ export default async function StaffManagementPage({
   async function createStaffAccount(formData: FormData) {
   "use server";
 
+    const origin = await getOrigin();
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
 
@@ -167,10 +173,10 @@ export default async function StaffManagementPage({
     if (!isUsernameValid(username)) {
       redirect(withParam(backTo, "err", "Username must be 3-32 chars: letters, numbers, dot, underscore, or dash"));
     }
-    if (password.length < 8) {
-      redirect(withParam(backTo, "err", "Password must be at least 8 characters"));
-    }
     if (!ROLES.includes(role)) redirect(withParam(backTo, "err", "Invalid role"));
+    if (!emailInput && password.length < 8) {
+      redirect(withParam(backTo, "err", "Temporary password must be at least 8 characters when no email is provided"));
+    }
 
     const supabase = await createClient();
     const {
@@ -189,19 +195,30 @@ export default async function StaffManagementPage({
     const admin = createAdminClient();
 
     const authEmail = emailInput || syntheticStaffEmail(username);
-    const { data, error } = await admin.auth.admin.createUser({
-      email: authEmail,
-      password,
-      email_confirm: true,
-      user_metadata: { is_staff: true, username },
-    });
-    if (error) redirect(withParam(backTo, "err", error.message));
+    let userId: string | null = null;
 
-    const invitedUserId = data?.user?.id;
-    if (!invitedUserId) redirect(withParam(backTo, "err", "Account create failed (no user id)"));
+    if (emailInput) {
+      const { data, error } = await admin.auth.admin.inviteUserByEmail(authEmail, {
+        redirectTo: buildPasswordSetupRedirect(origin),
+        data: { is_staff: true, username },
+      });
+      if (error) redirect(withParam(backTo, "err", error.message));
+      userId = data?.user?.id ?? null;
+    } else {
+      const { data, error } = await admin.auth.admin.createUser({
+        email: authEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { is_staff: true, username },
+      });
+      if (error) redirect(withParam(backTo, "err", error.message));
+      userId = data?.user?.id ?? null;
+    }
+
+    if (!userId) redirect(withParam(backTo, "err", "Account create failed (no user id)"));
 
     const { error: upsertErr } = await admin.from("staff_profiles").upsert(
-      { user_id: invitedUserId, username, email: authEmail, role, is_active: true } as any,
+      { user_id: userId, username, email: authEmail, role, is_active: true } as any,
       { onConflict: "user_id" }
     );
 
@@ -333,14 +350,14 @@ export default async function StaffManagementPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Staff Management</h1>
-        <p className="text-sm opacity-70">Create staff logins, assign roles, and manage access</p>
+        <p className="text-sm opacity-70">Create staff logins, invite by email when available, and manage access</p>
       </div>
 
       <FlashBanners />
 
             <div className="oura-card p-3">
         <div className="font-medium">Create Staff Account</div>
-        <div className="text-sm opacity-70">Create login credentials directly. Email is optional.</div>
+        <div className="text-sm opacity-70">If email is provided, we send an invite link. If not, we create an immediate username + temporary password login.</div>
 
         <form action={createStaffAccount} className="mt-3 space-y-2">
           <input type="hidden" name="returnTo" value={returnTo} />
@@ -354,16 +371,18 @@ export default async function StaffManagementPage({
           <input
             name="email"
             type="email"
-            placeholder="email (optional)"
+            placeholder="email (optional, sends invite)"
             className="w-full rounded border px-3 py-2"
           />
           <input
             name="password"
             type="password"
-            placeholder="temporary password (min 8)"
+            placeholder="temporary password (required if no email)"
             className="w-full rounded border px-3 py-2"
-            required
           />
+          <div className="text-xs opacity-70">
+            No email: temporary password required (8+ chars). Email provided: password can be left blank.
+          </div>
           <select name="role" className="w-full rounded border px-3 py-2" defaultValue="front_desk">
             <option value="admin">Management (Admin)</option>
             <option value="front_desk">Front Desk</option>
