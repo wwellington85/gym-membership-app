@@ -14,6 +14,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Travellers Club",
   description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Travellers Club",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
