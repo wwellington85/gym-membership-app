@@ -524,7 +524,7 @@ export default async function JoinPage({
           <input
             name="requested_start_date"
             type="date"
-            className="w-full min-w-0 max-w-full oura-input px-3 py-2"
+            className="join-date-input block w-full min-w-0 max-w-full oura-input px-3 py-2"
             defaultValue={prefillStart}
           />
           <p className="text-xs opacity-60">Required for Club passes. Optional for Rewards (Free).</p>

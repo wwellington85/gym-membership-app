@@ -497,6 +497,13 @@ html.dark select.oura-input:-webkit-autofill{
 /* Bubble numbers font */
 .font-bubble { font-family: var(--font-bubble); }
 
+/* iOS date controls can exceed narrow card bounds unless inline-size is constrained */
+input.join-date-input[type="date"] {
+  width: 100%;
+  max-width: 100%;
+  min-inline-size: 0;
+}
+
 /* Oura-style alerts */
 .oura-alert {
   @apply rounded border p-3 text-sm;
