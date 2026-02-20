@@ -42,9 +42,20 @@ function roleLabel(role: string) {
   return role;
 }
 
-function buildPasswordSetupRedirect(origin: string) {
-  const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
-  return `${origin}/auth/confirm?next=${next}`;
+function normalizeUsername(v: string) {
+  return v.trim().toLowerCase();
+}
+
+function isUsernameValid(v: string) {
+  return /^[a-z0-9._-]{3,32}$/.test(v);
+}
+
+function syntheticStaffEmail(username: string) {
+  return `${username}@staff.local`;
+}
+
+function isSyntheticStaffEmail(email?: string | null) {
+  return !!email && email.toLowerCase().endsWith("@staff.local");
 }
 
 
@@ -108,9 +119,9 @@ export default async function StaffManagementPage({
   // Build staff query with filters/sort
   let staffQuery = admin
     .from("staff_profiles")
-    .select("user_id, email, role, is_active, created_at");
+    .select("*");
 
-  if (q) staffQuery = staffQuery.ilike("email", `%${q}%`);
+  if (q) staffQuery = staffQuery.or(`email.ilike.%${q}%,username.ilike.%${q}%`);
   if (ROLES.includes(roleFilter as Role)) staffQuery = staffQuery.eq("role", roleFilter as Role);
 
   if (activeFilter === "active") staffQuery = staffQuery.eq("is_active", true);
@@ -141,18 +152,24 @@ export default async function StaffManagementPage({
   }
 
   const { data: staff, error } = await staffQuery;
-  async function inviteStaff(formData: FormData) {
+  async function createStaffAccount(formData: FormData) {
   "use server";
-
-    const origin = await getOrigin();
 
     const rawReturnTo = String(formData.get("returnTo") || "/settings/staff");
     const backTo = safeReturnTo(rawReturnTo);
 
-    const email = String(formData.get("email") || "").trim().toLowerCase();
+    const usernameRaw = String(formData.get("username") || "");
+    const username = normalizeUsername(usernameRaw);
+    const emailInput = String(formData.get("email") || "").trim().toLowerCase();
+    const password = String(formData.get("password") || "");
     const role = String(formData.get("role") || "").trim() as Role;
 
-    if (!email) redirect(withParam(backTo, "err", "Missing email"));
+    if (!isUsernameValid(username)) {
+      redirect(withParam(backTo, "err", "Username must be 3-32 chars: letters, numbers, dot, underscore, or dash"));
+    }
+    if (password.length < 8) {
+      redirect(withParam(backTo, "err", "Password must be at least 8 characters"));
+    }
     if (!ROLES.includes(role)) redirect(withParam(backTo, "err", "Invalid role"));
 
     const supabase = await createClient();
@@ -171,17 +188,20 @@ export default async function StaffManagementPage({
 
     const admin = createAdminClient();
 
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      redirectTo: buildPasswordSetupRedirect(origin),
-      data: { is_staff: true },
+    const authEmail = emailInput || syntheticStaffEmail(username);
+    const { data, error } = await admin.auth.admin.createUser({
+      email: authEmail,
+      password,
+      email_confirm: true,
+      user_metadata: { is_staff: true, username },
     });
     if (error) redirect(withParam(backTo, "err", error.message));
 
     const invitedUserId = data?.user?.id;
-    if (!invitedUserId) redirect(withParam(backTo, "err", "Invite failed (no user id)"));
+    if (!invitedUserId) redirect(withParam(backTo, "err", "Account create failed (no user id)"));
 
     const { error: upsertErr } = await admin.from("staff_profiles").upsert(
-      { user_id: invitedUserId, email, role, is_active: true },
+      { user_id: invitedUserId, username, email: authEmail, role, is_active: true } as any,
       { onConflict: "user_id" }
     );
 
@@ -292,10 +312,14 @@ export default async function StaffManagementPage({
 
     if (!me || me.role !== "admin") redirect("/dashboard");
 
-    const origin = await getOrigin();
+    if (isSyntheticStaffEmail(email)) {
+      redirect(withParam(backTo, "err", "This account has no real email. Set a new password in Staff Management instead."));
+    }
 
+    const origin = await getOrigin();
+    const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: buildPasswordSetupRedirect(origin),
+      redirectTo: `${origin}/auth/confirm?next=${next}`,
     });
 
     if (error) redirect(withParam(backTo, "err", error.message));
@@ -309,21 +333,34 @@ export default async function StaffManagementPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Staff Management</h1>
-        <p className="text-sm opacity-70">Invite staff, assign roles, and manage access</p>
+        <p className="text-sm opacity-70">Create staff logins, assign roles, and manage access</p>
       </div>
 
       <FlashBanners />
 
             <div className="oura-card p-3">
-        <div className="font-medium">Invite Staff</div>
-        <div className="text-sm opacity-70">Sends an email invite. Staff will set their password from the invite.</div>
+        <div className="font-medium">Create Staff Account</div>
+        <div className="text-sm opacity-70">Create login credentials directly. Email is optional.</div>
 
-        <form action={inviteStaff} className="mt-3 space-y-2">
+        <form action={createStaffAccount} className="mt-3 space-y-2">
           <input type="hidden" name="returnTo" value={returnTo} />
+          <input
+            name="username"
+            type="text"
+            placeholder="username"
+            className="w-full rounded border px-3 py-2"
+            required
+          />
           <input
             name="email"
             type="email"
-            placeholder="staff@email.com"
+            placeholder="email (optional)"
+            className="w-full rounded border px-3 py-2"
+          />
+          <input
+            name="password"
+            type="password"
+            placeholder="temporary password (min 8)"
             className="w-full rounded border px-3 py-2"
             required
           />
@@ -332,7 +369,7 @@ export default async function StaffManagementPage({
             <option value="front_desk">Front Desk</option>
             <option value="security">Security</option>
           </select>
-          <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">Send Invite</button>
+          <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">Create Account</button>
         </form>
       </div>
 
@@ -343,7 +380,7 @@ export default async function StaffManagementPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search by email…"
+            placeholder="Search by username or email…"
             className="w-full rounded border px-3 py-2"
           />
 
@@ -456,7 +493,8 @@ export default async function StaffManagementPage({
             return (
               <div key={s.user_id} className="oura-card p-3">
                 <div>
-                  <div className="text-sm font-medium">{s.email ?? "(no email on file)"}</div>
+                  <div className="text-sm font-medium">{s.username ?? s.email ?? "(no username)"}</div>
+                  <div className="text-xs opacity-70">Email: {isSyntheticStaffEmail(s.email) ? "Not set" : (s.email ?? "Not set")}</div>
                   <div className="text-xs opacity-70">Role: {roleLabel(s.role)}</div>
                   <div className="text-xs opacity-70">Status: {active ? "Active" : "Inactive"}</div>
                 </div>
@@ -486,7 +524,11 @@ export default async function StaffManagementPage({
                     <form action={sendResetEmail} className="w-1/2">
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="email" value={s.email ?? ""} />
-                      <button className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50">
+                      <button
+                        className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+                        disabled={isSyntheticStaffEmail(s.email)}
+                        title={isSyntheticStaffEmail(s.email) ? "No email on file for this account." : undefined}
+                      >
                         Reset password
                       </button>
                     </form>

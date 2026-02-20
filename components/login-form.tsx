@@ -26,7 +26,7 @@ export function LoginForm({
     return v ? String(v) : "";
   }, []);
 
-  const [email, setEmail] = useState(initialEmail);
+  const [identifier, setIdentifier] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,25 +48,25 @@ export function LoginForm({
 
   const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
 
-  const emailOk = useMemo(() => isValidEmail(email), [email]);
+  const emailOk = useMemo(() => isValidEmail(identifier), [identifier]);
 
   const magicHref = useMemo(() => {
-    const clean = email.trim();
+    const clean = identifier.trim();
     if (!isValidEmail(clean)) return "";
     return returnTo
       ? `/auth/magic-link?returnTo=${encodeURIComponent(returnTo)}&email=${encodeURIComponent(clean)}`
       : `/auth/magic-link?email=${encodeURIComponent(clean)}`;
-  }, [email, returnTo]);
+  }, [identifier, returnTo]);
 
   const handleMagicLinkClick = useCallback(
     (e: React.MouseEvent) => {
-      const v = (email || "").trim();
+      const v = (identifier || "").trim();
       if (!v || !v.includes("@")) {
         e.preventDefault();
-        setError("Enter a valid email to receive a login link.");
+        setError("Enter a valid email address to receive a login link.");
       }
     },
-    [email]
+    [identifier]
   );
 
   const errMsg = useMemo(() => {
@@ -105,8 +105,28 @@ export function LoginForm({
     setError(null);
 
     try {
+      const rawIdentifier = identifier.trim().toLowerCase();
+      let loginEmail = rawIdentifier;
+
+      if (!rawIdentifier) {
+        throw new Error("Enter your username or email.");
+      }
+
+      if (!rawIdentifier.includes("@")) {
+        const resolved = await fetch("/api/auth/resolve-identifier", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ identifier: rawIdentifier }),
+        }).then((r) => r.json()).catch(() => ({ email: null }));
+
+        loginEmail = String(resolved?.email ?? "").trim().toLowerCase();
+        if (!loginEmail) {
+          throw new Error("Invalid username/email or password.");
+        }
+      }
+
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       });
       if (signInError) throw signInError;
@@ -155,21 +175,21 @@ export function LoginForm({
             Travellers Club
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Enter your email below to login to your account</CardDescription>
+          <CardDescription>Login with username or email and password</CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Username or email</Label>
                 <Input
                   id="email"
-                  type="email"
-                  placeholder="m@example.com"
+                  type="text"
+                  placeholder="Username or email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
                 />
               </div>
 
