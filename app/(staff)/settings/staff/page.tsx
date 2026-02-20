@@ -334,9 +334,8 @@ export default async function StaffManagementPage({
     }
 
     const origin = await getOrigin();
-    const next = encodeURIComponent("/auth/update-password?returnTo=/dashboard");
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/auth/confirm?next=${next}`,
+      redirectTo: `${origin}/auth/update-password?returnTo=/dashboard`,
     });
 
     if (error) redirect(withParam(backTo, "err", error.message));
