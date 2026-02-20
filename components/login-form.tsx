@@ -27,6 +27,7 @@ export function LoginForm({
 
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -184,11 +185,20 @@ export function LoginForm({
 
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="text-xs underline underline-offset-4 opacity-80 hover:opacity-100"
+                  >
+                    {showPassword ? "Hide password" : "Show password"}
+                  </button>
+                </div>
 
                 <div className="text-xs opacity-70">
                   {emailOk && magicHref ? (
