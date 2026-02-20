@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { StaffTopbar } from "@/components/nav/staff-topbar";
 import { HistoryTracker } from "@/components/ui/history-tracker";
+import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -35,6 +36,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       >
         <HistoryTracker />
         <StaffTopbar />
+        <InstallAppPrompt audience="staff" />
         <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
       </div>
 
