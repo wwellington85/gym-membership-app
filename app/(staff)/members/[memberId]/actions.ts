@@ -133,3 +133,39 @@ export async function changeMemberPlanAction(formData: FormData) {
 
   redirect(`/members/${memberId}?plan=saved`);
 }
+
+export async function setMemberActiveAction(formData: FormData) {
+  const supabase = await createClient();
+
+  const memberId = String(formData.get("member_id") ?? "").trim();
+  const nextActive = String(formData.get("next_active") ?? "").trim() === "1";
+
+  if (!memberId) redirect("/members");
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data: staffProfile } = await supabase
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Management-only control
+  if (staffProfile?.role !== "admin") {
+    redirect(`/members/${memberId}?member_error=forbidden`);
+  }
+
+  const { error } = await supabase
+    .from("members")
+    .update({ is_active: nextActive } as any)
+    .eq("id", memberId);
+
+  if (error) {
+    redirect(`/members/${memberId}?member_error=save_failed`);
+  }
+
+  redirect(`/members/${memberId}?member_saved=1`);
+}

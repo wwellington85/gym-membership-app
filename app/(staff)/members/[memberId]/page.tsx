@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
-import { changeMemberPlanAction } from "./actions";
+import { changeMemberPlanAction, setMemberActiveAction } from "./actions";
 import { ChangePlanForm } from "./ChangePlanForm";
 
 function daysFromToday(ymd: string) {
@@ -74,7 +74,15 @@ export default async function MemberProfilePage({
   searchParams,
 }: {
   params: Promise<{ memberId: string }>;
-  searchParams?: Promise<{ payment?: string; checkin?: string; plan?: string; plan_error?: string }>;
+  searchParams?: Promise<{
+    payment?: string;
+    checkin?: string;
+    plan?: string;
+    plan_error?: string;
+    duplicate_prevented?: string;
+    member_saved?: string;
+    member_error?: string;
+  }>;
 }) {
   const { memberId } = await params;
   const sp = (await searchParams) ?? {};
@@ -82,6 +90,9 @@ export default async function MemberProfilePage({
   const checkinState = sp.checkin ?? ""; // "saved" | "already" | ""
   const planSaved = sp.plan === "saved";
   const planError = sp.plan_error ?? "";
+  const duplicatePrevented = sp.duplicate_prevented === "1";
+  const memberSaved = sp.member_saved === "1";
+  const memberErrorQuery = sp.member_error ?? "";
 
   const supabase = await createClient();
 
@@ -101,11 +112,13 @@ export default async function MemberProfilePage({
 
   const admin = createAdminClient();
 
-  const role = staffProfile.role as string;const canPayments = ["admin", "front_desk"].includes(role);
+  const role = staffProfile.role as string;
+  const canPayments = ["admin", "front_desk"].includes(role);
+  const canManageMembers = role === "admin";
 
   const { data: member, error: memberError } = await admin
     .from("members")
-    .select("id, full_name, phone, email, notes, created_at")
+    .select("id, full_name, phone, email, notes, is_active, created_at")
     .eq("id", memberId)
     .single();
 
@@ -286,6 +299,13 @@ const { data: recentCheckins } = await admin
       ? "Could not save plan change. Please try again."
       : "";
 
+  const memberErrorMessage =
+    memberErrorQuery === "forbidden"
+      ? "Only Management can change member active status."
+      : memberErrorQuery
+      ? "Could not update member status. Please try again."
+      : "";
+
   // Status banner
 
   let banner: { title: string; body?: string; cls: string } | null = null;
@@ -343,10 +363,41 @@ const { data: recentCheckins } = await admin
           {alreadyCheckedInToday ? (
             <div className="text-xs opacity-70">Already checked in today</div>
           ) : null}
+
+          {canManageMembers ? (
+            <form action={setMemberActiveAction}>
+              <input type="hidden" name="member_id" value={member.id} />
+              <input type="hidden" name="next_active" value={member.is_active === false ? "1" : "0"} />
+              <button className="rounded border px-3 py-2 text-xs hover:bg-gray-50">
+                {member.is_active === false ? "Reactivate member" : "Deactivate member"}
+              </button>
+            </form>
+          ) : null}
         </div>
       </div>
 
       {/* banners */}
+      {duplicatePrevented ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Duplicate submission prevented. This member already existed.
+        </div>
+      ) : null}
+
+      {memberSaved ? (
+        <div className="oura-alert-success p-3 text-sm">
+          <div className="font-medium">Member updated</div>
+          <div className="mt-1 opacity-80">
+            {member.is_active === false ? "Member has been deactivated." : "Member has been reactivated."}
+          </div>
+        </div>
+      ) : null}
+
+      {memberErrorMessage ? (
+        <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+          {memberErrorMessage}
+        </div>
+      ) : null}
+
       {paymentSaved && canPayments ? (
         <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Payment saved</div>

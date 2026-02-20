@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 
 type PlanRow = {
   id: string;
@@ -170,9 +171,16 @@ export default function MemberForm({
         <textarea name="notes" className="w-full oura-input px-3 py-2" rows={3} />
       </div>
 
-      <button type="submit" className="w-full oura-button">
-        Create Member
-      </button>
+      <SubmitButton />
     </form>
+  );
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button type="submit" className="w-full oura-button disabled:opacity-60" disabled={pending}>
+      {pending ? "Creating member..." : "Create Member"}
+    </button>
   );
 }

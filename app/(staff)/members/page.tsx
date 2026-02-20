@@ -85,8 +85,9 @@ export default async function MembersPage({
   const base = admin
     .from("members")
     .select(
-      "id, full_name, phone, email, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa))"
+      "id, full_name, phone, email, is_active, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa))"
     )
+    .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(isSecurity ? 20 : 50);
 

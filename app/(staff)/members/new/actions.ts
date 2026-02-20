@@ -27,8 +27,31 @@ export async function createMember(formData: FormData) {
     redirect("/members/new?error=invalid_discount");
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
   const email = emailRaw.length ? emailRaw : null;
   const notes = notesRaw.length ? notesRaw : null;
+
+  // Duplicate-submit guard: if an identical name+phone was just created in the last 2 minutes,
+  // treat this submit as a duplicate and send staff to the existing profile.
+  const { data: recentDup } = await supabase
+    .from("members")
+    .select("id, created_at")
+    .eq("full_name", full_name)
+    .eq("phone", phone)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (recentDup?.id && recentDup?.created_at) {
+    const createdMs = new Date(recentDup.created_at).getTime();
+    if (Number.isFinite(createdMs) && Date.now() - createdMs < 2 * 60 * 1000) {
+      redirect(`/members/${recentDup.id}?duplicate_prevented=1`);
+    }
+  }
 
   // Fetch plan
   const { data: plan, error: planErr } = await supabase
