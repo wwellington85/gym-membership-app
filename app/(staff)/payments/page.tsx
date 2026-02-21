@@ -51,22 +51,26 @@ export default async function PaymentsPage({
   const role = staffProfile.role as Role;
   if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
 
-  let query = supabase
+  const query = supabase
     .from("payments")
     .select(
       "id, amount, paid_on, created_at, payment_method, method, membership_id, memberships(member_id, members(full_name, phone, email))"
     )
     .order("paid_on", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(400);
 
-  if (q) {
-    query = query.or(
-      `memberships.members.full_name.ilike.%${q}%,memberships.members.email.ilike.%${q}%,memberships.members.phone.ilike.%${q}%`
-    );
-  }
+  const { data: rawPayments, error } = await query;
 
-  const { data: payments, error } = await query;
+  const payments = (rawPayments ?? []).filter((p: any) => {
+    if (!q) return true;
+    const needle = q.toLowerCase();
+    const member = p.memberships?.members;
+    const fullName = String(member?.full_name ?? "").toLowerCase();
+    const email = String(member?.email ?? "").toLowerCase();
+    const phone = String(member?.phone ?? "").toLowerCase();
+    return fullName.includes(needle) || email.includes(needle) || phone.includes(needle);
+  });
 
   return (
     <div className="space-y-4">
