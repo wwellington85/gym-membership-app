@@ -4,6 +4,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
+import { byCode } from "@/lib/plans/tiers";
+import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { changeMemberPlanAction, setMemberActiveAction } from "./actions";
 import { ChangePlanForm } from "./ChangePlanForm";
 
@@ -20,6 +22,7 @@ function statusBadge(status?: string | null) {
   const s = (status ?? "").toLowerCase();
   if (s === "past_due") return { label: "Past Due", cls: "border" };
   if (s === "due_soon") return { label: "Due Soon", cls: "border" };
+  if (s === "expired") return { label: "Expired", cls: "border" };
   if (s === "active") return { label: "Active", cls: "border" };
   return { label: status ?? "—", cls: "border" };
 }
@@ -43,6 +46,17 @@ function pct(n: number | string | null | undefined) {
 
   // values are stored as 0.15 etc
   return `${Math.round(safe * 100)}%`;
+}
+
+function isMissingBenefitsTable(error: any) {
+  const code = String(error?.code ?? "");
+  const message = String(error?.message ?? "");
+  return code === "PGRST205" || /membership_plan_benefits/i.test(message);
+}
+
+function benefitValueOrIncluded(raw: any) {
+  const v = String(raw ?? "").trim();
+  return v ? v : "Included";
 }
 
 function money(v?: number | null) {
@@ -89,6 +103,7 @@ export default async function MemberProfilePage({
   const paymentSaved = sp.payment === "saved";
   const paymentDuplicate = sp.payment === "duplicate";
   const checkinState = sp.checkin ?? ""; // "saved" | "already" | ""
+  const checkinInactive = checkinState === "inactive";
   const planSaved = sp.plan === "saved";
   const planError = sp.plan_error ?? "";
   const duplicatePrevented = sp.duplicate_prevented === "1";
@@ -123,20 +138,18 @@ export default async function MemberProfilePage({
     .eq("id", memberId)
     .single();
 
-  const activeMembershipPromise = admin
+  const membershipsPromise = admin
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
     )
     .eq("member_id", memberId)
-    .eq("status", "active")
     .order("start_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
-  const [memberRes, activeRes, recentCheckinsRes, loyaltyRes, activePlansRes] = await Promise.all([
+  const [memberRes, membershipsRes, recentCheckinsRes, loyaltyRes, activePlansRes] = await Promise.all([
     memberPromise,
-    activeMembershipPromise,
+    membershipsPromise,
     admin
       .from("checkins")
       .select("id, checked_in_at, points_earned, notes")
@@ -155,24 +168,20 @@ export default async function MemberProfilePage({
 
   if (memberError || !member) return notFound();
 
-  let membership: any = null;
-
-  // Prefer active membership (what staff cares about). Fall back to the most recent membership.
-  membership = activeRes.data;
-
-  if (!membership) {
-    const latestRes = await admin
-      .from("memberships")
-      .select(
-        "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
-      )
-      .eq("member_id", memberId)
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    membership = latestRes.data;
-  }
+  const membershipRows = membershipsRes.data ?? [];
+  const membership =
+    membershipRows.find((row: any) => {
+      const planRaw: any = row?.membership_plans;
+      const rowPlan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+      return isAccessActiveAtJamaicaCutoff({
+        status: row?.status ?? null,
+        startDate: row?.start_date ?? null,
+        paidThroughDate: row?.paid_through_date ?? null,
+        durationDays: rowPlan?.duration_days ?? null,
+      });
+    }) ??
+    membershipRows[0] ??
+    null;
 let plan = Array.isArray((membership as any)?.membership_plans)
     ? (membership as any).membership_plans[0]
     : (membership as any)?.membership_plans;
@@ -195,7 +204,21 @@ if (!plan && (membership as any)?.membership_plan_id) {
   const paidThrough = membership?.paid_through_date ?? null;
   const delta = paidThrough ? daysFromToday(paidThrough) : null;
 
-  const status = membership?.status ?? null;
+  const activeNow = isAccessActiveAtJamaicaCutoff({
+    status: membership?.status ?? null,
+    startDate: membership?.start_date ?? null,
+    paidThroughDate: membership?.paid_through_date ?? null,
+    durationDays: plan?.duration_days ?? null,
+  });
+  const dbStatus = String(membership?.status ?? "").toLowerCase();
+  const status =
+    dbStatus === "pending"
+      ? "pending"
+      : !activeNow
+      ? "expired"
+      : dbStatus === "due_soon"
+      ? "due_soon"
+      : "active";
   const badge = statusBadge(status);
 
   async function checkInNow() {
@@ -207,6 +230,26 @@ if (!plan && (membership as any)?.membership_plan_id) {
     } = await supabase.auth.getUser();
 
     if (!user) redirect("/auth/login");
+
+    const { data: currentMembership } = await supabase
+      .from("memberships")
+      .select("status, start_date, paid_through_date, membership_plans(duration_days)")
+      .eq("member_id", memberId)
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const currentPlanRaw: any = (currentMembership as any)?.membership_plans;
+    const currentPlan = Array.isArray(currentPlanRaw) ? currentPlanRaw[0] : currentPlanRaw;
+    const canCheckIn = isAccessActiveAtJamaicaCutoff({
+      status: (currentMembership as any)?.status ?? null,
+      startDate: (currentMembership as any)?.start_date ?? null,
+      paidThroughDate: (currentMembership as any)?.paid_through_date ?? null,
+      durationDays: currentPlan?.duration_days ?? null,
+    });
+    if (!canCheckIn) {
+      redirect(`/members/${memberId}?checkin=inactive`);
+    }
 
     const { data: settingRow } = await supabase
       .from("app_settings")
@@ -306,6 +349,35 @@ if (!plan && (membership as any)?.membership_plan_id) {
     : (membership?.last_payment_date ?? "—");
 
   const activePlans = activePlansRes.data ?? [];
+  const tierMeta = byCode(plan?.code ?? "rewards_free");
+  const discountsForDisplay =
+    plan && typeof plan === "object"
+      ? [
+          { label: "Restaurant & Bar", value: pct(plan.discount_food) },
+          { label: "Spa services", value: pct(plan.discount_spa) },
+          { label: "Gift shop", value: pct(plan.discount_giftshop) },
+          { label: "Watersports", value: pct(plan.discount_watersports) },
+          { label: "Complimentary high-speed Wi-Fi", value: "Included" },
+        ]
+      : tierMeta.discounts;
+
+  let extraBenefits: any[] = [];
+  let extraBenefitsError: string | null = null;
+  if (plan?.id) {
+    const { data, error } = await admin
+      .from("membership_plan_benefits")
+      .select("id, label, value, sort_order")
+      .eq("plan_id", String(plan.id))
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .order("created_at", { ascending: true });
+
+    if (error && !isMissingBenefitsTable(error)) {
+      extraBenefitsError = error.message;
+    } else {
+      extraBenefits = data ?? [];
+    }
+  }
 
   const planErrorMessage =
     planError === "complimentary_reason_required"
@@ -331,9 +403,9 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
   let banner: { title: string; body?: string; cls: string } | null = null;
 
-  if (status === "past_due") {
+  if (status === "expired") {
     banner = {
-      title: "Past Due — Action needed",
+      title: "Expired — Action needed",
       body: delta !== null ? `Membership expired ${Math.abs(delta)} day(s) ago.` : "Membership is expired.",
       cls: "oura-card p-3 border-l-4 border-l-red-500",
     };
@@ -374,8 +446,9 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
           <form action={checkInNow}>
             <button
-              className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
-              title={alreadyCheckedInToday ? "Already checked in today" : "Record a check-in"}
+              className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-60"
+              title={!activeNow ? "Membership is expired" : alreadyCheckedInToday ? "Already checked in today" : "Record a check-in"}
+              disabled={!activeNow}
             >
               Check in now
             </button>
@@ -456,6 +529,10 @@ if (!plan && (membership as any)?.membership_plan_id) {
         <p className="text-sm font-medium opacity-90">This member already checked in today.</p>
       ) : null}
 
+      {checkinInactive ? (
+        <p className="text-sm font-medium opacity-90">Membership is expired and cannot check in.</p>
+      ) : null}
+
       <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <div className="font-medium">Membership</div>
@@ -481,24 +558,60 @@ if (!plan && (membership as any)?.membership_plan_id) {
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Food</div>
-                <div className="font-medium">{pct(plan.discount_food)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Watersports</div>
-                <div className="font-medium">{pct(plan.discount_watersports)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Gift Shop</div>
-                <div className="font-medium">{pct(plan.discount_giftshop)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Spa</div>
-                <div className="font-medium">{pct(plan.discount_spa)}</div>
-              </div>
+            <div className="mt-3 divide-y divide-white/10 rounded border">
+              {discountsForDisplay.map((d) => (
+                <div key={d.label} className="flex items-center justify-between p-2 text-sm">
+                  <div className="opacity-80">{d.label}</div>
+                  <div className="font-medium">{d.value}</div>
+                </div>
+              ))}
             </div>
+
+            <div className="mt-3 rounded border p-3">
+              <div className="text-sm font-medium">Facility access</div>
+              {tierMeta.access.length === 0 ? (
+                <p className="mt-2 text-sm opacity-70">No facility access included.</p>
+              ) : (
+                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {tierMeta.access.map((item) => (
+                    <div key={item} className="rounded border p-2 text-sm opacity-90">
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {extraBenefitsError ? (
+              <div className="mt-3 rounded border p-2 text-xs opacity-80">
+                Could not load custom benefits: {extraBenefitsError}
+              </div>
+            ) : null}
+
+            {extraBenefits.length > 0 ? (
+              <div className="mt-3 rounded border p-3">
+                <div className="text-sm font-medium">Extra benefits for this plan</div>
+                <div className="mt-2 divide-y divide-white/10">
+                  {extraBenefits.map((b: any) => (
+                    <div key={b.id} className="flex items-center justify-between p-2 text-sm">
+                      <div className="opacity-80">{b.label}</div>
+                      <div className="font-medium">{benefitValueOrIncluded(b.value)}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {tierMeta.notes?.length ? (
+              <div className="mt-3 rounded border p-3 text-sm">
+                <div className="font-medium">Notes</div>
+                <ul className="mt-2 list-disc pl-5 opacity-80">
+                  {tierMeta.notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : (
           <div className="mt-3 text-sm opacity-70">No plan assigned.</div>

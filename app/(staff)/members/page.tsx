@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { redirect } from "next/navigation";
 
 
@@ -77,7 +78,7 @@ export default async function MembersPage({
   const q = (sp.q ?? "").trim();
   const filter = (sp.filter ?? "all") as Filter;
 
-  const done = sp.done ?? ""; // "saved" | "already" | ""
+  const done = sp.done ?? ""; // "saved" | "already" | "inactive" | ""
   const mid = (sp.mid ?? "").trim();
   const confirm = sp.confirm ?? ""; // "1" | ""
 
@@ -107,7 +108,7 @@ export default async function MembersPage({
     ? await admin
         .from("memberships")
         .select(
-          "id, member_id, status, paid_through_date, needs_contact, start_date, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+          "id, member_id, status, paid_through_date, needs_contact, start_date, membership_plans(name, code, price, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
         .in("member_id", memberIds)
         .order("start_date", { ascending: false })
@@ -127,8 +128,16 @@ export default async function MembersPage({
   // Filtering (only used for Admin/Front Desk view)
   let filtered = members.filter((m: any) => {
     const ms = m.membership;
+    const planRaw: any = ms?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    const activeNow = isAccessActiveAtJamaicaCutoff({
+      status: ms?.status ?? null,
+      startDate: ms?.start_date ?? null,
+      paidThroughDate: ms?.paid_through_date ?? null,
+      durationDays: plan?.duration_days ?? null,
+    });
     if (filter === "all") return true;
-    if (filter === "active") return ms?.status === "active";
+    if (filter === "active") return activeNow;
     if (filter === "due_soon") return ms?.status === "due_soon";
     if (filter === "past_due") return ms?.status === "past_due";
     if (filter === "needs_contact") return !!ms?.needs_contact;
@@ -174,8 +183,16 @@ export default async function MembersPage({
   // For Security gate mode: use first match as the "Gate Status" member
   const gateMember = isSecurity && q && members.length > 0 ? members[0] : null;
   const gateMembership = gateMember?.membership;
+  const gatePlanRaw: any = gateMembership?.membership_plans;
+  const gatePlan = Array.isArray(gatePlanRaw) ? gatePlanRaw[0] : gatePlanRaw;
+  const gateActiveNow = isAccessActiveAtJamaicaCutoff({
+    status: gateMembership?.status ?? null,
+    startDate: gateMembership?.start_date ?? null,
+    paidThroughDate: gateMembership?.paid_through_date ?? null,
+    durationDays: gatePlan?.duration_days ?? null,
+  });
 
-  const isPastDueGate = (gateMembership?.status ?? "") === "past_due";
+  const isPastDueGate = !gateActiveNow || (gateMembership?.status ?? "") === "past_due";
   const isConfirmingThisMember = !!gateMember && confirm === "1" && mid === gateMember.id;
 
   // SECURITY: inline check-in (server action)
@@ -190,6 +207,30 @@ export default async function MembersPage({
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) redirect("/auth/login");
+
+    const { data: gateMembership } = await supabase
+      .from("memberships")
+      .select("status, start_date, paid_through_date, membership_plans(duration_days)")
+      .eq("member_id", member_id)
+      .order("start_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const planRaw: any = (gateMembership as any)?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    const canCheckIn = isAccessActiveAtJamaicaCutoff({
+      status: (gateMembership as any)?.status ?? null,
+      startDate: (gateMembership as any)?.start_date ?? null,
+      paidThroughDate: (gateMembership as any)?.paid_through_date ?? null,
+      durationDays: plan?.duration_days ?? null,
+    });
+    if (!canCheckIn) {
+      const qs = new URLSearchParams();
+      if (q) qs.set("q", q);
+      qs.set("mid", member_id);
+      qs.set("done", "inactive");
+      redirect(`/members?${qs.toString()}`);
+    }
 
     // Read points setting (default 1)
     const { data: settingRow } = await supabase
@@ -265,6 +306,13 @@ return (
           <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
             <div className="font-medium">Already checked in</div>
             <div className="mt-1 opacity-80">This member already checked in today.</div>
+          </div>
+        ) : null}
+
+        {showBanner && done === "inactive" ? (
+          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm">
+            <div className="font-medium">Membership expired</div>
+            <div className="mt-1 opacity-80">This member cannot be checked in after expiry cutoff.</div>
           </div>
         ) : null}
 

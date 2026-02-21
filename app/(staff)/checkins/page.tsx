@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { OkBanner } from "./OkBanner";
 import { AutoClearOk } from "./AutoClearOk";
 
@@ -95,8 +96,18 @@ export default async function CheckinsPage({
         return;
       }
 
-      const prevActive = prev.status === "active";
-      const nextActive = next.status === "active";
+      const prevActive = isAccessActiveAtJamaicaCutoff({
+        status: prev.status,
+        startDate: prev.startDate,
+        paidThroughDate: prev.paidThroughDate,
+        durationDays: prev.durationDays,
+      });
+      const nextActive = isAccessActiveAtJamaicaCutoff({
+        status: next.status,
+        startDate: next.startDate,
+        paidThroughDate: next.paidThroughDate,
+        durationDays: next.durationDays,
+      });
       if (!prevActive && nextActive) {
         membershipByMemberId.set(key, next);
         return;
@@ -115,10 +126,12 @@ export default async function CheckinsPage({
     const ms = membershipByMemberId.get(String(memberId));
     if (!ms) return { label: "—", kind: "unknown" as const };
 
-    const status = String(ms.status ?? "").toLowerCase();
-    const active = status === "active";
-    const dueSoon = status === "due_soon";
-    const todayIso = todayJM();
+    const activeNow = isAccessActiveAtJamaicaCutoff({
+      status: ms.status,
+      startDate: ms.startDate,
+      paidThroughDate: ms.paidThroughDate,
+      durationDays: ms.durationDays,
+    });
     const planType = String(ms.planType ?? "").toLowerCase();
     const planCode = String(ms.planCode ?? "").toLowerCase();
     const planName = String(ms.planName ?? "").toLowerCase();
@@ -131,14 +144,14 @@ export default async function CheckinsPage({
       planName.includes("day") ||
       ms.durationDays === 1;
 
-    const passStillValid =
-      !!ms.paidThroughDate && String(ms.paidThroughDate) >= todayIso;
-
-    if (isDayPass && (active || dueSoon || passStillValid)) {
+    if (isDayPass && activeNow) {
       return { label: "Day Pass", kind: "ok" as const };
     }
-    if (active && ms.grantsAccess) return { label: "Gym Access", kind: "ok" as const };
-    if (active && !ms.grantsAccess) return { label: "Dining Only", kind: "warn" as const };
+    if (isDayPass && !activeNow) {
+      return { label: "Expired", kind: "bad" as const };
+    }
+    if (activeNow && ms.grantsAccess) return { label: "Gym Access", kind: "ok" as const };
+    if (activeNow && !ms.grantsAccess) return { label: "Dining Only", kind: "warn" as const };
     return { label: "Not Active", kind: "bad" as const };
   }
 

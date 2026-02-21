@@ -35,7 +35,7 @@ export async function applyMembershipPlan(args: {
 
   const paidThrough = isNoExpiry
     ? addDaysISO(startDate, 3650)
-    : addDaysISO(startDate, Math.max(durationDays, 1));
+    : addDaysISO(startDate, Math.max(durationDays - 1, 0));
 
   // Update membership consistently
   const { error: updErr } = await supabase

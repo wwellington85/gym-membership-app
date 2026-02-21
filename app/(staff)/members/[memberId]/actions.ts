@@ -79,7 +79,7 @@ export async function changeMemberPlanAction(formData: FormData) {
   const durationDays = Number(plan.duration_days ?? 0);
   const isNoExpiry = durationDays >= 3650;
   const paidThrough =
-    isNoExpiry ? addDaysISO(startDate, 3650) : addDaysISO(startDate, Math.max(durationDays, 1));
+    isNoExpiry ? addDaysISO(startDate, 3650) : addDaysISO(startDate, Math.max(durationDays - 1, 0));
 
   // Update membership row
   const { error: updErr } = await supabase

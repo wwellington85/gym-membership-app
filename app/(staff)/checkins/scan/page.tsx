@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { verifyQrToken } from "@/lib/qr/token";
+import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { QrScanner } from "@/components/checkins/qr-scanner";
 
 function parsePayload(raw: string): { memberId?: string; token?: string; err?: string } {
@@ -127,20 +128,28 @@ export default async function ScanCheckinPage({
     const { data: membership } = await supabase
       .from("memberships")
       .select(
-        "id, member_id, status, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+        "id, member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
       )
       .eq("member_id", memberId)
+      .order("start_date", { ascending: false })
       .maybeSingle();
 
     const plan = Array.isArray((membership as any)?.membership_plans)
       ? (membership as any).membership_plans[0]
       : (membership as any)?.membership_plans;
 
-    const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
-  const diningOnly = membership?.status === "active" && !gymAccessAllowed;
+    const activeNow = isAccessActiveAtJamaicaCutoff({
+      status: membership?.status ?? null,
+      startDate: (membership as any)?.start_date ?? null,
+      paidThroughDate: (membership as any)?.paid_through_date ?? null,
+      durationDays: (plan as any)?.duration_days ?? null,
+    });
+
+    const gymAccessAllowed = activeNow && !!plan?.grants_access;
+    const diningOnly = activeNow && !gymAccessAllowed;
     // Gym access is separate from loyalty check-ins.
     // Rewards/Free members can still be checked in to earn points.
-    const canRecordCheckin = membership?.status === "active";
+    const canRecordCheckin = activeNow;
 
     if (!canRecordCheckin) {
       redirect(`/checkins?ok=checked_in`);
@@ -191,9 +200,10 @@ export default async function ScanCheckinPage({
       const { data: ms } = await supabase
         .from("memberships")
         .select(
-          "id, member_id, status, paid_through_date, membership_plans(name, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+          "id, member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
         .eq("member_id", mid)
+        .order("start_date", { ascending: false })
         .maybeSingle();
 
       membership = ms;
@@ -203,8 +213,14 @@ export default async function ScanCheckinPage({
     }
   }
 
-  const gymAccessAllowed = membership?.status === "active" && !!plan?.grants_access;
-  const diningOnly = membership?.status === "active" && !gymAccessAllowed;
+  const activeNow = isAccessActiveAtJamaicaCutoff({
+    status: membership?.status ?? null,
+    startDate: membership?.start_date ?? null,
+    paidThroughDate: membership?.paid_through_date ?? null,
+    durationDays: plan?.duration_days ?? null,
+  });
+  const gymAccessAllowed = activeNow && !!plan?.grants_access;
+  const diningOnly = activeNow && !gymAccessAllowed;
 
   return (
     <div className="space-y-4">
@@ -260,7 +276,7 @@ export default async function ScanCheckinPage({
               <div className="text-sm font-semibold">{gymAccessAllowed ? "Allowed" : diningOnly ? "Dining Only" : "Not active"}</div>
             </div>
             <div className="mt-2 text-xs opacity-70">
-              Plan: {plan?.name ?? "—"} • Type: {plan?.plan_type ?? "—"} • Status: {membership?.status ?? "—"}
+              Plan: {plan?.name ?? "—"} • Type: {plan?.plan_type ?? "—"} • Status: {activeNow ? "active" : "expired"}
             </div>
 
             <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -287,7 +303,7 @@ export default async function ScanCheckinPage({
               <button
                 type="submit"
                 className="w-full rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
-                disabled={String(membership?.status || "").toLowerCase() !== "active"}
+                disabled={!activeNow}
               >
                 Record check-in
               </button>
