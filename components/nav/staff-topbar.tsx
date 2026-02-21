@@ -40,7 +40,7 @@ export function StaffTopbar() {
 
   return (
     <div className="sticky top-0 z-40 border-b oura-topbar">
-      <div className="mx-auto flex w-full items-center justify-between px-3 py-2 pt-[max(env(safe-area-inset-top),0px)]">
+      <div className="flex w-full items-center justify-between px-3 py-2 pt-[max(env(safe-area-inset-top),0px)]">
         {showBack ? (
           <button
             type="button"

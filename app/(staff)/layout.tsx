@@ -30,14 +30,15 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     <>
       <div
         className={[
-          "mx-auto w-full h-svh overflow-y-auto overscroll-y-contain pt-0 pb-28",
-          isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6",
+          "w-full h-svh overflow-y-auto overscroll-y-contain pt-0 pb-28",
         ].join(" ")}
       >
         <HistoryTracker />
         <StaffTopbar />
         <InstallAppPrompt audience="staff" />
-        <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
+        <div className={["mx-auto w-full", isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6"].join(" ")}>
+          <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
+        </div>
       </div>
 
       <BottomTabs role={staffProfile.role} />
