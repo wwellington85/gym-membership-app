@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
 type Role = "admin" | "front_desk" | "security";
@@ -153,9 +154,15 @@ export default async function PaymentsPage({
 
           const paidOn = fmtJamaicaDateTime(paymentPaidOn(p));
           const method = paymentMethodLabel(p);
+          const href = resolvedMemberId ? `/members/${resolvedMemberId}` : "#";
 
           return (
-            <div key={p.id} className="oura-card p-3">
+            <Link
+              key={p.id}
+              href={href}
+              className="block oura-card p-3 hover:bg-white/5"
+              aria-disabled={!resolvedMemberId}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-medium">{name}</div>
@@ -166,7 +173,7 @@ export default async function PaymentsPage({
                 </div>
                 <div className="font-semibold">${Number(p.amount ?? 0).toFixed(2)}</div>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

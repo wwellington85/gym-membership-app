@@ -51,22 +51,56 @@ export default async function CheckinsPage({
   // Load membership plan access flags for the members in today's check-ins
   const memberIds = Array.from(new Set((todayRows ?? []).map((r: any) => r.member_id).filter(Boolean)));
 
-  const membershipByMemberId = new Map<string, { status: string | null; planName: string | null; grantsAccess: boolean }>();
+  const membershipByMemberId = new Map<
+    string,
+    {
+      status: string | null;
+      planName: string | null;
+      planCode: string | null;
+      planType: string | null;
+      grantsAccess: boolean;
+      startDate: string | null;
+    }
+  >();
 
   if (memberIds.length) {
     const { data: msRows } = await supabase
       .from("memberships")
-      .select("member_id, status, membership_plans(name, grants_access)")
+      .select("member_id, status, start_date, membership_plans(name, code, plan_type, grants_access)")
       .in("member_id", memberIds);
 
     (msRows ?? []).forEach((row: any) => {
+      const key = String(row.member_id);
       const planRaw: any = row?.membership_plans;
       const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-      membershipByMemberId.set(String(row.member_id), {
+      const next = {
         status: row?.status ?? null,
         planName: plan?.name ?? null,
+        planCode: plan?.code ?? null,
+        planType: plan?.plan_type ?? null,
         grantsAccess: !!plan?.grants_access,
-      });
+        startDate: row?.start_date ?? null,
+      };
+
+      const prev = membershipByMemberId.get(key);
+      if (!prev) {
+        membershipByMemberId.set(key, next);
+        return;
+      }
+
+      const prevActive = prev.status === "active";
+      const nextActive = next.status === "active";
+      if (!prevActive && nextActive) {
+        membershipByMemberId.set(key, next);
+        return;
+      }
+      if (prevActive === nextActive) {
+        const prevStart = String(prev.startDate ?? "");
+        const nextStart = String(next.startDate ?? "");
+        if (nextStart > prevStart) {
+          membershipByMemberId.set(key, next);
+        }
+      }
     });
   }
 
@@ -75,6 +109,12 @@ export default async function CheckinsPage({
     if (!ms) return { label: "—", kind: "unknown" as const };
 
     const active = ms.status === "active";
+    const isDayPass =
+      String(ms.planType ?? "").toLowerCase() === "pass" ||
+      String(ms.planCode ?? "").toLowerCase() === "club_day" ||
+      String(ms.planName ?? "").toLowerCase().includes("day pass");
+
+    if (active && isDayPass) return { label: "Day Pass", kind: "ok" as const };
     if (active && ms.grantsAccess) return { label: "Gym Access", kind: "ok" as const };
     if (active && !ms.grantsAccess) return { label: "Dining Only", kind: "warn" as const };
     return { label: "Not Active", kind: "bad" as const };
@@ -114,7 +154,11 @@ export default async function CheckinsPage({
 
       <div className="space-y-2">
         {todayRows.map((r: any) => (
-          <div key={r.id} className="oura-card p-3">
+          <Link
+            key={r.id}
+            href={`/members/${r.member_id}`}
+            className="block oura-card p-3 hover:bg-white/5"
+          >
             <div className="font-medium">{r.members?.full_name ?? "Member"}</div>
             <div className="mt-1 flex items-center justify-between gap-2">
               <span className="text-sm opacity-70">{r.members?.phone ?? r.member_id}</span>
@@ -148,7 +192,7 @@ export default async function CheckinsPage({
                 hour12: true,
               }).format(new Date(r.checked_in_at))}
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
