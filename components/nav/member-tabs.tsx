@@ -21,8 +21,8 @@ export function MemberTabs() {
   if (typeof document === "undefined") return null;
 
   const nav = (
-    <nav className="fixed bottom-[calc(env(safe-area-inset-bottom)+8px)] left-0 right-0 z-[9999] border-t oura-tabbar oura-bottom-tabbar">
-      <div className="mx-auto flex max-w-md items-center justify-between gap-2 px-2 py-3">
+    <nav className="fixed bottom-0 left-0 right-0 z-[9999] border-t oura-tabbar oura-bottom-tabbar">
+      <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
         {tabs.map((t) => {
           const active =
             t.href === "/member"
@@ -33,7 +33,7 @@ export function MemberTabs() {
             <Link
               key={t.href}
               href={t.href}
-              className={`flex-1 px-1 py-2 text-center whitespace-nowrap text-[12px] leading-none sm:text-sm ${
+              className={`flex-1 px-1 py-2 text-center whitespace-nowrap text-[13px] leading-none ${
                 active ? "font-semibold oura-tab-active" : "oura-tab"
               }`}
             >
