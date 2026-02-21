@@ -53,19 +53,55 @@ export default async function PaymentsPage({
 
   const query = supabase
     .from("payments")
-    .select(
-      "id, amount, paid_on, created_at, payment_method, method, membership_id, memberships(member_id, members(full_name, phone, email))"
-    )
+    .select("id, amount, paid_on, created_at, payment_method, method, membership_id, member_id")
     .order("paid_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(400);
 
   const { data: rawPayments, error } = await query;
 
+  const membershipIds = Array.from(
+    new Set((rawPayments ?? []).map((p: any) => p.membership_id).filter(Boolean))
+  );
+
+  const membershipsById = new Map<string, string>();
+  if (membershipIds.length > 0) {
+    const { data: msRows } = await supabase
+      .from("memberships")
+      .select("id, member_id")
+      .in("id", membershipIds as string[]);
+    (msRows ?? []).forEach((m: any) => {
+      membershipsById.set(String(m.id), String(m.member_id));
+    });
+  }
+
+  const allMemberIds = Array.from(
+    new Set(
+      (rawPayments ?? [])
+        .map((p: any) => p.member_id || membershipsById.get(String(p.membership_id)))
+        .filter(Boolean)
+        .map(String)
+    )
+  );
+
+  const membersById = new Map<string, any>();
+  if (allMemberIds.length > 0) {
+    const { data: memberRows } = await supabase
+      .from("members")
+      .select("id, full_name, phone, email")
+      .in("id", allMemberIds);
+    (memberRows ?? []).forEach((m: any) => {
+      membersById.set(String(m.id), m);
+    });
+  }
+
   const payments = (rawPayments ?? []).filter((p: any) => {
     if (!q) return true;
     const needle = q.toLowerCase();
-    const member = p.memberships?.members;
+    const resolvedMemberId = String(
+      p.member_id || membershipsById.get(String(p.membership_id)) || ""
+    );
+    const member = membersById.get(resolvedMemberId);
     const fullName = String(member?.full_name ?? "").toLowerCase();
     const email = String(member?.email ?? "").toLowerCase();
     const phone = String(member?.phone ?? "").toLowerCase();
@@ -108,7 +144,10 @@ export default async function PaymentsPage({
 
       <div className="space-y-2">
         {(payments ?? []).map((p: any) => {
-          const member = p.memberships?.members;
+          const resolvedMemberId = String(
+            p.member_id || membershipsById.get(String(p.membership_id)) || ""
+          );
+          const member = membersById.get(resolvedMemberId);
           const name = member?.full_name || "Member unknown";
           const meta = [member?.email, member?.phone].filter(Boolean).join(" • ");
 

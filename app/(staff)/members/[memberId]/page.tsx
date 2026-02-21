@@ -238,6 +238,7 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
   // Payment list only for Admin/Front Desk
   let payments: any[] = [];
+  let paymentsLoadError: string | null = null;
 
   if (canPayments) {
     const paymentSelect = "id, amount, paid_on, paid_at, created_at, payment_method, membership_id, member_id, notes";
@@ -253,17 +254,21 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
     const byMember = byMemberRes.data ?? [];
     const membershipsForMember = membershipsForMemberRes.data ?? [];
+    if (byMemberRes.error) paymentsLoadError = byMemberRes.error.message;
+    if (membershipsForMemberRes.error) {
+      paymentsLoadError = membershipsForMemberRes.error.message;
+    }
 
     const membershipIds = membershipsForMember.map((m: any) => m.id).filter(Boolean);
-    const byMembershipIds = membershipIds.length
-      ? (
-          await admin
-            .from("payments")
-            .select(paymentSelect)
-            .in("membership_id", membershipIds)
-            .order("created_at", { ascending: false })
-        ).data ?? []
-      : [];
+    const byMembershipRes = membershipIds.length
+      ? await admin
+          .from("payments")
+          .select(paymentSelect)
+          .in("membership_id", membershipIds)
+          .order("created_at", { ascending: false })
+      : { data: [] as any[], error: null as any };
+    const byMembershipIds = byMembershipRes.data ?? [];
+    if (byMembershipRes.error) paymentsLoadError = byMembershipRes.error.message;
 
     const merged = [...byMember, ...byMembershipIds];
     const dedup = new Map<string, any>();
@@ -276,6 +281,21 @@ if (!plan && (membership as any)?.membership_plan_id) {
       const bKey = String(paymentDateValue(b) ?? "");
       return bKey.localeCompare(aKey);
     });
+
+    // Fallback: some records may only resolve via join on memberships.member_id.
+    if (payments.length === 0) {
+      const fallbackRes = await admin
+        .from("payments")
+        .select(`${paymentSelect}, memberships!inner(member_id)`)
+        .eq("memberships.member_id", memberId)
+        .order("created_at", { ascending: false });
+
+      if (fallbackRes.error) {
+        paymentsLoadError = fallbackRes.error.message;
+      } else {
+        payments = fallbackRes.data ?? [];
+      }
+    }
   }
 
   // Compute last payment from payments list (more reliable than memberships.last_payment_date)
@@ -574,9 +594,18 @@ if (!plan && (membership as any)?.membership_plan_id) {
             <span className="text-xs opacity-70">{payments?.length ?? 0}</span>
           </div>
 
-          {!payments || payments.length === 0 ? (
+          {paymentsLoadError ? (
+            <div className="rounded border p-3 text-sm">
+              Could not load payments.
+              <div className="mt-1 text-xs opacity-70">{paymentsLoadError}</div>
+            </div>
+          ) : null}
+
+          {!paymentsLoadError && (!payments || payments.length === 0) ? (
             <div className="rounded border p-3 text-sm opacity-70">No payments recorded yet.</div>
-          ) : (
+          ) : null}
+
+          {!paymentsLoadError && payments && payments.length > 0 ? (
             <div className="space-y-2">
               {payments.map((p: any) => (
                 <div key={p.id} className="oura-card p-3">
@@ -594,7 +623,7 @@ if (!plan && (membership as any)?.membership_plan_id) {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       ) : null}
 
