@@ -39,14 +39,14 @@ export function StaffTopbar() {
   }
 
   return (
-    <div className="sticky top-0 z-40 border-b oura-topbar">
+    <div className="fixed left-0 right-0 top-0 z-50 oura-topbar">
       <div className="flex w-full items-center justify-between px-3 py-2 pt-[max(env(safe-area-inset-top),0px)]">
         {showBack ? (
           <button
             type="button"
             aria-label="Back"
             onClick={onBack}
-            className="inline-flex h-9 w-9 items-center justify-center rounded border text-lg leading-none hover:oura-surface-muted"
+            className="inline-flex h-9 w-9 items-center justify-center rounded text-lg leading-none hover:bg-white/10"
           >
             {"<"}
           </button>

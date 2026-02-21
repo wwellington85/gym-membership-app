@@ -30,7 +30,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     <>
       <div
         className={[
-          "w-full h-svh overflow-y-auto overscroll-y-contain pt-0 pb-28",
+          "w-full h-svh overflow-y-auto overscroll-y-contain pt-[calc(env(safe-area-inset-top)+60px)] pb-28",
         ].join(" ")}
       >
         <HistoryTracker />

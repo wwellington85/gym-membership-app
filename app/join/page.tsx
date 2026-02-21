@@ -14,6 +14,10 @@ type JoinPlanOption = {
   duration_days: number;
   plan_type?: string | null;
   grants_access: boolean;
+  discount_food: number;
+  discount_watersports: number;
+  discount_giftshop: number;
+  discount_spa: number;
 };
 
 const PLAN_LABELS: Record<PlanCode, string> = {
@@ -63,6 +67,24 @@ function planBlurb(p: JoinPlanOption) {
   return "Full facility access plus member discounts.";
 }
 
+function toPercentText(v: number) {
+  const n = Number.isFinite(v) ? v : 0;
+  const pct = n <= 1 ? Math.round(n * 100) : Math.round(n);
+  return `${pct}%`;
+}
+
+function discountSummary(p: JoinPlanOption) {
+  const values = [
+    p.discount_food,
+    p.discount_watersports,
+    p.discount_giftshop,
+    p.discount_spa,
+  ];
+  const max = Math.max(...values.map((v) => Number(v || 0)));
+  if (max <= 0) return "No discount included";
+  return `Up to ${toPercentText(max)} off`;
+}
+
 export default async function JoinPage({
   searchParams,
 }: {
@@ -88,7 +110,7 @@ export default async function JoinPage({
 
   const withVisibility = await adminForPlans
     .from("membership_plans")
-    .select("code, name, price, duration_days, plan_type, grants_access")
+    .select("code, name, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa")
     .eq("is_active", true)
     .eq("visible_on_join", true)
     .order("price", { ascending: true });
@@ -98,7 +120,7 @@ export default async function JoinPage({
       ? (
           await adminForPlans
             .from("membership_plans")
-            .select("code, name, price, duration_days, plan_type, grants_access")
+            .select("code, name, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa")
             .eq("is_active", true)
             .order("price", { ascending: true })
         ).data
@@ -118,6 +140,10 @@ export default async function JoinPage({
         duration_days: Number(p.duration_days ?? 0),
         plan_type: p.plan_type ?? null,
         grants_access: !!p.grants_access,
+        discount_food: Number(p.discount_food ?? 0),
+        discount_watersports: Number(p.discount_watersports ?? 0),
+        discount_giftshop: Number(p.discount_giftshop ?? 0),
+        discount_spa: Number(p.discount_spa ?? 0),
       }))
       .filter((p) => p.code) || [];
 
@@ -130,6 +156,10 @@ export default async function JoinPage({
       duration_days: 3650,
       plan_type: "rewards",
       grants_access: false,
+      discount_food: 5,
+      discount_watersports: 5,
+      discount_giftshop: 5,
+      discount_spa: 5,
     },
     {
       code: "club_day",
@@ -139,6 +169,10 @@ export default async function JoinPage({
       duration_days: 1,
       plan_type: "pass",
       grants_access: true,
+      discount_food: 10,
+      discount_watersports: 10,
+      discount_giftshop: 10,
+      discount_spa: 10,
     },
     {
       code: "club_weekly",
@@ -148,6 +182,10 @@ export default async function JoinPage({
       duration_days: 7,
       plan_type: "pass",
       grants_access: true,
+      discount_food: 15,
+      discount_watersports: 15,
+      discount_giftshop: 15,
+      discount_spa: 15,
     },
     {
       code: "club_monthly_95",
@@ -157,6 +195,10 @@ export default async function JoinPage({
       duration_days: 30,
       plan_type: "club",
       grants_access: true,
+      discount_food: 20,
+      discount_watersports: 15,
+      discount_giftshop: 15,
+      discount_spa: 15,
     },
   ];
 
@@ -508,6 +550,7 @@ export default async function JoinPage({
                     <div className="text-right">
                       <div className="text-sm font-semibold">{money(p.price)}</div>
                       <div className="text-xs opacity-70">{formatDuration(p.duration_days)}</div>
+                      <div className="mt-1 text-xs font-medium opacity-85">{discountSummary(p)}</div>
                     </div>
                   </div>
                 </label>
