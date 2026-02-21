@@ -87,6 +87,7 @@ export default async function MemberProfilePage({
   const { memberId } = await params;
   const sp = (await searchParams) ?? {};
   const paymentSaved = sp.payment === "saved";
+  const paymentDuplicate = sp.payment === "duplicate";
   const checkinState = sp.checkin ?? ""; // "saved" | "already" | ""
   const planSaved = sp.plan === "saved";
   const planError = sp.plan_error ?? "";
@@ -241,7 +242,7 @@ if (!plan && (membership as any)?.membership_plan_id) {
   let paymentsLoadError: string | null = null;
 
   if (canPayments) {
-    const paymentSelect = "id, amount, paid_on, paid_at, created_at, payment_method, membership_id, member_id, notes";
+    const paymentSelect = "id, amount, paid_on, created_at, payment_method, membership_id, member_id, notes";
 
     const [byMemberRes, membershipsForMemberRes] = await Promise.all([
       admin
@@ -422,6 +423,12 @@ if (!plan && (membership as any)?.membership_plan_id) {
         <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Payment saved</div>
           <div className="mt-1 opacity-80">The payment was recorded successfully.</div>
+        </div>
+      ) : null}
+
+      {paymentDuplicate && canPayments ? (
+        <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+          Duplicate payment prevented. A matching payment was already saved.
         </div>
       ) : null}
 
@@ -632,6 +639,18 @@ if (!plan && (membership as any)?.membership_plan_id) {
           Back to Members
         </Link>
       </div>
+
+      {paymentSaved && canPayments ? (
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+92px)] left-1/2 z-50 w-[min(92vw,460px)] -translate-x-1/2 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 shadow-lg">
+          Payment saved.
+        </div>
+      ) : null}
+
+      {paymentDuplicate && canPayments ? (
+        <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+92px)] left-1/2 z-50 w-[min(92vw,460px)] -translate-x-1/2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900 shadow-lg">
+          Duplicate payment prevented.
+        </div>
+      ) : null}
     </div>
   );
 }
