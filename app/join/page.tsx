@@ -73,16 +73,6 @@ function toPercentText(v: number) {
   return `${pct}%`;
 }
 
-function discountSummary(p: JoinPlanOption) {
-  const food = Number(p.discount_food || 0);
-  const spa = Number(p.discount_spa || 0);
-  const gift = Number(p.discount_giftshop || 0);
-  const water = Number(p.discount_watersports || 0);
-  const max = Math.max(food, spa, gift, water);
-  if (max <= 0) return "No venue discounts included";
-  return `${toPercentText(max)} off select hotel outlets`;
-}
-
 function discountBreakdown(p: JoinPlanOption) {
   const items = [
     { label: "Restaurant & Bar", value: Number(p.discount_food || 0) },
@@ -560,7 +550,6 @@ export default async function JoinPage({
                     <div className="text-right">
                       <div className="text-sm font-semibold">{money(p.price)}</div>
                       <div className="text-xs opacity-70">{formatDuration(p.duration_days)}</div>
-                      <div className="mt-1 text-xs font-medium opacity-85">{discountSummary(p)}</div>
                     </div>
                   </div>
                   <div className="mt-2 text-xs opacity-75">{discountBreakdown(p)}</div>
