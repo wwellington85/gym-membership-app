@@ -81,37 +81,47 @@ export default async function MembersPage({
   const mid = (sp.mid ?? "").trim();
   const confirm = sp.confirm ?? ""; // "1" | ""
 
-  // Base query (includes membership summary)
+  // Base query: members first, then fetch membership snapshot separately.
   const base = admin
     .from("members")
     .select(
-      "id, full_name, phone, email, is_active, created_at, memberships(id, status, paid_through_date, needs_contact, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa))"
+      "id, full_name, phone, email, is_active, created_at"
     )
     .eq("is_active", true)
     .order("created_at", { ascending: false })
     .limit(isSecurity ? 20 : 50);
 
-
-
   // Query-param filters (from dashboard tiles)
-  const spQuery = (await (searchParams ?? Promise.resolve({}))) as any;
-  const qStatus = (spQuery.status ?? "").toString().toLowerCase();
-  const qAccess = (spQuery.access ?? "").toString(); // "1" | "0" | ""
-  const qNeeds = (spQuery.needs_contact ?? "").toString(); // "1" | "true" | ""
-
-  if (qNeeds) {
-  }
-
+  const qStatus = ((sp as any).status ?? "").toString().toLowerCase();
+  const qAccess = ((sp as any).access ?? "").toString(); // "1" | "0" | ""
+  const qNeeds = ((sp as any).needs_contact ?? "").toString(); // "1" | "true" | ""
 
   const query = q
     ? base.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
     : base;
 
-  const { data, error } = await query;
+  const { data: memberRows, error } = await query;
+  const memberIds = (memberRows ?? []).map((m: any) => m.id).filter(Boolean);
 
-  const members = (data ?? []).map((m: any) => ({
+  const { data: membershipRows, error: membershipError } = memberIds.length
+    ? await admin
+        .from("memberships")
+        .select(
+          "id, member_id, status, paid_through_date, needs_contact, start_date, membership_plans(name, code, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+        )
+        .in("member_id", memberIds)
+        .order("start_date", { ascending: false })
+    : { data: [] as any[], error: null };
+
+  const membershipByMemberId = new Map<string, any>();
+  (membershipRows ?? []).forEach((row: any) => {
+    const key = String(row.member_id);
+    if (!membershipByMemberId.has(key)) membershipByMemberId.set(key, row);
+  });
+
+  const members = (memberRows ?? []).map((m: any) => ({
     ...m,
-    membership: Array.isArray(m.memberships) ? m.memberships[0] : m.memberships,
+    membership: membershipByMemberId.get(String(m.id)) ?? null,
   }));
 
   // Filtering (only used for Admin/Front Desk view)
@@ -161,11 +171,7 @@ export default async function MembersPage({
     });
   }
 
-if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
-    filtered = (filtered ?? []).filter((m: any) => !!m.membership?.needs_contact);
-  }
-
-// For Security gate mode: use first match as the "Gate Status" member
+  // For Security gate mode: use first match as the "Gate Status" member
   const gateMember = isSecurity && q && members.length > 0 ? members[0] : null;
   const gateMembership = gateMember?.membership;
 
@@ -279,14 +285,14 @@ return (
           </div>
         </form>
 
-        {error ? (
+        {error || membershipError ? (
           <div className="rounded border p-3 text-sm">
             Could not load members.
-            <div className="mt-1 text-xs opacity-70">{error.message}</div>
+            <div className="mt-1 text-xs opacity-70">{error?.message ?? membershipError?.message}</div>
           </div>
         ) : null}
 
-        {q && members.length === 0 && !error ? (
+        {q && members.length === 0 && !error && !membershipError ? (
           <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
             <div className="font-medium">No match found</div>
             <div className="mt-1 opacity-80">
@@ -500,19 +506,15 @@ return (
       </form>
 
       {/* Errors */}
-      {error ? (
+      {error || membershipError ? (
         <div className="rounded border p-3 text-sm">
           Could not load members.
-          <div className="mt-1 text-xs opacity-70">{error.message}</div>
-        
-        <div className="flex items-center gap-2">
-          <Link href="/members/new" className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">+ New Member</Link>
+          <div className="mt-1 text-xs opacity-70">{error?.message ?? membershipError?.message}</div>
         </div>
-</div>
       ) : null}
 
       {/* Empty */}
-      {!error && filtered.length === 0 ? (
+      {!error && !membershipError && filtered.length === 0 ? (
         <div className="rounded border p-3 text-sm opacity-70">
           No members found{q ? " for that search" : ""}.
           <div className="mt-1">

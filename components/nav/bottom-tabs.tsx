@@ -59,6 +59,7 @@ export function BottomTabs({ role }: Props) {
             <Link
               key={t.href}
               href={t.href}
+              prefetch
               className={`flex-1 rounded px-1 py-2 text-center whitespace-nowrap text-[12px] leading-none sm:text-sm ${
                 active ? "font-semibold oura-tab-active" : "oura-tab"
               }`}

@@ -116,21 +116,16 @@ export default async function MemberProfilePage({
   const canPayments = ["admin", "front_desk"].includes(role);
   const canManageMembers = role === "admin";
 
-  const { data: member, error: memberError } = await admin
+  const memberPromise = admin
     .from("members")
     .select("id, full_name, phone, email, notes, is_active, created_at")
     .eq("id", memberId)
     .single();
 
-  if (memberError || !member) return notFound();
-
-  let membership: any = null;
-
-  // Prefer active membership (what staff cares about). Fall back to the most recent membership.
-  const activeRes = await admin
+  const activeMembershipPromise = admin
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
+      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
     )
     .eq("member_id", memberId)
     .eq("status", "active")
@@ -138,13 +133,37 @@ export default async function MemberProfilePage({
     .limit(1)
     .maybeSingle();
 
+  const [memberRes, activeRes, recentCheckinsRes, loyaltyRes, activePlansRes] = await Promise.all([
+    memberPromise,
+    activeMembershipPromise,
+    admin
+      .from("checkins")
+      .select("id, checked_in_at, points_earned, notes")
+      .eq("member_id", memberId)
+      .order("checked_in_at", { ascending: false })
+      .limit(5),
+    admin.from("member_loyalty_points").select("points").eq("member_id", memberId).maybeSingle(),
+    admin
+      .from("membership_plans")
+      .select("id, name, price, duration_days, plan_type")
+      .eq("is_active", true)
+      .order("price", { ascending: true }),
+  ]);
+
+  const { data: member, error: memberError } = memberRes;
+
+  if (memberError || !member) return notFound();
+
+  let membership: any = null;
+
+  // Prefer active membership (what staff cares about). Fall back to the most recent membership.
   membership = activeRes.data;
 
   if (!membership) {
     const latestRes = await admin
       .from("memberships")
       .select(
-        "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa), payments:payments(count), payment_rows:payments(id, amount, paid_on, payment_method)"
+        "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
       )
       .eq("member_id", memberId)
       .order("start_date", { ascending: false })
@@ -169,18 +188,8 @@ if (!plan && (membership as any)?.membership_plan_id) {
 
   plan = planRow as any;
 }
-const { data: recentCheckins } = await admin
-    .from("checkins")
-    .select("id, checked_in_at, points_earned, notes")
-    .eq("member_id", memberId)
-    .order("checked_in_at", { ascending: false })
-    .limit(5);
-
-  const { data: loyalty } = await admin
-    .from("member_loyalty_points")
-    .select("points")
-    .eq("member_id", memberId)
-    .maybeSingle();
+  const recentCheckins = recentCheckinsRes.data ?? [];
+  const loyalty = loyaltyRes.data;
 
   const paidThrough = membership?.paid_through_date ?? null;
   const delta = paidThrough ? daysFromToday(paidThrough) : null;
@@ -233,22 +242,17 @@ const { data: recentCheckins } = await admin
   if (canPayments) {
     const paymentSelect = "id, amount, paid_on, paid_at, created_at, payment_method, membership_id, member_id, notes";
 
-    const byMember =
-      (
-        await admin
-          .from("payments")
-          .select(paymentSelect)
-          .eq("member_id", memberId)
-          .order("created_at", { ascending: false })
-      ).data ?? [];
+    const [byMemberRes, membershipsForMemberRes] = await Promise.all([
+      admin
+        .from("payments")
+        .select(paymentSelect)
+        .eq("member_id", memberId)
+        .order("created_at", { ascending: false }),
+      admin.from("memberships").select("id").eq("member_id", memberId),
+    ]);
 
-    const membershipsForMember =
-      (
-        await admin
-          .from("memberships")
-          .select("id")
-          .eq("member_id", memberId)
-      ).data ?? [];
+    const byMember = byMemberRes.data ?? [];
+    const membershipsForMember = membershipsForMemberRes.data ?? [];
 
     const membershipIds = membershipsForMember.map((m: any) => m.id).filter(Boolean);
     const byMembershipIds = membershipIds.length
@@ -280,11 +284,7 @@ const { data: recentCheckins } = await admin
     ? (paymentDateValue(lastPaymentRow) ? String(paymentDateValue(lastPaymentRow)).slice(0, 10) : "—")
     : (membership?.last_payment_date ?? "—");
 
-  const { data: activePlans } = await admin
-    .from("membership_plans")
-    .select("id, name, price, duration_days, plan_type")
-    .eq("is_active", true)
-    .order("price", { ascending: true });
+  const activePlans = activePlansRes.data ?? [];
 
   const planErrorMessage =
     planError === "complimentary_reason_required"

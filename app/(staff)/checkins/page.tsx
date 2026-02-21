@@ -6,13 +6,22 @@ import { AutoClearOk } from "./AutoClearOk";
 export const dynamic = "force-dynamic";
 
 function todayJM(): string {
-  // returns YYYY-MM-DD in Jamaica time
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Jamaica",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+function jamaicaDayRangeUtc() {
+  const offsetMs = 5 * 60 * 60 * 1000; // Jamaica UTC-5
+  const now = new Date();
+  const jmLocal = new Date(now.getTime() - offsetMs);
+  jmLocal.setHours(0, 0, 0, 0);
+  const startUtc = new Date(jmLocal.getTime() + offsetMs);
+  const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+  return { startUtc, endUtc };
 }
 
 export default async function CheckinsPage({
@@ -23,25 +32,21 @@ export default async function CheckinsPage({
   const supabase = await createClient();
 
   const today = todayJM();
+  const { startUtc, endUtc } = jamaicaDayRangeUtc();
 
   const sp = (await searchParams) ?? {};
   const ok = sp.ok ?? "";
 
-  // Pull today's check-ins (by checked_in_at date in Jamaica time)
+  // Pull only today's check-ins (Jamaica day mapped to UTC range)
   const { data: rows, error } = await supabase
     .from("checkins")
     .select("id, checked_in_at, member_id, members(full_name, phone)")
+    .gte("checked_in_at", startUtc.toISOString())
+    .lt("checked_in_at", endUtc.toISOString())
     .order("checked_in_at", { ascending: false })
     .limit(200);
 
-  const todayRows =
-    (rows ?? []).filter((r: any) => {
-      const d = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Jamaica" }).format(
-        new Date(r.checked_in_at)
-      );
-      return d === today;
-    }) ?? [];
-
+  const todayRows = rows ?? [];
 
   // Load membership plan access flags for the members in today's check-ins
   const memberIds = Array.from(new Set((todayRows ?? []).map((r: any) => r.member_id).filter(Boolean)));
