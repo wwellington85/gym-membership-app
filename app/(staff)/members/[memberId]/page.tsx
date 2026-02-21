@@ -141,7 +141,7 @@ export default async function MemberProfilePage({
   const membershipsPromise = admin
     .from("memberships")
     .select(
-      "id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plan_id, membership_plans(id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+      "id, plan_id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
     )
     .eq("member_id", memberId)
     .order("start_date", { ascending: false })
@@ -187,13 +187,13 @@ let plan = Array.isArray((membership as any)?.membership_plans)
     : (membership as any)?.membership_plans;
 
 // Fallback: nested join may be blocked/empty under RLS; load plan directly by FK.
-if (!plan && (membership as any)?.membership_plan_id) {
+if (!plan && (membership as any)?.plan_id) {
   const { data: planRow } = await admin
     .from("membership_plans")
     .select(
       "id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa"
     )
-    .eq("id", String((membership as any).membership_plan_id))
+    .eq("id", String((membership as any).plan_id))
     .maybeSingle();
 
   plan = planRow as any;
@@ -644,7 +644,7 @@ if (!plan && (membership as any)?.membership_plan_id) {
           <div className="mt-3">
             <ChangePlanForm
               memberId={member.id}
-              currentPlanId={(membership as any)?.membership_plan_id ?? null}
+              currentPlanId={(membership as any)?.plan_id ?? null}
               plans={(activePlans ?? []) as any[]}
               action={changeMemberPlanAction}
             />
