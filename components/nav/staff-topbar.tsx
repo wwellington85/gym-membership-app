@@ -53,7 +53,9 @@ export function StaffTopbar() {
         ) : (
           <span className="h-9 w-9" aria-hidden="true" />
         )}
-        <LogoutButton />
+        <div className="my-1">
+          <LogoutButton />
+        </div>
       </div>
     </div>
   );
