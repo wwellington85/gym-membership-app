@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Travellers Club",
-    short_name: "Travellers",
+    short_name: "Travellers Club",
     description: "Membership, rewards, and facility access for Travellers Beach Resort.",
     start_url: "/",
     scope: "/",
