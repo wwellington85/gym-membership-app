@@ -60,13 +60,14 @@ export default async function CheckinsPage({
       planType: string | null;
       grantsAccess: boolean;
       startDate: string | null;
+      paidThroughDate: string | null;
     }
   >();
 
   if (memberIds.length) {
     const { data: msRows } = await supabase
       .from("memberships")
-      .select("member_id, status, start_date, membership_plans(name, code, plan_type, grants_access)")
+      .select("member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, grants_access)")
       .in("member_id", memberIds);
 
     (msRows ?? []).forEach((row: any) => {
@@ -80,6 +81,7 @@ export default async function CheckinsPage({
         planType: plan?.plan_type ?? null,
         grantsAccess: !!plan?.grants_access,
         startDate: row?.start_date ?? null,
+        paidThroughDate: row?.paid_through_date ?? null,
       };
 
       const prev = membershipByMemberId.get(key);
@@ -109,12 +111,19 @@ export default async function CheckinsPage({
     if (!ms) return { label: "—", kind: "unknown" as const };
 
     const active = ms.status === "active";
+    const dueSoon = ms.status === "due_soon";
+    const todayIso = todayJM();
     const isDayPass =
       String(ms.planType ?? "").toLowerCase() === "pass" ||
       String(ms.planCode ?? "").toLowerCase() === "club_day" ||
       String(ms.planName ?? "").toLowerCase().includes("day pass");
 
-    if (active && isDayPass) return { label: "Day Pass", kind: "ok" as const };
+    const passStillValid =
+      !!ms.paidThroughDate && String(ms.paidThroughDate) >= todayIso;
+
+    if (isDayPass && (active || dueSoon || passStillValid)) {
+      return { label: "Day Pass", kind: "ok" as const };
+    }
     if (active && ms.grantsAccess) return { label: "Gym Access", kind: "ok" as const };
     if (active && !ms.grantsAccess) return { label: "Dining Only", kind: "warn" as const };
     return { label: "Not Active", kind: "bad" as const };
