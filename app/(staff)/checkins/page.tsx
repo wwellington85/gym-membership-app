@@ -58,6 +58,7 @@ export default async function CheckinsPage({
       planName: string | null;
       planCode: string | null;
       planType: string | null;
+      durationDays: number | null;
       grantsAccess: boolean;
       startDate: string | null;
       paidThroughDate: string | null;
@@ -67,7 +68,9 @@ export default async function CheckinsPage({
   if (memberIds.length) {
     const { data: msRows } = await supabase
       .from("memberships")
-      .select("member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, grants_access)")
+      .select(
+        "member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, duration_days, grants_access)",
+      )
       .in("member_id", memberIds);
 
     (msRows ?? []).forEach((row: any) => {
@@ -79,6 +82,8 @@ export default async function CheckinsPage({
         planName: plan?.name ?? null,
         planCode: plan?.code ?? null,
         planType: plan?.plan_type ?? null,
+        durationDays:
+          typeof plan?.duration_days === "number" ? plan.duration_days : null,
         grantsAccess: !!plan?.grants_access,
         startDate: row?.start_date ?? null,
         paidThroughDate: row?.paid_through_date ?? null,
@@ -110,13 +115,21 @@ export default async function CheckinsPage({
     const ms = membershipByMemberId.get(String(memberId));
     if (!ms) return { label: "—", kind: "unknown" as const };
 
-    const active = ms.status === "active";
-    const dueSoon = ms.status === "due_soon";
+    const status = String(ms.status ?? "").toLowerCase();
+    const active = status === "active";
+    const dueSoon = status === "due_soon";
     const todayIso = todayJM();
+    const planType = String(ms.planType ?? "").toLowerCase();
+    const planCode = String(ms.planCode ?? "").toLowerCase();
+    const planName = String(ms.planName ?? "").toLowerCase();
     const isDayPass =
-      String(ms.planType ?? "").toLowerCase() === "pass" ||
-      String(ms.planCode ?? "").toLowerCase() === "club_day" ||
-      String(ms.planName ?? "").toLowerCase().includes("day pass");
+      planType === "pass" ||
+      planCode === "club_day" ||
+      planCode.includes("day") ||
+      planCode.includes("daily") ||
+      planName.includes("day pass") ||
+      planName.includes("day") ||
+      ms.durationDays === 1;
 
     const passStillValid =
       !!ms.paidThroughDate && String(ms.paidThroughDate) >= todayIso;
