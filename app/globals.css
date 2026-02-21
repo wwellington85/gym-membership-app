@@ -554,3 +554,68 @@ input.join-date-input[type="date"] {
   @apply oura-alert border-red-200 bg-red-50 text-red-900;
   @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
 }
+
+/* ============================
+   Mobile Consistency Fixes
+   ============================ */
+
+/* Keep bottom tabs readable on all phones, including browsers with weak backdrop support */
+.oura-bottom-tabbar {
+  background-color: rgba(7, 9, 18, 0.92) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .oura-bottom-tabbar {
+    background-color: rgba(7, 9, 18, 0.72) !important;
+    backdrop-filter: blur(18px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
+  }
+}
+
+.oura-bottom-tabbar::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -26px;
+  height: 26px;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(7, 9, 18, 0.55), rgba(7, 9, 18, 0));
+}
+
+/* Top bar should be flush to screen top and opaque enough to hide scrolled content */
+.oura-topbar {
+  background-color: rgba(8, 10, 20, 0.94) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .oura-topbar {
+    background-color: rgba(8, 10, 20, 0.78) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  }
+}
+
+/* iOS date control can overrun narrow cards; hard clamp the inline size */
+input.join-date-input[type="date"] {
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  box-sizing: border-box;
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem;
+}
+
+input.join-date-input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+}
+
+input.join-date-input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}

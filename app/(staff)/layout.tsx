@@ -30,7 +30,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     <>
       <div
         className={[
-          "mx-auto w-full h-svh overflow-y-auto overscroll-y-contain pt-4 pb-28",
+          "mx-auto w-full h-svh overflow-y-auto overscroll-y-contain pt-0 pb-28",
           isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6",
         ].join(" ")}
       >

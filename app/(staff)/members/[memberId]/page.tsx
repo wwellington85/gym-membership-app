@@ -426,10 +426,7 @@ if (!plan && (membership as any)?.membership_plan_id) {
       ) : null}
 
       {checkinState === "already" ? (
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-          <div className="font-medium">Already checked in</div>
-          <div className="mt-1 opacity-80">This member already checked in today.</div>
-        </div>
+        <p className="text-sm font-medium opacity-90">This member already checked in today.</p>
       ) : null}
 
       <div className="oura-card p-3">
