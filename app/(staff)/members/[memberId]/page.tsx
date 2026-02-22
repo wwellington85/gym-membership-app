@@ -611,11 +611,19 @@ if (!plan && (membership as any)?.plan_id) {
 
             <div className="mt-3 divide-y divide-white/10">
               {discountRows.map(([left, right], idx) => (
+                left && String(left.value).toLowerCase() === "included" && !right ? (
+                  <div key={`discount-row-${idx}`} className="grid grid-cols-1 gap-2 py-2 text-sm">
+                    <div className="grid grid-cols-[1fr_auto] items-start gap-2">
+                      <div className="min-w-0 whitespace-normal break-words opacity-85">{left.label}</div>
+                      <div className="shrink-0 font-medium">{left.value}</div>
+                    </div>
+                  </div>
+                ) : (
                 <div key={`discount-row-${idx}`} className="grid grid-cols-2 gap-3 py-2 text-sm">
-                    <div className="grid grid-cols-[1fr_auto] items-start gap-2 pr-2">
-                      {left ? (
-                        <>
-                          <div className="min-w-0 whitespace-normal break-words opacity-85">• {left.label}</div>
+                  <div className="grid grid-cols-[1fr_auto] items-start gap-2 pr-2">
+                    {left ? (
+                      <>
+                        <div className="min-w-0 whitespace-normal break-words opacity-85">• {left.label}</div>
                           <div className="shrink-0 font-medium">{left.value}</div>
                         </>
                       ) : (
@@ -633,6 +641,7 @@ if (!plan && (membership as any)?.plan_id) {
                     )}
                   </div>
                 </div>
+                )
               ))}
             </div>
 
