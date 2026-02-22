@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { LogoutButton } from "@/components/logout-button";
 
 const KEY_PREV = "tbr_prev_path";
@@ -46,9 +47,9 @@ export function StaffTopbar() {
             type="button"
             aria-label="Back"
             onClick={onBack}
-            className="inline-flex h-9 w-9 items-center justify-center rounded text-lg leading-none hover:bg-white/10"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10"
           >
-            {"<"}
+            <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
           </button>
         ) : (
           <span className="h-9 w-9" aria-hidden="true" />

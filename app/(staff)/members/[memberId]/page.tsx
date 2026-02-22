@@ -20,11 +20,25 @@ function daysFromToday(ymd: string) {
 
 function statusBadge(status?: string | null) {
   const s = (status ?? "").toLowerCase();
-  if (s === "past_due") return { label: "Past Due", cls: "border" };
-  if (s === "due_soon") return { label: "Due Soon", cls: "border" };
-  if (s === "expired") return { label: "Expired", cls: "border" };
-  if (s === "active") return { label: "Active", cls: "border" };
-  return { label: status ?? "—", cls: "border" };
+  if (s === "past_due" || s === "expired") {
+    return {
+      label: s === "past_due" ? "Past Due" : "Expired",
+      cls: "border border-red-300/40 bg-red-400/15 text-red-50",
+    };
+  }
+  if (s === "due_soon") {
+    return {
+      label: "Due Soon",
+      cls: "border border-amber-300/50 bg-amber-400/20 text-amber-50",
+    };
+  }
+  if (s === "active") {
+    return {
+      label: "Active",
+      cls: "border border-emerald-300/40 bg-emerald-400/15 text-emerald-50",
+    };
+  }
+  return { label: status ?? "—", cls: "border border-white/30 text-white" };
 }
 
 function formatPlanType(t?: string | null) {
@@ -434,35 +448,40 @@ if (!plan && (membership as any)?.plan_id) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 items-end">
+        <div className="flex min-w-[170px] flex-col gap-2 items-end">
           {canPayments ? (
             <Link
               href={`/members/${member.id}/add-payment`}
-              className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+              className="w-full rounded border px-3 py-2 text-center text-sm hover:bg-gray-50"
             >
               + Add Payment
             </Link>
           ) : null}
 
-          <form action={checkInNow}>
-            <button
-              className="rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-60"
-              title={!activeNow ? "Membership is expired" : alreadyCheckedInToday ? "Already checked in today" : "Record a check-in"}
-              disabled={!activeNow}
-            >
-              Check in now
-            </button>
-          </form>
-
           {alreadyCheckedInToday ? (
-            <div className="text-xs opacity-70">Already checked in today</div>
-          ) : null}
+            <span className="inline-flex items-center rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-50">
+              Checked in
+            </span>
+          ) : activeNow ? (
+            <form action={checkInNow} className="w-full">
+              <button
+                className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50"
+                title="Record a check-in"
+              >
+                Check in now
+              </button>
+            </form>
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-red-300/40 bg-red-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-50">
+              Expired
+            </span>
+          )}
 
           {canManageMembers ? (
-            <form action={setMemberActiveAction}>
+            <form action={setMemberActiveAction} className="w-full">
               <input type="hidden" name="member_id" value={member.id} />
               <input type="hidden" name="next_active" value={member.is_active === false ? "1" : "0"} />
-              <button className="rounded border px-3 py-2 text-xs hover:bg-gray-50">
+              <button className="w-full rounded border px-3 py-2 text-xs hover:bg-gray-50">
                 {member.is_active === false ? "Reactivate member" : "Deactivate member"}
               </button>
             </form>
@@ -541,7 +560,7 @@ if (!plan && (membership as any)?.plan_id) {
 
 
         {plan ? (
-          <div className="mt-3 rounded border p-3">
+          <div className="mt-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="oura-alert-title">
                 {formatPlanType(plan.plan_type)}: {plan.name}
@@ -558,7 +577,7 @@ if (!plan && (membership as any)?.plan_id) {
               </span>
             </div>
 
-            <div className="mt-3 divide-y divide-white/10 rounded border">
+            <div className="mt-3 divide-y divide-white/10">
               {discountsForDisplay.map((d) => (
                 <div key={d.label} className="flex items-center justify-between p-2 text-sm">
                   <div className="opacity-80">{d.label}</div>
@@ -567,14 +586,14 @@ if (!plan && (membership as any)?.plan_id) {
               ))}
             </div>
 
-            <div className="mt-3 rounded border p-3">
+            <div className="mt-3">
               <div className="text-sm font-medium">Facility access</div>
               {tierMeta.access.length === 0 ? (
                 <p className="mt-2 text-sm opacity-70">No facility access included.</p>
               ) : (
-                <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="mt-2 divide-y divide-white/10">
                   {tierMeta.access.map((item) => (
-                    <div key={item} className="rounded border p-2 text-sm opacity-90">
+                    <div key={item} className="py-2 text-sm opacity-90">
                       {item}
                     </div>
                   ))}

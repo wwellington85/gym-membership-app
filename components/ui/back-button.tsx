@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 export function BackButton({
   fallbackHref = "/member",
@@ -45,7 +45,7 @@ export function BackButton({
         className,
       ].join(" ")}
     >
-      <ChevronLeft className="h-5 w-5" strokeWidth={2.5} />
+      <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
     </button>
   );
 }
