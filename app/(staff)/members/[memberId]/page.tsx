@@ -450,7 +450,14 @@ if (!plan && (membership as any)?.plan_id) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-xl font-semibold">{member.full_name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold">{member.full_name}</h1>
+            {alreadyCheckedInToday ? (
+              <span className="inline-flex items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-50">
+                Checked in
+              </span>
+            ) : null}
+          </div>
           <div className="text-sm opacity-70">{member.phone}</div>
           {member.email ? <div className="text-sm opacity-70">{member.email}</div> : null}
           <div className="mt-1 text-xs opacity-70">
@@ -468,11 +475,7 @@ if (!plan && (membership as any)?.plan_id) {
             </Link>
           ) : null}
 
-          {alreadyCheckedInToday ? (
-            <span className="inline-flex items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-50">
-              Checked in
-            </span>
-          ) : activeNow ? (
+          {!alreadyCheckedInToday && activeNow ? (
             <form action={checkInNow} className="w-full">
               <button
                 className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50"
@@ -481,20 +484,10 @@ if (!plan && (membership as any)?.plan_id) {
                 Check in now
               </button>
             </form>
-          ) : (
+          ) : !alreadyCheckedInToday ? (
             <span className="inline-flex items-center justify-center rounded-full border border-red-300/40 bg-red-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-50">
               Expired
             </span>
-          )}
-
-          {canManageMembers ? (
-            <form action={setMemberActiveAction} className="w-full">
-              <input type="hidden" name="member_id" value={member.id} />
-              <input type="hidden" name="next_active" value={member.is_active === false ? "1" : "0"} />
-              <button className="w-full rounded border px-3 py-2 text-xs hover:bg-gray-50">
-                {member.is_active === false ? "Reactivate member" : "Deactivate member"}
-              </button>
-            </form>
           ) : null}
         </div>
       </div>
@@ -562,6 +555,35 @@ if (!plan && (membership as any)?.plan_id) {
         <p className="text-sm font-medium opacity-90">Membership is expired and cannot check in.</p>
       ) : null}
 
+      {banner ? (
+        <div className={banner.cls}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium">{banner.title}</div>
+              {banner.body ? <div className="mt-1 text-sm opacity-70">{banner.body}</div> : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <a
+                href={`tel:${member.phone}`}
+                className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
+              >
+                Call
+              </a>
+
+              {canPayments ? (
+                <Link
+                  href={`/members/${member.id}/add-payment`}
+                  className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
+                >
+                  Record payment
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <div className="font-medium">Membership</div>
@@ -590,23 +612,23 @@ if (!plan && (membership as any)?.plan_id) {
             <div className="mt-3 divide-y divide-white/10">
               {discountRows.map(([left, right], idx) => (
                 <div key={`discount-row-${idx}`} className="grid grid-cols-2 gap-3 py-2 text-sm">
-                  <div className="flex items-center justify-between gap-2 pr-2">
-                    {left ? (
-                      <>
-                        <div className="min-w-0 truncate opacity-85">• {left.label}</div>
-                        <div className="shrink-0 font-medium">{left.value}</div>
-                      </>
-                    ) : (
+                    <div className="grid grid-cols-[1fr_auto] items-start gap-2 pr-2">
+                      {left ? (
+                        <>
+                          <div className="min-w-0 whitespace-normal break-words opacity-85">• {left.label}</div>
+                          <div className="shrink-0 font-medium">{left.value}</div>
+                        </>
+                      ) : (
                       <span />
                     )}
                   </div>
-                  <div className="flex items-center justify-between gap-2 pl-2">
-                    {right ? (
-                      <>
-                        <div className="min-w-0 truncate opacity-85">• {right.label}</div>
-                        <div className="shrink-0 font-medium">{right.value}</div>
-                      </>
-                    ) : (
+                    <div className="grid grid-cols-[1fr_auto] items-start gap-2 pl-2">
+                      {right ? (
+                        <>
+                          <div className="min-w-0 whitespace-normal break-words opacity-85">• {right.label}</div>
+                          <div className="shrink-0 font-medium">{right.value}</div>
+                        </>
+                      ) : (
                       <span />
                     )}
                   </div>
@@ -622,8 +644,8 @@ if (!plan && (membership as any)?.plan_id) {
                 <div className="mt-2 divide-y divide-white/10">
                   {accessRows.map(([left, right], idx) => (
                     <div key={`access-row-${idx}`} className="grid grid-cols-2 gap-3 py-2 text-sm">
-                      <div className="min-w-0 truncate opacity-90">{left ? `• ${left}` : ""}</div>
-                      <div className="min-w-0 truncate opacity-90">{right ? `• ${right}` : ""}</div>
+                      <div className="min-w-0 whitespace-normal break-words opacity-90">{left ? `• ${left}` : ""}</div>
+                      <div className="min-w-0 whitespace-normal break-words opacity-90">{right ? `• ${right}` : ""}</div>
                     </div>
                   ))}
                 </div>
@@ -700,37 +722,6 @@ if (!plan && (membership as any)?.plan_id) {
         </div>
       ) : null}
 
-      
-
-            {banner ? (
-        <div className={`mt-3 ${banner.cls}`}>
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <div className="text-sm font-medium">{banner.title}</div>
-              {banner.body ? <div className="mt-1 text-sm opacity-70">{banner.body}</div> : null}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <a
-                href={`tel:${member.phone}`}
-                className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
-              >
-                Call
-              </a>
-
-              {canPayments ? (
-                <Link
-                  href={`/members/${member.id}/add-payment`}
-                  className="rounded border px-3 py-1.5 text-xs hover:bg-white/5"
-                >
-                  Record payment
-                </Link>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
 <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Recent check-ins</h2>
@@ -800,6 +791,22 @@ if (!plan && (membership as any)?.plan_id) {
           Back to Members
         </Link>
       </div>
+
+      {canManageMembers ? (
+        <div className="oura-card p-3">
+          <div className="text-sm font-medium">Member status</div>
+          <div className="mt-1 text-xs opacity-70">
+            Deactivate only when needed. This removes the member from active operations screens.
+          </div>
+          <form action={setMemberActiveAction} className="mt-3">
+            <input type="hidden" name="member_id" value={member.id} />
+            <input type="hidden" name="next_active" value={member.is_active === false ? "1" : "0"} />
+            <button className="w-full rounded border px-3 py-2 text-xs hover:bg-white/5">
+              {member.is_active === false ? "Reactivate member" : "Deactivate member"}
+            </button>
+          </form>
+        </div>
+      ) : null}
 
       {paymentSaved && canPayments ? (
         <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+92px)] left-1/2 z-50 w-[min(92vw,460px)] -translate-x-1/2 rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900 shadow-lg">

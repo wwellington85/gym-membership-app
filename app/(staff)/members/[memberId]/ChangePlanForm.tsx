@@ -97,7 +97,7 @@ export function ChangePlanForm({
           required
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="w-full oura-input px-3 py-2"
+          className="w-full min-w-0 oura-input join-date-input px-3 py-2"
         />
       </div>
 
