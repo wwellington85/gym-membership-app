@@ -144,6 +144,7 @@ export async function createMember(formData: FormData) {
       startDate: start_date,
       recordPayment: collect_payment && price > 0,
       paymentMethod: payment_method || "cash",
+      staffUserId: user.id,
       paymentAmount: discountedAmount,
       paymentNotes,
     });

@@ -6,6 +6,8 @@ import { AutoClearOk } from "./AutoClearOk";
 
 export const dynamic = "force-dynamic";
 
+type RangeKey = "today" | "yesterday" | "7" | "30" | "60" | "90";
+
 function todayJM(): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Jamaica",
@@ -15,30 +17,59 @@ function todayJM(): string {
   }).format(new Date());
 }
 
-function jamaicaDayRangeUtc() {
+function jamaicaDayStartUtc() {
   const offsetMs = 5 * 60 * 60 * 1000; // Jamaica UTC-5
   const now = new Date();
   const jmLocal = new Date(now.getTime() - offsetMs);
   jmLocal.setHours(0, 0, 0, 0);
-  const startUtc = new Date(jmLocal.getTime() + offsetMs);
-  const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
-  return { startUtc, endUtc };
+  return new Date(jmLocal.getTime() + offsetMs);
+}
+
+function rangeBoundsUtc(range: RangeKey) {
+  const startTodayUtc = jamaicaDayStartUtc();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  if (range === "today") {
+    return {
+      startUtc: startTodayUtc,
+      endUtc: new Date(startTodayUtc.getTime() + dayMs),
+      label: `Today (${todayJM()})`,
+    };
+  }
+  if (range === "yesterday") {
+    return {
+      startUtc: new Date(startTodayUtc.getTime() - dayMs),
+      endUtc: startTodayUtc,
+      label: "Yesterday",
+    };
+  }
+
+  const days = Number.parseInt(range, 10);
+  const safeDays = Number.isFinite(days) ? Math.max(1, days) : 7;
+  return {
+    startUtc: new Date(startTodayUtc.getTime() - (safeDays - 1) * dayMs),
+    endUtc: new Date(startTodayUtc.getTime() + dayMs),
+    label: `Last ${safeDays} days`,
+  };
 }
 
 export default async function CheckinsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ ok?: string }>;
+  searchParams?: Promise<{ ok?: string; range?: string }>;
 }) {
   const supabase = await createClient();
 
-  const today = todayJM();
-  const { startUtc, endUtc } = jamaicaDayRangeUtc();
-
   const sp = (await searchParams) ?? {};
   const ok = sp.ok ?? "";
+  const range = (["today", "yesterday", "7", "30", "60", "90"] as RangeKey[]).includes(
+    String(sp.range ?? "") as RangeKey,
+  )
+    ? (String(sp.range) as RangeKey)
+    : "today";
+  const { startUtc, endUtc, label } = rangeBoundsUtc(range);
 
-  // Pull only today's check-ins (Jamaica day mapped to UTC range)
+  // Pull check-ins for selected Jamaica date window
   const { data: rows, error } = await supabase
     .from("checkins")
     .select("id, checked_in_at, member_id, members(full_name, phone)")
@@ -162,7 +193,7 @@ export default async function CheckinsPage({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Check-ins</h1>
-          <p className="text-sm opacity-70">Today ({today})</p>
+          <p className="text-sm opacity-70">{label}</p>
         </div>
 <div className="flex gap-2">
           <Link href="/checkins/scan" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
@@ -171,8 +202,30 @@ export default async function CheckinsPage({
           <Link href="/members" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
             Members
           </Link>
-        </div>
 </div>
+</div>
+
+      <div className="flex flex-wrap gap-2 text-xs">
+        {[
+          { key: "today", label: "Today" },
+          { key: "yesterday", label: "Yesterday" },
+          { key: "7", label: "Last 7 days" },
+          { key: "30", label: "Last 30" },
+          { key: "60", label: "Last 60" },
+          { key: "90", label: "Last 90" },
+        ].map((r) => {
+          const active = range === r.key;
+          return (
+            <Link
+              key={r.key}
+              href={`/checkins?range=${r.key}`}
+              className={["rounded border px-2.5 py-1", active ? "font-semibold" : "opacity-80"].join(" ")}
+            >
+              {r.label}
+            </Link>
+          );
+        })}
+      </div>
 
       <AutoClearOk enabled={!!ok} href="/checkins" />
 
@@ -184,7 +237,7 @@ export default async function CheckinsPage({
       ) : null}
 
       {!error && todayRows.length === 0 ? (
-        <div className="rounded border p-3 text-sm opacity-70">No check-ins recorded today.</div>
+        <div className="rounded border p-3 text-sm opacity-70">No check-ins found for this period.</div>
       ) : null}
 
       <div className="space-y-2">

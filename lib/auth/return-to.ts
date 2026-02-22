@@ -1,7 +1,6 @@
 const STAFF_PREFIXES = [
   "/dashboard",
   "/members",
-  "/applications",
   "/payments",
   "/checkins",
   "/settings",

@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { titleCaseName } from "@/lib/format/name";
+import { PaymentSubmitButton } from "./PaymentSubmitButton";
 
 export default async function AddPaymentPage({
   params,
@@ -35,6 +36,9 @@ export default async function AddPaymentPage({
     "use server";
 
     const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     // Re-fetch membership in server action so we have it reliably on submit
     const { data: mship, error: mshipErr } = await supabase
@@ -55,6 +59,22 @@ export default async function AddPaymentPage({
     if (!paid_on) throw new Error("Missing paid_on");
     if (!Number.isFinite(amount) || amount <= 0) throw new Error("Invalid amount");
 
+    // Guard against accidental double-submit (same member/amount/day within 2 minutes).
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: recentDup } = await supabase
+      .from("payments")
+      .select("id")
+      .eq("member_id", memberId)
+      .eq("paid_on", paid_on)
+      .eq("amount", amount)
+      .gte("created_at", twoMinutesAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (recentDup?.id) {
+      redirect(`/members/${memberId}?payment=duplicate`);
+    }
+
     const { error } = await supabase.from("payments").insert({
       membership_id: mship.id,
       member_id: memberId,
@@ -62,6 +82,7 @@ export default async function AddPaymentPage({
       paid_on,
       payment_method,
       notes,
+      staff_user_id: user?.id ?? null,
     });
 
     if (error) throw new Error(`Payment insert failed: ${error.message}`);
@@ -142,9 +163,7 @@ export default async function AddPaymentPage({
           <textarea name="notes" className="w-full oura-input px-3 py-2" rows={3} />
         </div>
 
-        <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-gray-50">
-          Save Payment
-        </button>
+        <PaymentSubmitButton />
       </form>
     </div>
   );

@@ -4,9 +4,27 @@ import { createClient } from "@/lib/supabase/server";
 
 type Role = "admin" | "front_desk" | "security";
 
+function isDateOnly(v?: string | null) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(v ?? ""));
+}
+
+function fmtJamaicaDate(v?: string | null) {
+  if (!v) return "—";
+  const raw = String(v);
+  const d = isDateOnly(raw) ? new Date(`${raw}T12:00:00Z`) : new Date(raw);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    timeZone: "America/Jamaica",
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+}
+
 function fmtJamaicaDateTime(ts?: string | null) {
   if (!ts) return "—";
-  const d = new Date(ts);
+  if (isDateOnly(ts)) return fmtJamaicaDate(ts);
+  const d = new Date(String(ts));
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", {
     timeZone: "America/Jamaica",
@@ -54,7 +72,7 @@ export default async function PaymentsPage({
 
   const query = supabase
     .from("payments")
-    .select("id, amount, paid_on, created_at, payment_method, method, membership_id, member_id")
+    .select("id, amount, paid_on, created_at, payment_method, method, membership_id, member_id, staff_user_id")
     .order("paid_on", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(400);
@@ -152,7 +170,8 @@ export default async function PaymentsPage({
           const name = member?.full_name || "Member unknown";
           const meta = [member?.email, member?.phone].filter(Boolean).join(" • ");
 
-          const paidOn = fmtJamaicaDateTime(paymentPaidOn(p));
+          const paidOn = fmtJamaicaDate(paymentPaidOn(p));
+          const recordedAt = fmtJamaicaDateTime(p.created_at);
           const method = paymentMethodLabel(p);
           const href = resolvedMemberId ? `/members/${resolvedMemberId}` : "#";
 
@@ -167,9 +186,8 @@ export default async function PaymentsPage({
                 <div>
                   <div className="font-medium">{name}</div>
                   {meta ? <div className="text-sm opacity-70">{meta}</div> : null}
-                  <div className="text-xs opacity-70">
-                    Paid on: {paidOn} • Method: {method}
-                  </div>
+                  <div className="text-xs opacity-70">Paid on: {paidOn} • Method: {method}</div>
+                  <div className="text-xs opacity-60">Recorded: {recordedAt}</div>
                 </div>
                 <div className="font-semibold">${Number(p.amount ?? 0).toFixed(2)}</div>
               </div>

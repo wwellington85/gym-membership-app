@@ -15,6 +15,7 @@ export async function applyMembershipPlan(args: {
   startDate: string;
   recordPayment: boolean;
   paymentMethod: string;
+  staffUserId?: string | null;
   paymentAmount?: number;
   paymentNotes?: string | null;
 }) {
@@ -26,6 +27,7 @@ export async function applyMembershipPlan(args: {
     startDate,
     recordPayment,
     paymentMethod,
+    staffUserId,
     paymentAmount,
     paymentNotes,
   } = args;
@@ -65,6 +67,7 @@ export async function applyMembershipPlan(args: {
       paid_on: startDate,
       payment_method: paymentMethod,
       notes: paymentNotes ?? null,
+      staff_user_id: staffUserId ?? null,
     } as any);
 
     if (payErr) return { error: payErr };

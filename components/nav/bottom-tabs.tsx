@@ -19,9 +19,6 @@ const tabs: Tab[] = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/members", label: "Members" },
 
-  // Front desk workflow: keep Applications visible
-  { href: "/applications", label: "Applications", roles: ["front_desk"] },
-
   // Shared operational tabs
   { href: "/payments", label: "Payments", roles: ["admin", "front_desk"] },
   { href: "/checkins", label: "Check-ins" },

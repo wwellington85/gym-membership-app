@@ -122,6 +122,7 @@ export async function changeMemberPlanAction(formData: FormData) {
       paid_on: startDate,
       payment_method: paymentMethod,
       notes,
+      staff_user_id: user.id,
     } as any);
 
     if (payErr) {

@@ -7,9 +7,6 @@ export default function MorePage() {
       <p className="mt-1 text-sm opacity-70">Quick links for admin tools.</p>
 
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        <Link className="block rounded border p-3" href="/applications">
-          Applications
-        </Link>
         <Link className="block rounded border p-3" href="/more/rewards">
           Rewards Manager
         </Link>
@@ -18,6 +15,9 @@ export default function MorePage() {
         </Link>
         <Link className="block rounded border p-3" href="/settings/staff">
           Staff Management
+        </Link>
+        <Link className="block rounded border p-3" href="/settings/logs">
+          Activity Logs
         </Link>
       </div>
     </div>

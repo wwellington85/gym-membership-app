@@ -102,6 +102,10 @@ export default async function SettingsPage({
           <Link className="mt-1 inline-block underline underline-offset-2" href="/more/rewards">
             Open Rewards Manager
           </Link>
+          <div className="mt-3 text-sm opacity-70">Need to review employee actions over time?</div>
+          <Link className="mt-1 inline-block underline underline-offset-2" href="/settings/logs">
+            Open Activity Logs
+          </Link>
         </div>
       ) : null}
 
