@@ -163,7 +163,7 @@ export default async function MemberProfilePage({
   const membershipsPromise = admin
     .from("memberships")
     .select(
-      "id, plan_id, start_date, paid_through_date, status, last_payment_date, needs_contact, membership_plans(id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+      "id, plan_id, start_date, paid_through_date, status, last_payment_date, needs_contact, downgraded_from_plan_code, downgraded_from_plan_name, downgraded_on, membership_plans(id, name, code, price, duration_days, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
     )
     .eq("member_id", memberId)
     .order("start_date", { ascending: false })
@@ -704,6 +704,13 @@ if (!plan && (membership as any)?.plan_id) {
           <div>Start date: {membership?.start_date ?? "—"}</div>
           <div>Paid-through: {membership?.paid_through_date ?? "—"}</div>
           <div>Last payment: {lastPaymentLabel}</div>
+          {String(plan?.code ?? "").toLowerCase() === "rewards_free" &&
+          (membership as any)?.downgraded_from_plan_name ? (
+            <div className="text-xs opacity-75">
+              Previous paid plan: {(membership as any).downgraded_from_plan_name}
+              {(membership as any)?.downgraded_on ? ` (expired ${(membership as any).downgraded_on})` : ""}
+            </div>
+          ) : null}
         
           {member.notes ? (
             <div className="mt-2 text-sm">

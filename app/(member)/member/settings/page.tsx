@@ -49,7 +49,7 @@ export default async function MemberSettingsPage() {
   // Fetch membership row (include plan code + name)
   let { data: membership } = await supabase
     .from("memberships")
-    .select("id, plan_id, paid_through_date, status, membership_plans(code, name)")
+    .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
     .eq("member_id", member.id)
     .maybeSingle();
 
@@ -69,7 +69,7 @@ export default async function MemberSettingsPage() {
 
     const res = await supabase
       .from("memberships")
-      .select("id, plan_id, paid_through_date, status, membership_plans(code, name)")
+      .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
       .eq("member_id", member.id)
       .maybeSingle();
 
@@ -180,6 +180,13 @@ const currentPlanName = String(
               )}
             </div>
           </div>
+
+          {isFree && (membership as any)?.downgraded_from_plan_name ? (
+            <div className="mt-2 text-xs opacity-75">
+              Previous paid plan: {(membership as any).downgraded_from_plan_name}
+              {(membership as any)?.downgraded_on ? ` (expired ${(membership as any).downgraded_on})` : ""}
+            </div>
+          ) : null}
         </div>
 
         <div className="oura-card p-3">

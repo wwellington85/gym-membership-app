@@ -122,7 +122,7 @@ export default async function MemberDashboardPage() {
   // Membership
   const { data: membership } = await supabase
     .from("memberships")
-    .select("id, status, paid_through, plan_code, membership_plans(code, name)")
+    .select("id, status, paid_through, plan_code, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
     .eq("member_id", memberId)
     .order("created_at", { ascending: false })
     .maybeSingle();
@@ -370,6 +370,13 @@ const statusLabel =
             )}
 
           </div>
+
+          {isFree && membershipRow?.downgraded_from_plan_name ? (
+            <div className="text-xs opacity-75">
+              Previous paid plan: {membershipRow.downgraded_from_plan_name}
+              {membershipRow?.downgraded_on ? ` (expired ${membershipRow.downgraded_on})` : ""}
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-3 rounded border oura-surface-muted p-3 text-sm">

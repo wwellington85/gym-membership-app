@@ -32,6 +32,14 @@ function toJamaicaParts(now = new Date()) {
   };
 }
 
+export function jamaicaNowParts(now = new Date()) {
+  return toJamaicaParts(now);
+}
+
+export function jamaicaTodayYmd(now = new Date()) {
+  return toJamaicaParts(now).ymd;
+}
+
 export function normalizeToYmd(raw?: string | null): string | null {
   const v = String(raw ?? "").trim();
   if (!v) return null;

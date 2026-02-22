@@ -4,6 +4,7 @@ import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { StaffTopbar } from "@/components/nav/staff-topbar";
 import { HistoryTracker } from "@/components/ui/history-tracker";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
+import { maybeRunAutoDowngradeToFree } from "@/lib/membership/auto-downgrade";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -24,6 +25,13 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     await supabase.auth.signOut();
     redirect("/auth/login");
   }
+
+  try {
+    await maybeRunAutoDowngradeToFree();
+  } catch {
+    // Non-blocking maintenance task; do not block layout rendering.
+  }
+
   const isSecurity = staffProfile.role === "security";
 
   return (

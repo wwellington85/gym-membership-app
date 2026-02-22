@@ -69,7 +69,7 @@ export default async function MemberCardPage() {
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("paid_through_date, membership_plans(code, name)")
+    .select("paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
     .eq("member_id", member.id)
     .maybeSingle();
 
@@ -154,6 +154,13 @@ const statusHint =
             )}
           </div>
         </div>
+
+        {isFree && (membership as any)?.downgraded_from_plan_name ? (
+          <div className="mt-3 text-xs opacity-75">
+            Previous paid plan: {(membership as any).downgraded_from_plan_name}
+            {(membership as any)?.downgraded_on ? ` (expired ${(membership as any).downgraded_on})` : ""}
+          </div>
+        ) : null}
 
         <div className="mt-3 text-xs opacity-70">{statusHint}</div>
 
