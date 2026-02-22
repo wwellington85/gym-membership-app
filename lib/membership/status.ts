@@ -74,12 +74,15 @@ export function effectivePaidThroughYmd(args: {
   const paidYmd = normalizeToYmd(args.paidThroughDate);
   const durationDays = Number(args.durationDays ?? 0);
 
+  // Prefer DB paid-through when present. It's authoritative after renewals/extensions.
+  if (paidYmd) return paidYmd;
+
   if (startYmd && Number.isFinite(durationDays) && durationDays > 0 && durationDays < 3650) {
     // Duration is inclusive of start date: 1-day pass ends same day.
     return addDaysYmd(startYmd, Math.max(durationDays - 1, 0));
   }
 
-  return paidYmd;
+  return null;
 }
 
 export function isAccessActiveAtJamaicaCutoff(args: {
