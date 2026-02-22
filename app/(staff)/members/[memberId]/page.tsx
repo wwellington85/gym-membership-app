@@ -73,6 +73,14 @@ function benefitValueOrIncluded(raw: any) {
   return v ? v : "Included";
 }
 
+function pairRows<T>(items: T[]): Array<[T | null, T | null]> {
+  const out: Array<[T | null, T | null]> = [];
+  for (let i = 0; i < items.length; i += 2) {
+    out.push([items[i] ?? null, items[i + 1] ?? null]);
+  }
+  return out;
+}
+
 function money(v?: number | null) {
   const n = typeof v === "number" ? v : 0;
   return n === 0 ? "Free" : `$${n}`;
@@ -392,6 +400,8 @@ if (!plan && (membership as any)?.plan_id) {
       extraBenefits = data ?? [];
     }
   }
+  const discountRows = pairRows(discountsForDisplay);
+  const accessRows = pairRows(tierMeta.access);
 
   const planErrorMessage =
     planError === "complimentary_reason_required"
@@ -438,7 +448,7 @@ if (!plan && (membership as any)?.plan_id) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">{member.full_name}</h1>
           <div className="text-sm opacity-70">{member.phone}</div>
@@ -448,7 +458,7 @@ if (!plan && (membership as any)?.plan_id) {
           </div>
         </div>
 
-        <div className="flex min-w-[170px] flex-col gap-2 items-end">
+        <div className="grid w-full max-w-full grid-cols-1 gap-2 sm:w-[240px]">
           {canPayments ? (
             <Link
               href={`/members/${member.id}/add-payment`}
@@ -459,7 +469,7 @@ if (!plan && (membership as any)?.plan_id) {
           ) : null}
 
           {alreadyCheckedInToday ? (
-            <span className="inline-flex items-center rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-50">
+            <span className="inline-flex items-center justify-center rounded-full border border-emerald-300/40 bg-emerald-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-emerald-50">
               Checked in
             </span>
           ) : activeNow ? (
@@ -472,7 +482,7 @@ if (!plan && (membership as any)?.plan_id) {
               </button>
             </form>
           ) : (
-            <span className="inline-flex items-center rounded-full border border-red-300/40 bg-red-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-50">
+            <span className="inline-flex items-center justify-center rounded-full border border-red-300/40 bg-red-400/15 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-red-50">
               Expired
             </span>
           )}
@@ -578,10 +588,28 @@ if (!plan && (membership as any)?.plan_id) {
             </div>
 
             <div className="mt-3 divide-y divide-white/10">
-              {discountsForDisplay.map((d) => (
-                <div key={d.label} className="flex items-center justify-between p-2 text-sm">
-                  <div className="opacity-80">{d.label}</div>
-                  <div className="font-medium">{d.value}</div>
+              {discountRows.map(([left, right], idx) => (
+                <div key={`discount-row-${idx}`} className="grid grid-cols-2 gap-3 py-2 text-sm">
+                  <div className="flex items-center justify-between gap-2 pr-2">
+                    {left ? (
+                      <>
+                        <div className="min-w-0 truncate opacity-85">• {left.label}</div>
+                        <div className="shrink-0 font-medium">{left.value}</div>
+                      </>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pl-2">
+                    {right ? (
+                      <>
+                        <div className="min-w-0 truncate opacity-85">• {right.label}</div>
+                        <div className="shrink-0 font-medium">{right.value}</div>
+                      </>
+                    ) : (
+                      <span />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -592,9 +620,10 @@ if (!plan && (membership as any)?.plan_id) {
                 <p className="mt-2 text-sm opacity-70">No facility access included.</p>
               ) : (
                 <div className="mt-2 divide-y divide-white/10">
-                  {tierMeta.access.map((item) => (
-                    <div key={item} className="py-2 text-sm opacity-90">
-                      {item}
+                  {accessRows.map(([left, right], idx) => (
+                    <div key={`access-row-${idx}`} className="grid grid-cols-2 gap-3 py-2 text-sm">
+                      <div className="min-w-0 truncate opacity-90">{left ? `• ${left}` : ""}</div>
+                      <div className="min-w-0 truncate opacity-90">{right ? `• ${right}` : ""}</div>
                     </div>
                   ))}
                 </div>

@@ -106,7 +106,7 @@ export function ChangePlanForm({
           <div className="font-medium">Payment (optional)</div>
           <div className="text-sm opacity-70">If you collected payment at the desk, record it now.</div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-sm font-medium">Record payment?</label>
               <select
@@ -224,7 +224,7 @@ export function ChangePlanForm({
         <div className="oura-card p-3 space-y-3">
           <div className="font-medium">Payment record (optional)</div>
           <div className="text-sm opacity-70">If needed for audit, you can still record this as complimentary.</div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="space-y-1">
               <label className="text-sm font-medium">Record payment?</label>
               <select
