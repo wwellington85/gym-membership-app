@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type ActionType = "all" | "payment" | "checkin";
@@ -124,13 +125,14 @@ export default async function ActivityLogsPage({
     : "30";
 
   const supabase = await createClient();
+  const admin = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/auth/login");
 
-  const { data: staffProfile } = await supabase
+  const { data: staffProfile } = await admin
     .from("staff_profiles")
     .select("role")
     .eq("user_id", user.id)
@@ -233,7 +235,7 @@ export default async function ActivityLogsPage({
 
   const staffByUserId = new Map<string, StaffRow>();
   if (staffUserIds.length) {
-    const { data: staffRows } = await supabase
+    const { data: staffRows } = await admin
       .from("staff_profiles")
       .select("user_id, username, email, role")
       .in("user_id", staffUserIds);
@@ -389,8 +391,9 @@ export default async function ActivityLogsPage({
           const memberMeta = [member?.email, member?.phone].filter(Boolean).join(" • ");
 
           const staffName =
-            (staff?.username && staff.username.trim()) ||
-            (staff?.email && staff.email.trim()) ||
+            staff?.username?.trim() ||
+            staff?.email?.trim() ||
+            staff?.user_id ||
             "Unknown staff";
 
           const typeLabel = e.type === "payment" ? "PAYMENT" : "CHECK-IN";
@@ -420,7 +423,7 @@ export default async function ActivityLogsPage({
                 {memberMeta ? <div className="text-xs opacity-70">{memberMeta}</div> : null}
               </div>
 
-              <div className="mt-2 text-sm">
+          <div className="mt-2 text-sm">
                 <span className="opacity-70">Recorded by:</span> {staffName}
                 <span className="opacity-60"> ({roleLabel(staff?.role)})</span>
               </div>
