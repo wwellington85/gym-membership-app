@@ -527,6 +527,9 @@ if (!plan && (membership as any)?.plan_id) {
           <div className="mt-1 opacity-80">
             We emailed a setup or reset link to the member.
           </div>
+          <div className="mt-1 text-xs opacity-90">
+            Sent to: <span className="font-medium">{member.email ?? "no email on file"}</span>
+          </div>
         </div>
       ) : null}
 
