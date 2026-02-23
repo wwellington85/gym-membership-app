@@ -214,7 +214,8 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   }
 
   const origin = await getOrigin();
-  const redirectTo = `${origin}/auth/update-password?returnTo=/member`;
+  const next = encodeURIComponent("/auth/update-password?returnTo=/member");
+  const redirectTo = `${origin}/auth/confirm?next=${next}`;
   const inviteRes = await admin.auth.admin.inviteUserByEmail(member.email, {
     redirectTo,
     data: { is_member: true },
