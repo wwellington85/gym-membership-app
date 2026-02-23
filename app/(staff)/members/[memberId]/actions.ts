@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
@@ -169,4 +170,55 @@ export async function setMemberActiveAction(formData: FormData) {
   }
 
   redirect(`/members/${memberId}?member_saved=1`);
+}
+
+function getOrigin() {
+  const h = headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "127.0.0.1:3000";
+  return `${proto}://${host}`;
+}
+
+export async function sendMemberLoginDetailsAction(formData: FormData) {
+  const memberId = String(formData.get("member_id") ?? "").trim();
+  if (!memberId) redirect("/members");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data: staffProfile } = await supabase
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!staffProfile) redirect("/auth/login");
+  const role = (staffProfile.role ?? "") as string;
+  if (!["admin", "front_desk"].includes(role)) {
+    redirect(`/members/${memberId}?member_error=forbidden`);
+  }
+
+  const { data: member, error: memberErr } = await supabase
+    .from("members")
+    .select("email")
+    .eq("id", memberId)
+    .single();
+
+  if (memberErr || !member?.email) {
+    redirect(`/members/${memberId}?member_error=no_email`);
+  }
+
+  const origin = getOrigin();
+  const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
+    redirectTo: `${origin}/auth/update-password?returnTo=/dashboard`,
+  });
+
+  if (error) {
+    redirect(`/members/${memberId}?member_error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect(`/members/${memberId}?member_reset=sent`);
 }

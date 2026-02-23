@@ -6,7 +6,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
 import { byCode } from "@/lib/plans/tiers";
 import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
-import { changeMemberPlanAction, setMemberActiveAction } from "./actions";
+import {
+  changeMemberPlanAction,
+  sendMemberLoginDetailsAction,
+  setMemberActiveAction,
+} from "./actions";
 import { ChangePlanForm } from "./ChangePlanForm";
 
 function daysFromToday(ymd: string) {
@@ -131,6 +135,7 @@ export default async function MemberProfilePage({
   const duplicatePrevented = sp.duplicate_prevented === "1";
   const memberSaved = sp.member_saved === "1";
   const memberErrorQuery = sp.member_error ?? "";
+  const memberResetSent = sp.member_reset === "sent";
 
   const supabase = await createClient();
 
@@ -419,6 +424,8 @@ if (!plan && (membership as any)?.plan_id) {
   const memberErrorMessage =
     memberErrorQuery === "forbidden"
       ? "Only Management can change member active status."
+      : memberErrorQuery === "no_email"
+      ? "Member has no email on file. Add an email address before sending login details."
       : memberErrorQuery
       ? "Could not update member status. Please try again."
       : "";
@@ -475,6 +482,18 @@ if (!plan && (membership as any)?.plan_id) {
             </Link>
           ) : null}
 
+          {canPayments ? (
+            <form action={sendMemberLoginDetailsAction} className="w-full">
+              <input type="hidden" name="member_id" value={member.id} />
+              <button
+                className="w-full rounded border border-amber-400/70 px-3 py-2 text-sm hover:bg-amber-50/70 disabled:opacity-70"
+                disabled={!member.email}
+              >
+                Send login link
+              </button>
+            </form>
+          ) : null}
+
           {!alreadyCheckedInToday && activeNow ? (
             <form action={checkInNow} className="w-full">
               <button
@@ -496,6 +515,13 @@ if (!plan && (membership as any)?.plan_id) {
       {duplicatePrevented ? (
         <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
           Duplicate submission prevented. This member already existed.
+        </div>
+      ) : null}
+
+      {memberResetSent && canPayments ? (
+        <div className="oura-alert-success p-3 text-sm">
+          <div className="font-medium">Login link sent</div>
+          <div className="mt-1 opacity-80">A password reset link was emailed to the member.</div>
         </div>
       ) : null}
 
