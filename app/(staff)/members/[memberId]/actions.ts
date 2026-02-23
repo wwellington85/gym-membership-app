@@ -172,8 +172,8 @@ export async function setMemberActiveAction(formData: FormData) {
   redirect(`/members/${memberId}?member_saved=1`);
 }
 
-function getOrigin() {
-  const h = headers();
+async function getOrigin() {
+  const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "127.0.0.1:3000";
   return `${proto}://${host}`;
@@ -211,7 +211,7 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
     redirect(`/members/${memberId}?member_error=no_email`);
   }
 
-  const origin = getOrigin();
+  const origin = await getOrigin();
   const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
     redirectTo: `${origin}/auth/update-password?returnTo=/dashboard`,
   });

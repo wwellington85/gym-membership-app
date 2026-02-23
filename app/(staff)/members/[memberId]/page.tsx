@@ -122,6 +122,7 @@ export default async function MemberProfilePage({
     duplicate_prevented?: string;
     member_saved?: string;
     member_error?: string;
+    member_reset?: string;
   }>;
 }) {
   const { memberId } = await params;
