@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 
 function addDaysISO(startYmd: string, days: number) {
   // startYmd is YYYY-MM-DD
@@ -234,7 +235,21 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
 
   // Existing member auth account: send reset-password instead of invite.
   if (alreadyRegistered) {
-    const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
+    // Use implicit flow for recipient-triggered email links so no PKCE verifier
+    // is required in the recipient's browser storage.
+    const publicClient = createSupabaseJsClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        auth: {
+          flowType: "implicit",
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      },
+    );
+
+    const { error } = await publicClient.auth.resetPasswordForEmail(member.email, {
       redirectTo,
     });
 
