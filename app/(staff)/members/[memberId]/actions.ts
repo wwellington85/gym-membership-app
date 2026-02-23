@@ -216,9 +216,10 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
 
   const origin = await getOrigin();
   const next = encodeURIComponent("/auth/update-password?returnTo=/member");
-  const redirectTo = `${origin}/auth/confirm?next=${next}`;
+  const inviteRedirectTo = `${origin}/auth/confirm?next=${next}`;
+  const recoveryRedirectTo = `${origin}/auth/update-password?returnTo=/member`;
   const inviteRes = await admin.auth.admin.inviteUserByEmail(member.email, {
-    redirectTo,
+    redirectTo: inviteRedirectTo,
     data: { is_member: true },
   });
 
@@ -250,7 +251,7 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
     );
 
     const { error } = await publicClient.auth.resetPasswordForEmail(member.email, {
-      redirectTo,
+      redirectTo: recoveryRedirectTo,
     });
 
     if (error) {
