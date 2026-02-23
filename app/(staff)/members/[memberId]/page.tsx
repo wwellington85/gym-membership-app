@@ -457,7 +457,7 @@ if (!plan && (membership as any)?.plan_id) {
 
   return (
     <div className="space-y-4">
-      <AutoClearMemberReset enabled={memberResetSent} href={`/members/${memberId}`} />
+      <AutoClearMemberReset enabled={memberResetSent} />
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">

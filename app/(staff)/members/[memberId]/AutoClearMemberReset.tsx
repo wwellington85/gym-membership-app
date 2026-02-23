@@ -4,22 +4,24 @@ import { useEffect } from "react";
 
 export function AutoClearMemberReset({
   enabled,
-  href,
   ms = 3000,
 }: {
   enabled: boolean;
-  href: string;
   ms?: number;
 }) {
   useEffect(() => {
     if (!enabled) return;
 
     const t = window.setTimeout(() => {
-      window.history.replaceState(null, "", href);
+      const url = new URL(window.location.href);
+      if (!url.searchParams.has("member_reset")) return;
+      url.searchParams.delete("member_reset");
+      const next = `${url.pathname}${url.search}${url.hash}`;
+      window.history.replaceState(null, "", next);
     }, ms);
 
     return () => window.clearTimeout(t);
-  }, [enabled, href, ms]);
+  }, [enabled, ms]);
 
   return null;
 }
