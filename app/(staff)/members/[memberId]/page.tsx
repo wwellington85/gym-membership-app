@@ -523,8 +523,10 @@ if (!plan && (membership as any)?.plan_id) {
 
       {memberResetSent && canPayments ? (
         <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
-          <div className="font-medium">Login link sent</div>
-          <div className="mt-1 opacity-80">A password reset link was emailed to the member.</div>
+          <div className="font-medium">Login email sent</div>
+          <div className="mt-1 opacity-80">
+            We emailed a setup or reset link to the member.
+          </div>
         </div>
       ) : null}
 

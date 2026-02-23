@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 function addDaysISO(startYmd: string, days: number) {
@@ -184,6 +185,7 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   if (!memberId) redirect("/members");
 
   const supabase = await createClient();
+  const admin = createAdminClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -212,12 +214,32 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   }
 
   const origin = await getOrigin();
-  const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
-    redirectTo: `${origin}/auth/update-password?returnTo=/dashboard`,
+  const redirectTo = `${origin}/auth/update-password?returnTo=/member`;
+  const inviteRes = await admin.auth.admin.inviteUserByEmail(member.email, {
+    redirectTo,
+    data: { is_member: true },
   });
 
-  if (error) {
-    redirect(`/members/${memberId}?member_error=${encodeURIComponent(error.message)}`);
+  const inviteError = inviteRes.error;
+  const alreadyRegistered =
+    !!inviteError &&
+    /already registered|user already|exists/i.test(
+      `${inviteError.message ?? ""} ${inviteError.code ?? ""}`,
+    );
+
+  if (inviteError && !alreadyRegistered) {
+    redirect(`/members/${memberId}?member_error=${encodeURIComponent(inviteError.message)}`);
+  }
+
+  // Existing member auth account: send reset-password instead of invite.
+  if (alreadyRegistered) {
+    const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
+      redirectTo,
+    });
+
+    if (error) {
+      redirect(`/members/${memberId}?member_error=${encodeURIComponent(error.message)}`);
+    }
   }
 
   redirect(`/members/${memberId}?member_reset=sent`);
