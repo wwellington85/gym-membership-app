@@ -39,7 +39,10 @@ export async function GET(request: Request) {
     );
   }
 
-  if (staff?.role) {
+  const isStaffMetadata = user.user_metadata?.is_staff === true;
+  const isValidStaffRole = !!staff?.role && STAFF_ROLES.has(String(staff.role));
+
+  if (isValidStaffRole && isStaffMetadata) {
     // Staff should not be redirected into member routes
     const staffReturnTo = returnTo && returnTo.startsWith("/member") ? "" : returnTo;
     return NextResponse.redirect(new URL(staffReturnTo || "/dashboard", url));
@@ -93,3 +96,4 @@ export async function GET(request: Request) {
   const memberReturnTo2 = returnTo && returnTo.startsWith("/member") ? returnTo : "";
   return NextResponse.redirect(new URL(memberReturnTo2 || "/member", url));
 }
+  const STAFF_ROLES = new Set(["admin", "front_desk", "security"]);

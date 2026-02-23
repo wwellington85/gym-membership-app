@@ -7,6 +7,7 @@ import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 import { maybeRunAutoDowngradeToFree } from "@/lib/membership/auto-downgrade";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
+  const STAFF_ROLES = new Set(["admin", "front_desk", "security"]);
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,6 +22,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .maybeSingle();
 
   if (!staffProfile) redirect("/auth/login");
+  const isStaffMetadata = user.user_metadata?.is_staff === true;
+  const isValidStaffRole = STAFF_ROLES.has(String(staffProfile.role ?? ""));
+  if (!isStaffMetadata || !isValidStaffRole) {
+    redirect("/member");
+  }
   if (staffProfile.is_active === false) {
     await supabase.auth.signOut();
     redirect("/auth/login");
