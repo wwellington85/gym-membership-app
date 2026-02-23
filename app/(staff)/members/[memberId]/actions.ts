@@ -213,11 +213,24 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   if (memberErr || !member?.email) {
     redirect(`/members/${memberId}?member_error=no_email`);
   }
+  const normalizedEmail = member.email.trim().toLowerCase();
+
+  // Prevent member login-link sends from targeting an existing staff account.
+  const { data: matchingStaff } = await admin
+    .from("staff_profiles")
+    .select("user_id, role, is_active, email")
+    .eq("email", normalizedEmail)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (matchingStaff?.user_id) {
+    redirect(`/members/${memberId}?member_error=email_belongs_to_staff`);
+  }
 
   const origin = await getOrigin();
   const recoveryRedirectTo = `${origin}/auth/update-password?returnTo=/member`;
   const createRes = await admin.auth.admin.createUser({
-    email: member.email,
+    email: normalizedEmail,
     password: `${crypto.randomUUID()}Aa!`,
     email_confirm: true,
     user_metadata: { is_member: true },
@@ -248,7 +261,7 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
     },
   );
 
-  const { error } = await publicClient.auth.resetPasswordForEmail(member.email, {
+  const { error } = await publicClient.auth.resetPasswordForEmail(normalizedEmail, {
     redirectTo: recoveryRedirectTo,
   });
 

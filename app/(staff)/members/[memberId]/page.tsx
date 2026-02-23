@@ -428,6 +428,8 @@ if (!plan && (membership as any)?.plan_id) {
       ? "Only Management can change member active status."
       : memberErrorQuery === "no_email"
       ? "Member has no email on file. Add an email address before sending login details."
+      : memberErrorQuery === "email_belongs_to_staff"
+      ? "This email is already assigned to an active staff account. Use a different member email."
       : memberErrorQuery
       ? "Could not update member status. Please try again."
       : "";
