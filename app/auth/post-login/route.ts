@@ -65,13 +65,47 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL(memberReturnTo || "/member", url));
   }
 
-  // Create member row if it doesn't exist (service role bypasses RLS)
+  // Create/link member row if it doesn't exist (service role bypasses RLS)
   const email = (user.email || "").toLowerCase();
   const full_name =
     (user.user_metadata?.full_name as string | undefined) ||
     (email ? email.split("@")[0] : "Member");
 
   const phone = (user.user_metadata?.phone as string | undefined) || "";
+
+  // If a member was pre-created by staff with this email, link it to this auth user.
+  if (email) {
+    const { data: existingByEmail, error: existingByEmailErr } = await admin
+      .from("members")
+      .select("id, user_id")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (existingByEmailErr) {
+      return NextResponse.redirect(
+        new URL(`/auth/login?err=${encodeURIComponent(existingByEmailErr.message)}`, url)
+      );
+    }
+
+    if (existingByEmail?.id) {
+      const currentLinkedUserId = String(existingByEmail.user_id || "");
+      if (!currentLinkedUserId || currentLinkedUserId === user.id) {
+        const { error: linkErr } = await admin
+          .from("members")
+          .update({ user_id: user.id })
+          .eq("id", existingByEmail.id);
+
+        if (linkErr) {
+          return NextResponse.redirect(
+            new URL(`/auth/login?err=${encodeURIComponent(linkErr.message)}`, url)
+          );
+        }
+
+        const memberReturnTo = returnTo && returnTo.startsWith("/member") ? returnTo : "";
+        return NextResponse.redirect(new URL(memberReturnTo || "/member", url));
+      }
+    }
+  }
 
   const { error: ensureErr } = await admin
     .from("members")
