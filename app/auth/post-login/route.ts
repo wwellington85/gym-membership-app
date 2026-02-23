@@ -39,10 +39,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const isStaffMetadata = user.user_metadata?.is_staff === true;
   const isValidStaffRole = !!staff?.role && STAFF_ROLES.has(String(staff.role));
 
-  if (isValidStaffRole && isStaffMetadata) {
+  if (isValidStaffRole) {
     // Staff should not be redirected into member routes
     const staffReturnTo = returnTo && returnTo.startsWith("/member") ? "" : returnTo;
     return NextResponse.redirect(new URL(staffReturnTo || "/dashboard", url));

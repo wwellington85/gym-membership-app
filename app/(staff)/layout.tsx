@@ -22,9 +22,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .maybeSingle();
 
   if (!staffProfile) redirect("/auth/login");
-  const isStaffMetadata = user.user_metadata?.is_staff === true;
   const isValidStaffRole = STAFF_ROLES.has(String(staffProfile.role ?? ""));
-  if (!isStaffMetadata || !isValidStaffRole) {
+  if (!isValidStaffRole) {
     redirect("/member");
   }
   if (staffProfile.is_active === false) {
