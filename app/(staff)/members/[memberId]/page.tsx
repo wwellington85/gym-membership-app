@@ -12,6 +12,7 @@ import {
   setMemberActiveAction,
 } from "./actions";
 import { ChangePlanForm } from "./ChangePlanForm";
+import { AutoClearMemberReset } from "./AutoClearMemberReset";
 
 function daysFromToday(ymd: string) {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -456,6 +457,7 @@ if (!plan && (membership as any)?.plan_id) {
 
   return (
     <div className="space-y-4">
+      <AutoClearMemberReset enabled={memberResetSent} href={`/members/${memberId}`} />
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
@@ -520,7 +522,7 @@ if (!plan && (membership as any)?.plan_id) {
       ) : null}
 
       {memberResetSent && canPayments ? (
-        <div className="oura-alert-success p-3 text-sm">
+        <div className="rounded border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
           <div className="font-medium">Login link sent</div>
           <div className="mt-1 opacity-80">A password reset link was emailed to the member.</div>
         </div>
