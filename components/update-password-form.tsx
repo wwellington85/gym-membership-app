@@ -27,6 +27,27 @@ export function UpdatePasswordForm() {
     let cancelled = false;
 
     (async () => {
+      const hash = typeof window !== "undefined" ? window.location.hash.replace(/^#/, "") : "";
+      if (hash) {
+        const hp = new URLSearchParams(hash);
+        const accessToken = hp.get("access_token");
+        const refreshToken = hp.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (typeof window !== "undefined" && window.location.hash) {
+            window.history.replaceState(
+              null,
+              "",
+              `${window.location.pathname}${window.location.search}`,
+            );
+          }
+        }
+      }
+
       const { data, error } = await supabase.auth.getSession();
       if (cancelled) return;
 

@@ -215,48 +215,45 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   }
 
   const origin = await getOrigin();
-  const next = encodeURIComponent("/auth/update-password?returnTo=/member");
-  const inviteRedirectTo = `${origin}/auth/confirm?next=${next}`;
   const recoveryRedirectTo = `${origin}/auth/update-password?returnTo=/member`;
-  const inviteRes = await admin.auth.admin.inviteUserByEmail(member.email, {
-    redirectTo: inviteRedirectTo,
-    data: { is_member: true },
+  const createRes = await admin.auth.admin.createUser({
+    email: member.email,
+    password: `${crypto.randomUUID()}Aa!`,
+    email_confirm: true,
+    user_metadata: { is_member: true },
   });
 
-  const inviteError = inviteRes.error;
+  const createError = createRes.error;
   const alreadyRegistered =
-    !!inviteError &&
+    !!createError &&
     /already registered|user already|exists/i.test(
-      `${inviteError.message ?? ""} ${inviteError.code ?? ""}`,
+      `${createError.message ?? ""} ${createError.code ?? ""}`,
     );
 
-  if (inviteError && !alreadyRegistered) {
-    redirect(`/members/${memberId}?member_error=${encodeURIComponent(inviteError.message)}`);
+  if (createError && !alreadyRegistered) {
+    redirect(`/members/${memberId}?member_error=${encodeURIComponent(createError.message)}`);
   }
 
-  // Existing member auth account: send reset-password instead of invite.
-  if (alreadyRegistered) {
-    // Use implicit flow for recipient-triggered email links so no PKCE verifier
-    // is required in the recipient's browser storage.
-    const publicClient = createSupabaseJsClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        auth: {
-          flowType: "implicit",
-          persistSession: false,
-          autoRefreshToken: false,
-        },
+  // Use implicit flow for recipient-triggered email links so no PKCE verifier
+  // is required in the recipient's browser storage.
+  const publicClient = createSupabaseJsClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    {
+      auth: {
+        flowType: "implicit",
+        persistSession: false,
+        autoRefreshToken: false,
       },
-    );
+    },
+  );
 
-    const { error } = await publicClient.auth.resetPasswordForEmail(member.email, {
-      redirectTo: recoveryRedirectTo,
-    });
+  const { error } = await publicClient.auth.resetPasswordForEmail(member.email, {
+    redirectTo: recoveryRedirectTo,
+  });
 
-    if (error) {
-      redirect(`/members/${memberId}?member_error=${encodeURIComponent(error.message)}`);
-    }
+  if (error) {
+    redirect(`/members/${memberId}?member_error=${encodeURIComponent(error.message)}`);
   }
 
   redirect(`/members/${memberId}?member_reset=sent`);
