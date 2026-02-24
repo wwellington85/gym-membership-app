@@ -24,6 +24,13 @@ function jamaicaDayRangeUtc(base = new Date()) {
   return { startUtc, endUtc };
 }
 
+function ymdToUtcMs(ymd?: string | null) {
+  const v = String(ymd ?? "");
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
   const { startUtc: todayStartUtc, endUtc: todayEndUtc } = jamaicaDayRangeUtc();
@@ -36,7 +43,7 @@ export default async function DashboardPage() {
   ] = await Promise.all([
     supabase
       .from("memberships")
-      .select("id, status, needs_contact, paid_through_date, start_date, membership_plans(duration_days, grants_access), member:members(id)")
+      .select("id, status, needs_contact, paid_through_date, start_date, downgraded_on, downgraded_from_plan_code, membership_plans(duration_days, grants_access, code), member:members(id)")
       .order("paid_through_date", { ascending: true }),
     supabase
       .from("checkins")
@@ -82,9 +89,19 @@ export default async function DashboardPage() {
 
   const count = (s: Status) => memberships.filter((m: any) => m.derivedStatus === s).length;
   const needsContactAny = memberships.filter((m: any) => !!m.needs_contact);
-  const pastDueNeedsContact = memberships.filter(
-    (m: any) => m.derivedStatus === "past_due" && m.needs_contact
-  );
+  const isDowngraded = (m: any) => {
+    const planRaw: any = m?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    const planCode = String(plan?.code ?? "").toLowerCase();
+    return planCode === "rewards_free" && !!m?.downgraded_from_plan_code;
+  };
+  const downgradedToRewardsCount = memberships.filter((m: any) => isDowngraded(m)).length;
+  const downgraded7dCount = memberships.filter((m: any) => {
+    if (!isDowngraded(m)) return false;
+    const ms = ymdToUtcMs(m?.downgraded_on);
+    if (ms == null) return false;
+    return ms >= todayStartUtc.getTime() - 6 * dayMs && ms < todayEndUtc.getTime();
+  }).length;
 
   const today = jamaicaTodayDateObj();
   const labels: string[] = [];
@@ -177,9 +194,9 @@ export default async function DashboardPage() {
           <div className="text-2xl font-semibold">{count("due_soon")}</div>
         </Link>
 
-        <Link href="/members?filter=past_due" className="rounded border p-3 hover:bg-gray-50">
-          <div className="text-sm opacity-70">Past Due</div>
-          <div className="text-2xl font-semibold">{count("past_due")}</div>
+        <Link href="/members?filter=downgraded" className="rounded border p-3 hover:bg-gray-50">
+          <div className="text-sm opacity-70">Downgraded to Rewards</div>
+          <div className="text-2xl font-semibold">{downgradedToRewardsCount}</div>
         </Link>
 
         <Link href="/members?filter=needs_contact" className="rounded border p-3 hover:bg-gray-50">
@@ -192,9 +209,9 @@ export default async function DashboardPage() {
           <div className="text-2xl font-semibold">{checkinsTodayCount}</div>
         </Link>
 
-        <Link href="/members?filter=past_due_needs_contact" className="col-span-2 rounded border p-3 hover:bg-gray-50 md:col-span-2">
-          <div className="text-sm opacity-70">Past Due (Needs Contact)</div>
-          <div className="text-2xl font-semibold">{pastDueNeedsContact.length}</div>
+        <Link href="/members?filter=downgraded&downgraded_days=7" className="col-span-2 rounded border p-3 hover:bg-gray-50 md:col-span-2">
+          <div className="text-sm opacity-70">Downgraded (last 7 days)</div>
+          <div className="text-2xl font-semibold">{downgraded7dCount}</div>
         </Link>
       </div>
 

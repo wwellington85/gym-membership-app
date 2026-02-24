@@ -28,6 +28,7 @@ type Filter =
   | "active"
   | "due_soon"
   | "past_due"
+  | "downgraded"
   | "needs_contact"
   | "past_due_needs_contact";
 
@@ -56,6 +57,20 @@ function derivedStatusFromMembership(ms: any) {
     paidThroughDate: ms?.paid_through_date ?? null,
     durationDays: plan?.duration_days ?? null,
   });
+}
+
+function isDowngradedMembership(ms: any) {
+  const planRaw: any = ms?.membership_plans;
+  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+  const planCode = String(plan?.code ?? "").toLowerCase();
+  return planCode === "rewards_free" && !!ms?.downgraded_from_plan_code;
+}
+
+function ymdToUtcMs(ymd?: string | null) {
+  const v = String(ymd ?? "");
+  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
 export default async function MembersPage({
@@ -110,6 +125,8 @@ export default async function MembersPage({
   const qStatus = ((sp as any).status ?? "").toString().toLowerCase();
   const qAccess = ((sp as any).access ?? "").toString(); // "1" | "0" | ""
   const qNeeds = ((sp as any).needs_contact ?? "").toString(); // "1" | "true" | ""
+  const qDowngradedDaysRaw = ((sp as any).downgraded_days ?? "").toString();
+  const qDowngradedDays = Number.parseInt(qDowngradedDaysRaw || "0", 10);
 
   const query = q
     ? base.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
@@ -122,7 +139,7 @@ export default async function MembersPage({
     ? await admin
         .from("memberships")
         .select(
-          "id, member_id, status, paid_through_date, needs_contact, start_date, membership_plans(name, code, price, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
+          "id, member_id, status, paid_through_date, needs_contact, start_date, downgraded_on, downgraded_from_plan_code, membership_plans(name, code, price, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
         )
         .in("member_id", memberIds)
         .order("start_date", { ascending: false })
@@ -151,6 +168,7 @@ export default async function MembersPage({
     if (filter === "active") return derived === "active";
     if (filter === "due_soon") return derived === "due_soon";
     if (filter === "past_due") return derived === "past_due";
+    if (filter === "downgraded") return isDowngradedMembership(ms);
     if (filter === "needs_contact") return !!ms?.needs_contact;
     if (filter === "past_due_needs_contact")
       return derived === "past_due" && !!ms?.needs_contact;
@@ -168,6 +186,15 @@ export default async function MembersPage({
 
   if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
     filtered = (filtered ?? []).filter((m: any) => !!m.membership?.needs_contact);
+  }
+  if (filter === "downgraded" && Number.isFinite(qDowngradedDays) && qDowngradedDays > 0) {
+    const now = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    filtered = (filtered ?? []).filter((m: any) => {
+      const downgradedMs = ymdToUtcMs(m?.membership?.downgraded_on);
+      if (downgradedMs == null) return false;
+      return downgradedMs >= now - qDowngradedDays * dayMs;
+    });
   }
   if (qAccess === "1" || qAccess === "0") {
     const want = qAccess === "1";
@@ -274,7 +301,7 @@ export default async function MembersPage({
     { key: "all", label: "All" },
     { key: "active", label: "Active" },
     { key: "due_soon", label: "Due Soon" },
-    { key: "past_due", label: "Past Due" },
+    { key: "downgraded", label: "Downgraded" },
     { key: "needs_contact", label: "Needs Contact" },
   ];
 
