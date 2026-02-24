@@ -3,7 +3,10 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
+import {
+  deriveStaffMembershipStatus,
+  isAccessActiveAtJamaicaCutoff,
+} from "@/lib/membership/status";
 import { redirect } from "next/navigation";
 
 
@@ -42,6 +45,17 @@ function statusTone(status?: string | null) {
   if (s === "due_soon") return "border-amber-200 bg-amber-50";
   if (s === "past_due") return "border-red-200 bg-red-50";
   return "border";
+}
+
+function derivedStatusFromMembership(ms: any) {
+  const planRaw: any = ms?.membership_plans;
+  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+  return deriveStaffMembershipStatus({
+    status: ms?.status ?? null,
+    startDate: ms?.start_date ?? null,
+    paidThroughDate: ms?.paid_through_date ?? null,
+    durationDays: plan?.duration_days ?? null,
+  });
 }
 
 export default async function MembersPage({
@@ -120,29 +134,26 @@ export default async function MembersPage({
     if (!membershipByMemberId.has(key)) membershipByMemberId.set(key, row);
   });
 
-  const members = (memberRows ?? []).map((m: any) => ({
-    ...m,
-    membership: membershipByMemberId.get(String(m.id)) ?? null,
-  }));
+  const members = (memberRows ?? []).map((m: any) => {
+    const membership = membershipByMemberId.get(String(m.id)) ?? null;
+    return {
+      ...m,
+      membership,
+      derived_status: derivedStatusFromMembership(membership),
+    };
+  });
 
   // Filtering (only used for Admin/Front Desk view)
   let filtered = members.filter((m: any) => {
     const ms = m.membership;
-    const planRaw: any = ms?.membership_plans;
-    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-    const activeNow = isAccessActiveAtJamaicaCutoff({
-      status: ms?.status ?? null,
-      startDate: ms?.start_date ?? null,
-      paidThroughDate: ms?.paid_through_date ?? null,
-      durationDays: plan?.duration_days ?? null,
-    });
+    const derived = m.derived_status;
     if (filter === "all") return true;
-    if (filter === "active") return activeNow;
-    if (filter === "due_soon") return ms?.status === "due_soon";
-    if (filter === "past_due") return ms?.status === "past_due";
+    if (filter === "active") return derived === "active";
+    if (filter === "due_soon") return derived === "due_soon";
+    if (filter === "past_due") return derived === "past_due";
     if (filter === "needs_contact") return !!ms?.needs_contact;
     if (filter === "past_due_needs_contact")
-      return ms?.status === "past_due" && !!ms?.needs_contact;
+      return derived === "past_due" && !!ms?.needs_contact;
     return true;
   });
 
@@ -151,13 +162,7 @@ export default async function MembersPage({
   // Apply query-param filters (dashboard tiles) on top of the tab filter
   if (qStatus) {
     filtered = (filtered ?? []).filter((m: any) => {
-      const status =
-        (m.membership?.status ??
-          m.memberships?.status ??
-          m.membership_status ??
-          m.status ??
-          "") as any;
-      return String(status).toLowerCase() === qStatus;
+      return String(m.derived_status ?? "").toLowerCase() === qStatus;
     });
   }
 
@@ -185,6 +190,7 @@ export default async function MembersPage({
   const gateMembership = gateMember?.membership;
   const gatePlanRaw: any = gateMembership?.membership_plans;
   const gatePlan = Array.isArray(gatePlanRaw) ? gatePlanRaw[0] : gatePlanRaw;
+  const gateDerivedStatus = derivedStatusFromMembership(gateMembership);
   const gateActiveNow = isAccessActiveAtJamaicaCutoff({
     status: gateMembership?.status ?? null,
     startDate: gateMembership?.start_date ?? null,
@@ -192,7 +198,7 @@ export default async function MembersPage({
     durationDays: gatePlan?.duration_days ?? null,
   });
 
-  const isPastDueGate = !gateActiveNow || (gateMembership?.status ?? "") === "past_due";
+  const isPastDueGate = gateDerivedStatus === "past_due" || !gateActiveNow;
   const isConfirmingThisMember = !!gateMember && confirm === "1" && mid === gateMember.id;
 
   // SECURITY: inline check-in (server action)
@@ -350,7 +356,7 @@ return (
         ) : null}
 
         {gateMember ? (
-          <div className={`rounded border p-3 ${statusTone(gateMembership?.status)}`}>
+          <div className={`rounded border p-3 ${statusTone(gateDerivedStatus)}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs opacity-70">Gate Status</div>
@@ -359,7 +365,7 @@ return (
 
                 <div className="mt-2 text-sm">
                   Status:{" "}
-                  <span className="font-semibold">{badge(gateMembership?.status)}</span>
+                  <span className="font-semibold">{badge(gateDerivedStatus)}</span>
                 </div>
                 <div className="text-sm opacity-70">
                   Paid-through: {gateMembership?.paid_through_date ?? "—"}
@@ -448,7 +454,7 @@ return (
                       <div className="text-sm opacity-70">{m.phone}</div>
                     </div>
                     <div className="text-right text-xs opacity-70">
-                      <div>{badge(m.membership?.status)}</div>
+                      <div>{badge(m.derived_status)}</div>
                       <div>{m.membership?.paid_through_date ?? ""}</div>
                     </div>
                   </div>
@@ -484,7 +490,7 @@ return (
                       <div className="text-sm opacity-70">{m.phone}</div>
                     </div>
                     <div className="text-right text-xs opacity-70">
-                      <div>{badge(m.membership?.status)}</div>
+                      <div>{badge(m.derived_status)}</div>
                       <div>{m.membership?.paid_through_date ?? ""}</div>
                     </div>
                   </div>
@@ -588,7 +594,7 @@ return (
                 {m.email ? <div className="text-xs opacity-60">{m.email}</div> : null}
               </div>
               <div className="text-right text-xs opacity-70">
-                <div>{badge(m.membership?.status)}</div>
+                <div>{badge(m.derived_status)}</div>
                 <div>{m.membership?.paid_through_date ?? ""}</div>
               </div>
             </div>

@@ -5,9 +5,11 @@ export type MembershipTier =
   | "club_monthly_95";
 
 export type MembershipStatus = "free" | "active" | "pending" | "expired";
+export type StaffMembershipStatus = "active" | "due_soon" | "past_due" | "pending" | "expired";
 
 const JAMAICA_TZ = "America/Jamaica";
 const ACCESS_CUTOFF_HOUR_JM = 22; // 10:00 PM local cutoff
+const DUE_SOON_DAYS = 3;
 
 function toJamaicaParts(now = new Date()) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -63,6 +65,16 @@ export function addDaysYmd(startYmd: string, daysToAdd: number): string {
   const dt = new Date(Date.UTC(y, m - 1, d));
   dt.setUTCDate(dt.getUTCDate() + daysToAdd);
   return dt.toISOString().slice(0, 10);
+}
+
+function ymdToUtcMs(ymd: string) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return Date.UTC(y, m - 1, d);
+}
+
+function diffDaysYmd(fromYmd: string, toYmd: string) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((ymdToUtcMs(toYmd) - ymdToUtcMs(fromYmd)) / msPerDay);
 }
 
 export function effectivePaidThroughYmd(args: {
@@ -139,4 +151,33 @@ export function computeMembershipStatus(args: {
   });
 
   return active ? "active" : "expired";
+}
+
+export function deriveStaffMembershipStatus(args: {
+  status?: string | null;
+  startDate?: string | null;
+  paidThroughDate?: string | null;
+  durationDays?: number | null;
+  now?: Date;
+}): StaffMembershipStatus {
+  const status = String(args.status ?? "").toLowerCase();
+  if (status === "pending") return "pending";
+  if (status === "expired") return "expired";
+
+  const activeNow = isAccessActiveAtJamaicaCutoff(args);
+  if (!activeNow) return "past_due";
+
+  const paidThroughYmd = effectivePaidThroughYmd({
+    startDate: args.startDate,
+    paidThroughDate: args.paidThroughDate,
+    durationDays: args.durationDays,
+  });
+
+  if (!paidThroughYmd) {
+    return status === "due_soon" ? "due_soon" : "active";
+  }
+
+  const todayYmd = jamaicaTodayYmd(args.now);
+  const daysLeft = diffDaysYmd(todayYmd, paidThroughYmd);
+  return daysLeft <= DUE_SOON_DAYS ? "due_soon" : "active";
 }

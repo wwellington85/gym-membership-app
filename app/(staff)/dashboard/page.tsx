@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { deriveStaffMembershipStatus } from "@/lib/membership/status";
 
 type Status = "active" | "due_soon" | "past_due";
 
@@ -30,24 +31,12 @@ export default async function DashboardPage() {
   const start30Utc = new Date(todayStartUtc.getTime() - 29 * dayMs);
 
   const [
-    activeAccessRes,
-    rewardsOnlyRes,
     membershipsRes,
     checkinsRecentRes,
   ] = await Promise.all([
     supabase
       .from("memberships")
-      .select("id, membership_plans!inner(grants_access)", { count: "exact", head: true })
-      .eq("status", "active")
-      .eq("membership_plans.grants_access", true),
-    supabase
-      .from("memberships")
-      .select("id, membership_plans!inner(grants_access)", { count: "exact", head: true })
-      .eq("status", "active")
-      .eq("membership_plans.grants_access", false),
-    supabase
-      .from("memberships")
-      .select("id, status, needs_contact, paid_through_date, member:members(id)")
+      .select("id, status, needs_contact, paid_through_date, start_date, membership_plans(duration_days, grants_access), member:members(id)")
       .order("paid_through_date", { ascending: true }),
     supabase
       .from("checkins")
@@ -67,12 +56,34 @@ export default async function DashboardPage() {
     );
   }
 
-  const memberships = (membershipsRes.data ?? []).filter((r) => r.member);
+  const memberships = (membershipsRes.data ?? [])
+    .filter((r) => r.member)
+    .map((m: any) => {
+      const planRaw: any = m?.membership_plans;
+      const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+      const derivedStatus = deriveStaffMembershipStatus({
+        status: m?.status ?? null,
+        startDate: m?.start_date ?? null,
+        paidThroughDate: m?.paid_through_date ?? null,
+        durationDays: plan?.duration_days ?? null,
+      });
+      return { ...m, derivedStatus };
+    });
+  const activeAccessCount = memberships.filter((m: any) => {
+    const planRaw: any = m?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    return m.derivedStatus === "active" && !!plan?.grants_access;
+  }).length;
+  const rewardsOnlyCount = memberships.filter((m: any) => {
+    const planRaw: any = m?.membership_plans;
+    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
+    return m.derivedStatus === "active" && !plan?.grants_access;
+  }).length;
 
-  const count = (s: Status) => memberships.filter((m) => m.status === s).length;
-  const needsContactAny = memberships.filter((m) => !!m.needs_contact);
+  const count = (s: Status) => memberships.filter((m: any) => m.derivedStatus === s).length;
+  const needsContactAny = memberships.filter((m: any) => !!m.needs_contact);
   const pastDueNeedsContact = memberships.filter(
-    (m) => m.status === "past_due" && m.needs_contact
+    (m: any) => m.derivedStatus === "past_due" && m.needs_contact
   );
 
   const today = jamaicaTodayDateObj();
@@ -146,13 +157,13 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
         <Link href="/members?filter=active&access=1" className="block rounded border p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10">
           <div className="text-xs opacity-70">Active Access</div>
-          <div className="mt-1 text-2xl font-semibold">{activeAccessRes.count ?? 0}</div>
+          <div className="mt-1 text-2xl font-semibold">{activeAccessCount}</div>
           <div className="mt-1 text-xs opacity-70">Club or Pass</div>
         </Link>
 
         <Link href="/members?filter=active&access=0" className="block rounded border p-3 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black/10">
           <div className="text-xs opacity-70">Rewards Only</div>
-          <div className="mt-1 text-2xl font-semibold">{rewardsOnlyRes.count ?? 0}</div>
+          <div className="mt-1 text-2xl font-semibold">{rewardsOnlyCount}</div>
           <div className="mt-1 text-xs opacity-70">Discounts only</div>
         </Link>
 

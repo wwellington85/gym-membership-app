@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notFound, redirect } from "next/navigation";
 import { byCode } from "@/lib/plans/tiers";
-import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
+import {
+  deriveStaffMembershipStatus,
+  isAccessActiveAtJamaicaCutoff,
+} from "@/lib/membership/status";
 import {
   changeMemberPlanAction,
   sendMemberLoginDetailsAction,
@@ -239,15 +242,13 @@ if (!plan && (membership as any)?.plan_id) {
     paidThroughDate: membership?.paid_through_date ?? null,
     durationDays: plan?.duration_days ?? null,
   });
-  const dbStatus = String(membership?.status ?? "").toLowerCase();
-  const status =
-    dbStatus === "pending"
-      ? "pending"
-      : !activeNow
-      ? "expired"
-      : dbStatus === "due_soon"
-      ? "due_soon"
-      : "active";
+  const derivedStatus = deriveStaffMembershipStatus({
+    status: membership?.status ?? null,
+    startDate: membership?.start_date ?? null,
+    paidThroughDate: membership?.paid_through_date ?? null,
+    durationDays: plan?.duration_days ?? null,
+  });
+  const status = derivedStatus === "past_due" ? "expired" : derivedStatus;
   const badge = statusBadge(status);
 
   async function checkInNow() {
