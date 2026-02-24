@@ -32,17 +32,17 @@ const ANIMALS = [
 ];
 
 const AVATAR_THEMES = [
-  { bg: "bg-sky-400/20", border: "border-sky-300/40", text: "text-sky-200" },
-  { bg: "bg-emerald-400/20", border: "border-emerald-300/40", text: "text-emerald-200" },
-  { bg: "bg-amber-400/20", border: "border-amber-300/40", text: "text-amber-200" },
-  { bg: "bg-fuchsia-400/20", border: "border-fuchsia-300/40", text: "text-fuchsia-200" },
-  { bg: "bg-cyan-400/20", border: "border-cyan-300/40", text: "text-cyan-200" },
-  { bg: "bg-indigo-400/20", border: "border-indigo-300/40", text: "text-indigo-200" },
-  { bg: "bg-rose-400/20", border: "border-rose-300/40", text: "text-rose-200" },
-  { bg: "bg-teal-400/20", border: "border-teal-300/40", text: "text-teal-200" },
+  { bg: "bg-gradient-to-br from-sky-400/35 to-indigo-500/35", border: "border-sky-200/40", text: "text-sky-100" },
+  { bg: "bg-gradient-to-br from-emerald-400/35 to-teal-500/35", border: "border-emerald-200/40", text: "text-emerald-100" },
+  { bg: "bg-gradient-to-br from-amber-400/35 to-orange-500/35", border: "border-amber-200/40", text: "text-amber-100" },
+  { bg: "bg-gradient-to-br from-fuchsia-400/35 to-violet-500/35", border: "border-fuchsia-200/40", text: "text-fuchsia-100" },
+  { bg: "bg-gradient-to-br from-cyan-400/35 to-blue-500/35", border: "border-cyan-200/40", text: "text-cyan-100" },
+  { bg: "bg-gradient-to-br from-indigo-400/35 to-purple-500/35", border: "border-indigo-200/40", text: "text-indigo-100" },
+  { bg: "bg-gradient-to-br from-rose-400/35 to-pink-500/35", border: "border-rose-200/40", text: "text-rose-100" },
+  { bg: "bg-gradient-to-br from-teal-400/35 to-cyan-500/35", border: "border-teal-200/40", text: "text-teal-100" },
 ];
 
-const AVATAR_GLYPHS = ["◉", "◆", "▲", "●", "✦", "■", "✶", "⬢"];
+const AVATAR_GLYPHS = ["🌴", "🌊", "☀️", "🐚", "⛵", "🦜", "🐬", "⭐"];
 
 type RawCheckin = {
   member_id: string | null;
@@ -70,7 +70,7 @@ export type LeaderboardRow = RankedRowBase & {
 };
 
 export type MemberLeaderboardSnapshot = {
-  monthLabel: string;
+  periodLabel: string;
   rows: LeaderboardRow[];
   nearRows: LeaderboardRow[];
   topRows: LeaderboardRow[];
@@ -79,6 +79,8 @@ export type MemberLeaderboardSnapshot = {
   totalRanked: number;
   nextGap: number | null;
 };
+
+export type LeaderboardPeriod = "all" | "month";
 
 function hashString(input: string) {
   let h = 2166136261;
@@ -145,10 +147,12 @@ export async function getMemberLeaderboardSnapshot({
   supabase,
   memberId,
   nearWindow = 5,
+  period = "all",
 }: {
   supabase: any;
   memberId: string;
   nearWindow?: number;
+  period?: LeaderboardPeriod;
 }): Promise<MemberLeaderboardSnapshot> {
   const { year, month } = currentJamaicaYearMonth();
   const startIso = monthStartUtcIsoFromJamaicaYearMonth(year, month);
@@ -156,15 +160,16 @@ export async function getMemberLeaderboardSnapshot({
   const nextMonth = month === 12 ? 1 : month + 1;
   const endIso = monthStartUtcIsoFromJamaicaYearMonth(nextMonthYear, nextMonth);
 
-  const { data, error } = await supabase
-    .from("checkins")
-    .select("member_id, checked_in_at")
-    .gte("checked_in_at", startIso)
-    .lt("checked_in_at", endIso);
+  let query = supabase.from("checkins").select("member_id, checked_in_at");
+  if (period === "month") {
+    query = query.gte("checked_in_at", startIso).lt("checked_in_at", endIso);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     return {
-      monthLabel: `${monthLabelJamaica()} (Jamaica)`,
+      periodLabel: period === "month" ? `${monthLabelJamaica()} (Jamaica)` : "All-time (Jamaica)",
       rows: [],
       nearRows: [],
       topRows: [],
@@ -232,7 +237,7 @@ export async function getMemberLeaderboardSnapshot({
   const nextGap = nextRow && myRow ? Math.max(nextRow.checkins - myRow.checkins, 0) : null;
 
   return {
-    monthLabel: `${monthLabelJamaica()} (Jamaica)`,
+    periodLabel: period === "month" ? `${monthLabelJamaica()} (Jamaica)` : "All-time (Jamaica)",
     rows,
     nearRows,
     topRows,

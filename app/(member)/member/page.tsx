@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { firstName } from "@/lib/format/name";
 import { computeMembershipStatus, type MembershipTier } from "@/lib/membership/status";
 import {
@@ -120,9 +121,10 @@ export default async function MemberDashboardPage() {
 
   const memberId: string = member.id;
   const leaderboard = await getMemberLeaderboardSnapshot({
-    supabase,
+    supabase: createAdminClient(),
     memberId,
     nearWindow: 5,
+    period: "all",
   });
 
   // Membership
@@ -331,7 +333,7 @@ const statusLabel =
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="font-medium">Leaderboard</div>
-            <div className="text-xs opacity-70">{leaderboard.monthLabel}</div>
+            <div className="text-xs opacity-70">{leaderboard.periodLabel}</div>
           </div>
           <Link className="rounded border px-3 py-2 text-xs hover:oura-surface-muted" href="/member/leaderboard">
             View
@@ -345,7 +347,7 @@ const statusLabel =
             <div className="text-xs opacity-70">of {leaderboard.totalRanked} members</div>
           </div>
           <div className="rounded border oura-surface-muted p-3 text-right">
-            <div className="opacity-70">This month</div>
+            <div className="opacity-70">All-time</div>
             <div className="text-lg font-semibold">{leaderboard.myCheckins}</div>
             <div className="text-xs opacity-70">check-ins</div>
           </div>
@@ -353,12 +355,12 @@ const statusLabel =
 
         <div className="mt-2 text-xs opacity-75">
           {leaderboard.myRank === 1
-            ? "You are currently #1 this month."
+            ? "You are currently #1 all-time."
             : leaderboard.myRank
             ? leaderboard.nextGap === 0
               ? "You are tied with the next rank above you."
               : `${leaderboard.nextGap} more check-in${leaderboard.nextGap === 1 ? "" : "s"} to reach the next rank.`
-            : "Check in to appear on this month’s leaderboard."}
+            : "Check in to appear on the all-time leaderboard."}
         </div>
       </div>
 

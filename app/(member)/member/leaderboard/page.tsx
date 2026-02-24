@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { BackButton } from "@/components/ui/back-button";
-import { getMemberLeaderboardSnapshot, type LeaderboardRow } from "@/lib/member/leaderboard";
+import { getMemberLeaderboardSnapshot, type LeaderboardPeriod, type LeaderboardRow } from "@/lib/member/leaderboard";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,11 @@ function Avatar({ row }: { row: LeaderboardRow }) {
 }
 
 export default async function MemberLeaderboardPage(props: {
-  searchParams?: Promise<{ view?: string }>;
+  searchParams?: Promise<{ view?: string; period?: string }>;
 }) {
   const searchParams = (await props.searchParams) ?? {};
   const view = searchParams.view === "top" ? "top" : "near";
+  const period: LeaderboardPeriod = searchParams.period === "month" ? "month" : "all";
 
   const supabase = await createClient();
   const {
@@ -44,9 +46,10 @@ export default async function MemberLeaderboardPage(props: {
   if (!member?.id) redirect("/join");
 
   const snapshot = await getMemberLeaderboardSnapshot({
-    supabase,
+    supabase: createAdminClient(),
     memberId: String(member.id),
     nearWindow: 5,
+    period,
   });
 
   const rows = view === "top" ? snapshot.topRows : snapshot.nearRows;
@@ -56,7 +59,7 @@ export default async function MemberLeaderboardPage(props: {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Leaderboard</h1>
-          <p className="text-sm opacity-70">Anonymous check-in ranking for {snapshot.monthLabel}.</p>
+          <p className="text-sm opacity-70">Anonymous check-in ranking for {snapshot.periodLabel}.</p>
         </div>
         <BackButton fallbackHref="/member" />
       </div>
@@ -72,7 +75,7 @@ export default async function MemberLeaderboardPage(props: {
           </div>
 
           <div className="rounded border oura-surface-muted p-3 text-right">
-            <div className="opacity-70">This month</div>
+            <div className="opacity-70">{period === "month" ? "This month" : "All-time"}</div>
             <div className="text-lg font-semibold">{snapshot.myCheckins}</div>
             <div className="text-xs opacity-70">check-ins</div>
           </div>
@@ -80,17 +83,42 @@ export default async function MemberLeaderboardPage(props: {
 
         <div className="mt-2 text-xs opacity-75">
           {snapshot.myRank === 1
-            ? "You are currently #1 this month."
+            ? period === "month"
+              ? "You are currently #1 this month."
+              : "You are currently #1 all-time."
             : snapshot.myRank
             ? snapshot.nextGap === 0
               ? "You are tied with the next rank above you."
               : `${snapshot.nextGap} more check-in${snapshot.nextGap === 1 ? "" : "s"} to reach the next rank.`
-            : "Check in to appear on this month’s leaderboard."}
+            : period === "month"
+            ? "Check in to appear on this month’s leaderboard."
+            : "Check in to appear on the all-time leaderboard."}
         </div>
 
         <div className="mt-3 inline-flex rounded-lg border p-1 text-sm">
           <Link
-            href="/member/leaderboard?view=near"
+            href={`/member/leaderboard?period=all&view=${view}`}
+            className={[
+              "rounded px-3 py-1.5",
+              period === "all" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+            ].join(" ")}
+          >
+            All-time
+          </Link>
+          <Link
+            href={`/member/leaderboard?period=month&view=${view}`}
+            className={[
+              "rounded px-3 py-1.5",
+              period === "month" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+            ].join(" ")}
+          >
+            Monthly
+          </Link>
+        </div>
+
+        <div className="mt-2 inline-flex rounded-lg border p-1 text-sm">
+          <Link
+            href={`/member/leaderboard?period=${period}&view=near`}
             className={[
               "rounded px-3 py-1.5",
               view === "near" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
@@ -99,7 +127,7 @@ export default async function MemberLeaderboardPage(props: {
             Near me
           </Link>
           <Link
-            href="/member/leaderboard?view=top"
+            href={`/member/leaderboard?period=${period}&view=top`}
             className={[
               "rounded px-3 py-1.5",
               view === "top" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
@@ -113,7 +141,7 @@ export default async function MemberLeaderboardPage(props: {
       <div className="oura-card p-3">
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-medium">{view === "top" ? "Top members" : "Your position"}</h2>
-          <span className="text-xs opacity-70">Names hidden for privacy</span>
+          <span className="text-xs opacity-70">Other members shown as Anonymous</span>
         </div>
 
         {rows.length === 0 ? (
@@ -130,12 +158,15 @@ export default async function MemberLeaderboardPage(props: {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
+                    <div className="min-w-[3.5rem] rounded border border-white/20 px-2 py-1 text-center text-xs font-semibold text-white/90">
+                      #{row.rank}
+                    </div>
                     <Avatar row={row} />
                     <div>
                       <div className="text-sm font-medium">
                         {row.isCurrentMember ? "You" : row.alias}
                       </div>
-                      <div className="text-xs opacity-70">Rank #{row.rank}</div>
+                      <div className="text-xs opacity-70">{row.isCurrentMember ? "Your account" : "Anonymous member"}</div>
                     </div>
                   </div>
 
