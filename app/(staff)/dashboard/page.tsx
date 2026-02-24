@@ -14,16 +14,26 @@ function jamaicaTodayDateObj() {
   return new Date();
 }
 
+function jamaicaDayRangeUtc(base = new Date()) {
+  const offsetMs = 5 * 60 * 60 * 1000; // Jamaica UTC-5
+  const jmLocal = new Date(base.getTime() - offsetMs);
+  jmLocal.setHours(0, 0, 0, 0);
+  const startUtc = new Date(jmLocal.getTime() + offsetMs);
+  const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+  return { startUtc, endUtc };
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const { startUtc: todayStartUtc, endUtc: todayEndUtc } = jamaicaDayRangeUtc();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const start30Utc = new Date(todayStartUtc.getTime() - 29 * dayMs);
 
   const [
     activeAccessRes,
     rewardsOnlyRes,
     membershipsRes,
-    checkinsTodayRes,
-    daily7Res,
-    leaderboardRes,
+    checkinsRecentRes,
   ] = await Promise.all([
     supabase
       .from("memberships")
@@ -41,14 +51,11 @@ export default async function DashboardPage() {
       .order("paid_through_date", { ascending: true }),
     supabase
       .from("checkins")
-      .select("id", { count: "exact", head: true })
-      .gte("checked_in_at", new Date().toISOString().slice(0, 10) + "T00:00:00Z"),
-    supabase.from("checkins_daily_7d").select("day_jm, checkins_count"),
-    supabase
-      .from("member_visit_counts_30d")
-      .select("member_id, visits_30d")
-      .order("visits_30d", { ascending: false })
-      .limit(10),
+      .select("member_id, checked_in_at")
+      .gte("checked_in_at", start30Utc.toISOString())
+      .lt("checked_in_at", todayEndUtc.toISOString())
+      .order("checked_in_at", { ascending: false })
+      .limit(10000),
   ]);
 
   if (membershipsRes.error) {
@@ -76,8 +83,31 @@ export default async function DashboardPage() {
     labels.push(ymdJamaica(d));
   }
 
+  const checkins30d = checkinsRecentRes.data ?? [];
+  const checkinsAggError = checkinsRecentRes.error?.message ?? null;
+
   const mapCounts = new Map<string, number>();
-  (daily7Res.data ?? []).forEach((r: any) => mapCounts.set(String(r.day_jm), Number(r.checkins_count || 0)));
+  const visits30Map = new Map<string, number>();
+  let checkinsTodayCount = 0;
+
+  checkins30d.forEach((r: any) => {
+    const ts = new Date(String(r.checked_in_at)).getTime();
+    if (Number.isNaN(ts)) return;
+
+    if (ts >= todayStartUtc.getTime() && ts < todayEndUtc.getTime()) {
+      checkinsTodayCount += 1;
+    }
+
+    const dayKey = ymdJamaica(new Date(ts));
+    if (labels.includes(dayKey)) {
+      mapCounts.set(dayKey, (mapCounts.get(dayKey) ?? 0) + 1);
+    }
+
+    const memberId = String(r.member_id ?? "");
+    if (memberId) {
+      visits30Map.set(memberId, (visits30Map.get(memberId) ?? 0) + 1);
+    }
+  });
 
   const series = labels.map((day) => ({
     day,
@@ -86,7 +116,12 @@ export default async function DashboardPage() {
 
   const maxCount = Math.max(1, ...series.map((s) => s.count));
 
-  const ids = (leaderboardRes.data ?? []).map((r: any) => r.member_id).filter(Boolean);
+  const leaderboardRows = Array.from(visits30Map.entries())
+    .map(([member_id, visits_30d]) => ({ member_id, visits_30d }))
+    .sort((a, b) => b.visits_30d - a.visits_30d)
+    .slice(0, 10);
+
+  const ids = leaderboardRows.map((r) => r.member_id).filter(Boolean);
 
   const { data: memberRows } = ids.length
     ? await supabase.from("members").select("id, full_name, phone").in("id", ids)
@@ -95,7 +130,7 @@ export default async function DashboardPage() {
   const memberMap = new Map<string, any>();
   (memberRows ?? []).forEach((m: any) => memberMap.set(m.id, m));
 
-  const leaderboard = (leaderboardRes.data ?? []).map((r: any) => ({
+  const leaderboard = leaderboardRows.map((r: any) => ({
     member_id: r.member_id,
     visits_30d: Number(r.visits_30d || 0),
     member: memberMap.get(r.member_id),
@@ -143,7 +178,7 @@ export default async function DashboardPage() {
 
         <Link href="/checkins" className="rounded border p-3 hover:bg-gray-50">
           <div className="text-sm opacity-70">Check-ins Today</div>
-          <div className="text-2xl font-semibold">{checkinsTodayRes.count ?? 0}</div>
+          <div className="text-2xl font-semibold">{checkinsTodayCount}</div>
         </Link>
 
         <Link href="/members?filter=past_due_needs_contact" className="col-span-2 rounded border p-3 hover:bg-gray-50 md:col-span-2">
@@ -158,10 +193,10 @@ export default async function DashboardPage() {
           <span className="text-xs opacity-70">Last 7 days (Jamaica)</span>
         </div>
 
-        {daily7Res.error ? (
+        {checkinsAggError ? (
           <div className="mt-2 text-sm">
             Could not load weekly chart.
-            <div className="mt-1 text-xs opacity-70">{daily7Res.error.message}</div>
+            <div className="mt-1 text-xs opacity-70">{checkinsAggError}</div>
           </div>
         ) : (
           <div className="mt-3 space-y-2">
@@ -184,10 +219,10 @@ export default async function DashboardPage() {
           <span className="text-xs opacity-70">Visits (last 30 days)</span>
         </div>
 
-        {leaderboardRes.error ? (
+        {checkinsAggError ? (
           <div className="mt-2 text-sm">
             Could not load leaderboard.
-            <div className="mt-1 text-xs opacity-70">{leaderboardRes.error.message}</div>
+            <div className="mt-1 text-xs opacity-70">{checkinsAggError}</div>
           </div>
         ) : leaderboard.length === 0 ? (
           <div className="mt-2 text-sm opacity-70">No check-ins yet.</div>
