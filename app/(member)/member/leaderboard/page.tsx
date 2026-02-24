@@ -11,13 +11,14 @@ function Avatar({ row }: { row: LeaderboardRow }) {
   return (
     <div
       className={[
-        "h-10 w-10 shrink-0 rounded-full border flex items-center justify-center text-sm font-semibold",
+        "relative h-11 w-11 shrink-0 rounded-full border flex items-center justify-center text-sm font-semibold shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.28)]",
         row.avatar.bgClass,
         row.avatar.borderClass,
         row.avatar.textClass,
       ].join(" ")}
       aria-hidden="true"
     >
+      <span className={["absolute right-0.5 top-0.5 h-2 w-2 rounded-full", row.avatar.accentClass].join(" ")} />
       {row.avatar.glyph}
     </div>
   );
@@ -53,13 +54,20 @@ export default async function MemberLeaderboardPage(props: {
   });
 
   const rows = view === "top" ? snapshot.topRows : snapshot.nearRows;
+  const encouragement =
+    snapshot.myRank === 1
+      ? "You are leading the board. Keep the momentum."
+      : snapshot.myRank && snapshot.myRank <= 5
+      ? "You are close to the top. One strong week can move you up."
+      : snapshot.myRank
+      ? "Good progress. Keep checking in to climb the ranks."
+      : "Start checking in to enter the leaderboard.";
 
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Leaderboard</h1>
-          <p className="text-sm opacity-70">Anonymous check-in ranking for {snapshot.periodLabel}.</p>
         </div>
         <BackButton fallbackHref="/member" />
       </div>
@@ -82,17 +90,9 @@ export default async function MemberLeaderboardPage(props: {
         </div>
 
         <div className="mt-2 text-xs opacity-75">
-          {snapshot.myRank === 1
-            ? period === "month"
-              ? "You are currently #1 this month."
-              : "You are currently #1 all-time."
-            : snapshot.myRank
-            ? snapshot.nextGap === 0
-              ? "You are tied with the next rank above you."
-              : `${snapshot.nextGap} more check-in${snapshot.nextGap === 1 ? "" : "s"} to reach the next rank.`
-            : period === "month"
-            ? "Check in to appear on this month’s leaderboard."
-            : "Check in to appear on the all-time leaderboard."}
+          {snapshot.nextGap && snapshot.myRank
+            ? `${encouragement} ${snapshot.nextGap} more check-in${snapshot.nextGap === 1 ? "" : "s"} to catch the next rank.`
+            : encouragement}
         </div>
 
         <div className="mt-3 inline-flex rounded-lg border p-1 text-sm">
@@ -136,6 +136,30 @@ export default async function MemberLeaderboardPage(props: {
             Top 25
           </Link>
         </div>
+
+        {snapshot.badges.length > 0 ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {snapshot.badges.map((badge) => (
+              <span
+                key={badge.label}
+                className={[
+                  "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
+                  badge.tone === "amber"
+                    ? "border-amber-300/50 bg-amber-400/10 text-amber-100"
+                    : badge.tone === "teal"
+                    ? "border-teal-300/50 bg-teal-400/10 text-teal-100"
+                    : badge.tone === "rose"
+                    ? "border-rose-300/50 bg-rose-400/10 text-rose-100"
+                    : badge.tone === "violet"
+                    ? "border-violet-300/50 bg-violet-400/10 text-violet-100"
+                    : "border-sky-300/50 bg-sky-400/10 text-sky-100",
+                ].join(" ")}
+              >
+                {badge.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="oura-card p-3">
@@ -172,7 +196,7 @@ export default async function MemberLeaderboardPage(props: {
 
                   <div className="text-right">
                     <div className="text-base font-semibold tabular-nums">{row.checkins}</div>
-                    <div className="text-xs opacity-70">check-ins</div>
+                    <div className="text-xs opacity-70">{period === "month" ? "this month" : "all-time"}</div>
                   </div>
                 </div>
               </div>
