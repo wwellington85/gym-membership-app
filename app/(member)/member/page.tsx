@@ -9,6 +9,7 @@ import {
   queueRenewalNotificationsForMembership,
   renewalMessageForDays,
 } from "@/lib/membership/renewal-notifications";
+import { getMemberLeaderboardSnapshot } from "@/lib/member/leaderboard";
 import { Star, CalendarCheck, Layers } from "lucide-react";
 
 function normalizeTier(planCode?: string | null): MembershipTier {
@@ -118,6 +119,11 @@ export default async function MemberDashboardPage() {
   if (!member) redirect("/join");
 
   const memberId: string = member.id;
+  const leaderboard = await getMemberLeaderboardSnapshot({
+    supabase,
+    memberId,
+    nearWindow: 5,
+  });
 
   // Membership
   const { data: membership } = await supabase
@@ -318,6 +324,41 @@ const statusLabel =
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="oura-card p-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-medium">Leaderboard</div>
+            <div className="text-xs opacity-70">{leaderboard.monthLabel}</div>
+          </div>
+          <Link className="rounded border px-3 py-2 text-xs hover:oura-surface-muted" href="/member/leaderboard">
+            View
+          </Link>
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="rounded border oura-surface-muted p-3">
+            <div className="opacity-70">Your rank</div>
+            <div className="text-lg font-semibold">{leaderboard.myRank ? `#${leaderboard.myRank}` : "Unranked"}</div>
+            <div className="text-xs opacity-70">of {leaderboard.totalRanked} members</div>
+          </div>
+          <div className="rounded border oura-surface-muted p-3 text-right">
+            <div className="opacity-70">This month</div>
+            <div className="text-lg font-semibold">{leaderboard.myCheckins}</div>
+            <div className="text-xs opacity-70">check-ins</div>
+          </div>
+        </div>
+
+        <div className="mt-2 text-xs opacity-75">
+          {leaderboard.myRank === 1
+            ? "You are currently #1 this month."
+            : leaderboard.myRank
+            ? leaderboard.nextGap === 0
+              ? "You are tied with the next rank above you."
+              : `${leaderboard.nextGap} more check-in${leaderboard.nextGap === 1 ? "" : "s"} to reach the next rank.`
+            : "Check in to appear on this month’s leaderboard."}
         </div>
       </div>
 
