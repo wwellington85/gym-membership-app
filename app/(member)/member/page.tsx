@@ -11,7 +11,7 @@ import {
   renewalMessageForDays,
 } from "@/lib/membership/renewal-notifications";
 import { getMemberLeaderboardSnapshot } from "@/lib/member/leaderboard";
-import { Star, CalendarCheck, Layers } from "lucide-react";
+import { Star, CalendarCheck, Layers, Flame } from "lucide-react";
 
 function normalizeTier(planCode?: string | null): MembershipTier {
   const code = String(planCode || "").toLowerCase();
@@ -361,6 +361,28 @@ const statusLabel =
               ? "You are tied with the next rank above you."
               : `${leaderboard.nextGap} more check-in${leaderboard.nextGap === 1 ? "" : "s"} to reach the next rank.`
             : "Check in to appear on the all-time leaderboard."}
+        </div>
+
+        <div className="mt-3 flex items-center justify-between rounded border oura-surface-muted p-2 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-amber-300/40 bg-amber-400/10 text-amber-100">
+              <Flame className="h-4 w-4" />
+            </span>
+            <div>
+              <div className="font-medium">{leaderboard.streakDays}-day streak</div>
+              <div className="text-xs opacity-70">
+                {leaderboard.streakDays >= 7
+                  ? "Strong consistency. Keep it going."
+                  : leaderboard.streakDays >= 3
+                  ? "Nice momentum. You’re building a habit."
+                  : "Check in regularly to start a streak."}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs opacity-70">All-time</div>
+            <div className="font-semibold tabular-nums">{leaderboard.allTimeCheckins}</div>
+          </div>
         </div>
       </div>
 
