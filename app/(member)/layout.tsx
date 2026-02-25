@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { MemberTabs } from "@/components/nav/member-tabs";
 import { HistoryTracker } from "@/components/ui/history-tracker";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
-import { maybeRunAutoDowngradeToFree } from "@/lib/membership/auto-downgrade";
 
 export default async function MemberGateLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -11,12 +10,6 @@ export default async function MemberGateLayout({ children }: { children: React.R
 
   if (!data.user) {
     redirect("/auth/login?returnTo=/member");
-  }
-
-  try {
-    await maybeRunAutoDowngradeToFree();
-  } catch {
-    // Non-blocking maintenance task; page should still render.
   }
 
   return (

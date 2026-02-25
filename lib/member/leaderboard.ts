@@ -271,6 +271,119 @@ export async function getMemberLeaderboardSnapshot({
   nearWindow?: number;
   period?: LeaderboardPeriod;
 }): Promise<MemberLeaderboardSnapshot> {
+  type RpcRankRow = {
+    member_id: string | null;
+    checkins: number | string | null;
+    last_checkin_at: string | null;
+    rank: number | string | null;
+  };
+  type RpcSummaryRow = {
+    my_rank: number | string | null;
+    my_checkins: number | string | null;
+    total_ranked: number | string | null;
+    next_gap: number | string | null;
+  };
+
+  const safeNum = (v: unknown, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const decorate = (
+    row: { member_id: string; checkins: number; last_checkin_at: string | null; rank: number },
+  ): LeaderboardRow => ({
+    ...row,
+    alias: aliasForMember(row.member_id),
+    avatar: getMemberAvatar(row.member_id),
+    isCurrentMember: row.member_id === memberId,
+  });
+
+  const rpcRows = async (view: "near" | "top") =>
+    supabase.rpc("member_leaderboard_rows", {
+      p_member_id: memberId,
+      p_period: period,
+      p_view: view,
+      p_limit: 25,
+      p_near_window: nearWindow,
+    });
+
+  const [nearRes, topRes, summaryRes] = await Promise.all([
+    rpcRows("near"),
+    rpcRows("top"),
+    supabase.rpc("member_leaderboard_summary", {
+      p_member_id: memberId,
+      p_period: period,
+    }),
+  ]);
+
+  const rpcMissing =
+    Boolean(nearRes.error || topRes.error || summaryRes.error) &&
+    /member_leaderboard_/i.test(
+      `${nearRes.error?.message ?? ""} ${topRes.error?.message ?? ""} ${summaryRes.error?.message ?? ""}`,
+    );
+
+  // Prefer DB-side aggregation for speed, fallback to app-side if migration not applied yet.
+  if (!rpcMissing && !nearRes.error && !topRes.error && !summaryRes.error) {
+    const nearRowsRaw = (nearRes.data ?? []) as RpcRankRow[];
+    const topRowsRaw = (topRes.data ?? []) as RpcRankRow[];
+    const summaryRaw = ((summaryRes.data ?? []) as RpcSummaryRow[])[0];
+
+    const toRankRow = (r: RpcRankRow) => ({
+      member_id: String(r.member_id ?? ""),
+      checkins: safeNum(r.checkins),
+      last_checkin_at: r.last_checkin_at ? String(r.last_checkin_at) : null,
+      rank: safeNum(r.rank),
+    });
+
+    const nearRows = nearRowsRaw
+      .map(toRankRow)
+      .filter((r) => Boolean(r.member_id))
+      .map(decorate);
+    const topRows = topRowsRaw
+      .map(toRankRow)
+      .filter((r) => Boolean(r.member_id))
+      .map(decorate);
+
+    const { data: memberRows } = await supabase
+      .from("checkins")
+      .select("checked_in_at")
+      .eq("member_id", memberId)
+      .order("checked_in_at", { ascending: false })
+      .limit(120);
+    const { count: memberCheckinCount } = await supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("member_id", memberId);
+
+    const allTimeCheckins = safeNum(memberCheckinCount);
+    const streakDays = computeCurrentStreakDays((memberRows ?? []) as Array<{ checked_in_at: string | null }>);
+    const myRank = summaryRaw ? safeNum(summaryRaw.my_rank, 0) || null : null;
+    const myCheckins = summaryRaw ? safeNum(summaryRaw.my_checkins) : 0;
+    const totalRanked = summaryRaw ? safeNum(summaryRaw.total_ranked) : 0;
+    const nextGap = summaryRaw && summaryRaw.next_gap !== null ? safeNum(summaryRaw.next_gap) : null;
+
+    const badges = deriveBadges({
+      streakDays,
+      allTimeCheckins,
+      rank: myRank,
+      totalRanked,
+    });
+
+    return {
+      periodLabel: period === "month" ? `${monthLabelJamaica()}` : "All-time",
+      rows: topRows,
+      nearRows,
+      topRows,
+      myRank,
+      myCheckins,
+      totalRanked,
+      nextGap,
+      streakDays,
+      allTimeCheckins,
+      badges,
+    };
+  }
+
   const { year, month } = currentJamaicaYearMonth();
   const startIso = monthStartUtcIsoFromJamaicaYearMonth(year, month);
   const nextMonthYear = month === 12 ? year + 1 : year;
@@ -283,7 +396,6 @@ export async function getMemberLeaderboardSnapshot({
   }
 
   const { data, error } = await query;
-
   if (error) {
     return {
       periodLabel: period === "month" ? `${monthLabelJamaica()}` : "All-time",
@@ -301,7 +413,6 @@ export async function getMemberLeaderboardSnapshot({
   }
 
   const byMember = new Map<string, { checkins: number; last_checkin_at: string | null }>();
-
   ((data ?? []) as RawCheckin[]).forEach((row) => {
     const id = String(row.member_id ?? "").trim();
     if (!id) return;
@@ -335,19 +446,11 @@ export async function getMemberLeaderboardSnapshot({
 
   const myIndex = ranked.findIndex((r) => r.member_id === memberId);
   const myRow = myIndex >= 0 ? ranked[myIndex] : null;
-
   const start = myIndex >= 0 ? Math.max(0, myIndex - nearWindow) : 0;
   const end =
     myIndex >= 0
       ? Math.min(ranked.length, myIndex + nearWindow + 1)
       : Math.min(ranked.length, nearWindow * 2 + 1);
-
-  const decorate = (row: RankedRowBase): LeaderboardRow => ({
-    ...row,
-    alias: aliasForMember(row.member_id),
-    avatar: getMemberAvatar(row.member_id),
-    isCurrentMember: row.member_id === memberId,
-  });
 
   const rows = ranked.map(decorate);
   const nearRows = ranked.slice(start, end).map(decorate);
@@ -361,7 +464,7 @@ export async function getMemberLeaderboardSnapshot({
     .select("checked_in_at")
     .eq("member_id", memberId)
     .order("checked_in_at", { ascending: false })
-    .limit(1000);
+    .limit(120);
   const { count: memberCheckinCount } = await supabase
     .from("checkins")
     .select("id", { count: "exact", head: true })
