@@ -10,7 +10,7 @@ import {
   queueRenewalNotificationsForMembership,
   renewalMessageForDays,
 } from "@/lib/membership/renewal-notifications";
-import { getMemberLeaderboardSnapshot } from "@/lib/member/leaderboard";
+import { getMemberAvatar, getMemberLeaderboardSnapshot } from "@/lib/member/leaderboard";
 import { Star, CalendarCheck, Layers, Flame } from "lucide-react";
 
 function normalizeTier(planCode?: string | null): MembershipTier {
@@ -130,21 +130,24 @@ export default async function MemberDashboardPage() {
   // Membership
   const { data: membership } = await supabase
     .from("memberships")
-    .select("id, status, paid_through, plan_code, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
+    .select("id, status, start_date, paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
     .eq("member_id", memberId)
-    .order("created_at", { ascending: false })
+    .order("start_date", { ascending: false })
     .maybeSingle();
 
-  console.log("[/member] membership raw:", membership);
   const membershipRow: any = Array.isArray(membership) ? membership[0] : membership;
+  const planRaw: any = membershipRow?.membership_plans;
+  const plan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
 
 
-  const tier = normalizeTier(membership?.plan_code ?? "rewards_free");
+  const tier = normalizeTier(plan?.code ?? "rewards_free");
 
   const computedStatus = computeMembershipStatus({
     tier,
-    paid_through: membership?.paid_through ?? null,
-    db_status: membership?.status ?? null,
+    paid_through: membershipRow?.paid_through_date ?? null,
+    start_date: membershipRow?.start_date ?? null,
+    duration_days: plan?.duration_days ?? null,
+    db_status: membershipRow?.status ?? null,
   });
 
   const isFree = computedStatus === "free";
@@ -169,10 +172,10 @@ const statusLabel =
   const paidThroughLabel =
     computedStatus === "free"
       ? "N/A"
-      : membershipRow?.paid_through
-      ? fmtJamaicaDate(membershipRow.paid_through)
+      : membershipRow?.paid_through_date
+      ? fmtJamaicaDate(membershipRow.paid_through_date)
       : "—";
-  const paidThroughIso = String(membershipRow?.paid_through ?? "").slice(0, 10);
+  const paidThroughIso = String(membershipRow?.paid_through_date ?? "").slice(0, 10);
 
   async function dismissRenewalNotice() {
     "use server";
@@ -257,13 +260,15 @@ const statusLabel =
 
   // Plan display (simple mapping)
   const planName =
-    tier === "club_monthly_95"
+    plan?.name ??
+    (tier === "club_monthly_95"
       ? "Travellers Club Monthly"
       : tier === "club_weekly"
       ? "Travellers Club Weekly Pass"
       : tier === "club_day"
       ? "Travellers Club Day Pass"
-      : "Travellers Rewards";
+      : "Travellers Rewards");
+  const memberAvatar = getMemberAvatar(memberId);
 
   const ctaHref =
     computedStatus === "active"
@@ -284,7 +289,21 @@ const statusLabel =
       <div className="flex items-start justify-between gap-3">
         <div className="w-full">
           <h1 className="text-xl font-semibold">Travellers Club Dashboard</h1>
-          <p className="text-sm opacity-70">Welcome, {firstName(member.full_name)}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <span
+              className={[
+                "relative inline-flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_6px_18px_rgba(0,0,0,0.25)]",
+                memberAvatar.bgClass,
+                memberAvatar.borderClass,
+                memberAvatar.textClass,
+              ].join(" ")}
+              aria-hidden="true"
+            >
+              <span className={["absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full", memberAvatar.accentClass].join(" ")} />
+              {memberAvatar.glyph}
+            </span>
+            <p className="text-sm opacity-70">Welcome, {firstName(member.full_name)}</p>
+          </div>
 
           <div className="mt-4 w-full">
             

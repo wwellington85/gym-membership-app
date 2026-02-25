@@ -246,7 +246,7 @@ function aliasForMember(memberId: string) {
   return `${adjective}-${animal}-${code}`;
 }
 
-function avatarForMember(memberId: string): LeaderboardAvatar {
+export function getMemberAvatar(memberId: string): LeaderboardAvatar {
   const h = hashString(memberId);
   const theme = AVATAR_THEMES[h % AVATAR_THEMES.length] ?? AVATAR_THEMES[0];
   const glyph = AVATAR_GLYPHS[(h >>> 7) % AVATAR_GLYPHS.length] ?? "◉";
@@ -345,7 +345,7 @@ export async function getMemberLeaderboardSnapshot({
   const decorate = (row: RankedRowBase): LeaderboardRow => ({
     ...row,
     alias: aliasForMember(row.member_id),
-    avatar: avatarForMember(row.member_id),
+    avatar: getMemberAvatar(row.member_id),
     isCurrentMember: row.member_id === memberId,
   });
 
