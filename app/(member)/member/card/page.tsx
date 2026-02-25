@@ -28,6 +28,19 @@ function normalizeTier(planCode?: string | null): MembershipTier {
   return "rewards_free";
 }
 
+function membershipStatusPillClass(status: string) {
+  if (status === "active") {
+    return "border-emerald-300/50 bg-emerald-400/20 text-emerald-50";
+  }
+  if (status === "pending") {
+    return "border-amber-300/50 bg-amber-400/20 text-amber-50";
+  }
+  if (status === "expired") {
+    return "border-rose-300/50 bg-rose-400/20 text-rose-50";
+  }
+  return "border-white/30 oura-surface-muted text-white";
+}
+
 export default async function MemberCardPage() {
   const supabase = await createClient();
 
@@ -126,13 +139,7 @@ const statusHint =
           <span
             className={[
               "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
-              computedStatus === "active"
-                ? "bg-green-50"
-                : computedStatus === "pending"
-                ? "bg-yellow-50"
-                : computedStatus === "expired"
-                ? "bg-red-50"
-                : "oura-surface-muted",
+              membershipStatusPillClass(computedStatus),
             ].join(" ")}
             title={statusHint}
           >

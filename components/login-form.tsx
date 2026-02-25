@@ -174,7 +174,7 @@ export function LoginForm({
           <div className="text-center text-[13px] font-semibold tracking-[0.32em] uppercase text-white/80">
             Travellers Club
           </div>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="mt-2 text-2xl">Login</CardTitle>
           <CardDescription>Login with username or email and password</CardDescription>
         </CardHeader>
 
