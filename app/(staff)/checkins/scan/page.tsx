@@ -102,7 +102,10 @@ export default async function ScanCheckinPage({
   async function lookup(formData: FormData) {
     "use server";
     const raw = String(formData.get("code") || "").trim();
-    redirect(`/checkins?ok=checked_in`);
+    if (!raw) {
+      redirect(`/checkins/scan?err=Enter%20a%20code`);
+    }
+    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}`);
   }
 
   async function checkin(formData: FormData) {
@@ -112,7 +115,7 @@ export default async function ScanCheckinPage({
         const parsed = parsePayload(raw);
     const resolved = await resolveMemberIdFromParsed(parsed);
     if (!resolved.ok) {
-      redirect(`/checkins?ok=checked_in`);
+      redirect(`/checkins?err=${encodeURIComponent(resolved.err || "Invalid code")}`);
     }
     const memberId = resolved.memberId;
 
@@ -152,7 +155,7 @@ export default async function ScanCheckinPage({
     const canRecordCheckin = activeNow;
 
     if (!canRecordCheckin) {
-      redirect(`/checkins?ok=checked_in`);
+      redirect(`/checkins?err=Member%20is%20not%20active%20for%20check-in`);
     }
 
     // Points per check-in
@@ -162,7 +165,7 @@ export default async function ScanCheckinPage({
       .eq("key", "points_per_checkin")
       .maybeSingle();
 
-    const pointsEarned = settingRow?.int_value ?? 1;
+    const pointsEarned = Math.max(1, Number(settingRow?.int_value ?? 3));
 
     const { error } = await supabase.from("checkins").insert({
       member_id: memberId,
@@ -172,9 +175,9 @@ export default async function ScanCheckinPage({
 
     if (error) {
       if ((error as any).code === "23505") {
-        redirect(`/checkins?ok=checked_in`);
+        redirect(`/checkins?ok=already`);
       }
-      redirect(`/checkins?ok=checked_in`);
+      redirect(`/checkins?err=${encodeURIComponent(error.message || "Check-in failed")}`);
     }
 
     redirect(`/checkins?ok=checked_in`);

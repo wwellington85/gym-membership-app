@@ -272,7 +272,7 @@ export default async function MembersPage({
       .eq("key", "points_per_checkin")
       .maybeSingle();
 
-    const pointsEarned = settingRow?.int_value ?? 1;
+    const pointsEarned = Math.max(1, Number(settingRow?.int_value ?? 3));
 
     const { error } = await supabase.from("checkins").insert({
       member_id,

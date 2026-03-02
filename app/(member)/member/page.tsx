@@ -117,6 +117,7 @@ function Bubble({
 
 export default async function MemberDashboardPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const {
     data: { user },
@@ -134,7 +135,7 @@ export default async function MemberDashboardPage() {
 
   const memberId: string = member.id;
   const leaderboard = await getMemberLeaderboardSnapshot({
-    supabase: createAdminClient(),
+    supabase: admin,
     memberId,
     nearWindow: 5,
     period: "all",
@@ -269,7 +270,15 @@ const statusLabel =
   const fetched = await fetchCheckins();
   const recentCheckins = fetched.rows;
   const totalCheckins = fetched.count;
-  const points = recentCheckins.reduce((acc: number, r: any) => acc + Number(r?.points_earned ?? 0), 0);
+  const { data: loyaltyRow } = await admin
+    .from("member_loyalty_points")
+    .select("points")
+    .eq("member_id", memberId)
+    .maybeSingle();
+  const points =
+    Number.isFinite(Number((loyaltyRow as any)?.points))
+      ? Number((loyaltyRow as any)?.points)
+      : recentCheckins.reduce((acc: number, r: any) => acc + Number(r?.points_earned ?? 0), 0);
 
   // Plan display (simple mapping)
   const planName =
