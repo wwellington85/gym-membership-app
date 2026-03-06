@@ -5,9 +5,10 @@ import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 
 type Props = {
   redirectPath?: string; // default: /checkins/scan
+  autoRecord?: boolean;
 };
 
-export function QrScanner({ redirectPath = "/checkins/scan" }: Props) {
+export function QrScanner({ redirectPath = "/checkins/scan", autoRecord = true }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
@@ -40,7 +41,9 @@ export function QrScanner({ redirectPath = "/checkins/scan" }: Props) {
           if (result) {
             const text = result.getText();
             stop();
-            const url = `${redirectPath}?code=${encodeURIComponent(text)}`;
+            const qp = new URLSearchParams({ code: text });
+            if (autoRecord) qp.set("auto", "1");
+            const url = `${redirectPath}?${qp.toString()}`;
             window.location.href = url;
           }
         }

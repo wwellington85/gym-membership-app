@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { verifyQrToken } from "@/lib/qr/token";
 import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { QrScanner } from "@/components/checkins/qr-scanner";
+import { AutoSubmitCheckin } from "@/components/checkins/auto-submit-checkin";
 
 function parsePayload(raw: string): { memberId?: string; token?: string; err?: string } {
   const v = (raw || "").trim();
@@ -73,12 +74,13 @@ function pct(n?: number | null) {
 export default async function ScanCheckinPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ code?: string; ok?: string; err?: string }>;
+  searchParams?: Promise<{ code?: string; ok?: string; err?: string; auto?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
   const code = sp.code ?? "";
   const ok = sp.ok ?? "";
   const errMsg = sp.err ?? "";
+  const auto = sp.auto === "1";
 
   const supabase = await createClient();
   const {
@@ -250,8 +252,8 @@ export default async function ScanCheckinPage({
           <div className="mt-1 opacity-80">{errMsg}</div>
         </div>
       ) : null}
-      <QrScanner />
-<form action={lookup} className="space-y-2">
+      <QrScanner autoRecord />
+      <form action={lookup} className="space-y-2">
         <label className="text-sm font-medium">QR / Code</label>
         <input
           name="code"
@@ -301,14 +303,15 @@ export default async function ScanCheckinPage({
               </div>
             </div>
 
-            <form action={checkin} className="mt-3">
+            <form id="scan-checkin-form" action={checkin} className="mt-3">
+              <AutoSubmitCheckin enabled={auto && activeNow} />
               <input type="hidden" name="code" value={code} />
               <button
                 type="submit"
                 className="w-full rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
                 disabled={!activeNow}
               >
-                Record check-in
+                {auto && activeNow ? "Recording check-in..." : "Record check-in"}
               </button>
             </form>
 
