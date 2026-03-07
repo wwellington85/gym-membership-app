@@ -144,7 +144,7 @@ export default async function MemberDashboardPage() {
   });
 
   // Membership
-  const { data: membership } = await supabase
+  const { data: membership } = await admin
     .from("memberships")
     .select("id, status, start_date, paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
     .eq("member_id", memberId)

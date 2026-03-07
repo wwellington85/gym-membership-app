@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { TIERS, byCode } from "@/lib/plans/tiers";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,7 @@ function benefitValueOrIncluded(raw: any) {
 
 export default async function MemberBenefitsPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const {
     data: { user },
@@ -34,7 +36,7 @@ export default async function MemberBenefitsPage() {
 
   if (!member) redirect("/join");
 
-  const { data: membership } = await supabase
+  const { data: membership } = await admin
     .from("memberships")
     .select(
       "id, membership_plans(id, code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"

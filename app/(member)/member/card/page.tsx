@@ -3,6 +3,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { titleCaseName } from "@/lib/format/name";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { computeMembershipStatus, type MembershipTier } from "@/lib/membership/status";
 import { RotatingQr } from "./RotatingQr";
 
@@ -43,6 +44,7 @@ function membershipStatusPillClass(status: string) {
 
 export default async function MemberCardPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const {
     data: { user },
@@ -80,7 +82,7 @@ export default async function MemberCardPage() {
     );
   }
 
-  const { data: membership } = await supabase
+  const { data: membership } = await admin
     .from("memberships")
     .select("status, start_date, paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
     .eq("member_id", member.id)

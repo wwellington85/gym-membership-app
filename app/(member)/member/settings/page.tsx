@@ -4,6 +4,7 @@ import { titleCaseName } from "@/lib/format/name";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { PlanPicker } from "@/components/member/plan-picker";
 import { TIERS } from "@/lib/plans/tiers";
 
@@ -24,6 +25,7 @@ function fmtJamaicaDate(ts?: string | null) {
 
 export default async function MemberSettingsPage() {
   const supabase = await createClient();
+  const admin = createAdminClient();
 
   const {
     data: { user },
@@ -47,7 +49,7 @@ export default async function MemberSettingsPage() {
     .maybeSingle();
 
   // Fetch membership row (include plan code + name)
-  let { data: membership } = await supabase
+  let { data: membership } = await admin
     .from("memberships")
     .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
     .eq("member_id", member.id)
@@ -68,7 +70,7 @@ export default async function MemberSettingsPage() {
       status: "active",
     });
 
-    const res = await supabase
+    const res = await admin
       .from("memberships")
       .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
       .eq("member_id", member.id)
