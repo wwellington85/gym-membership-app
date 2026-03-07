@@ -13,6 +13,8 @@ import {
 import { getMemberAvatar, getMemberLeaderboardSnapshot } from "@/lib/member/leaderboard";
 import { Star, CalendarCheck, Layers, Flame } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 function normalizeTier(planCode?: string | null): MembershipTier {
   const code = String(planCode || "").toLowerCase();
   if (code === "rewards_free" || code === "club_day" || code === "club_weekly" || code === "club_monthly_95") {

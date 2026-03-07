@@ -51,6 +51,7 @@ export default async function MemberSettingsPage() {
     .from("memberships")
     .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
     .eq("member_id", member.id)
+    .order("start_date", { ascending: false })
     .maybeSingle();
 
   // Create membership row if missing
@@ -71,6 +72,7 @@ export default async function MemberSettingsPage() {
       .from("memberships")
       .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
       .eq("member_id", member.id)
+      .order("start_date", { ascending: false })
       .maybeSingle();
 
     membership = res.data ?? null;

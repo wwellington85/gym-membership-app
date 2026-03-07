@@ -82,8 +82,9 @@ export default async function MemberCardPage() {
 
   const { data: membership } = await supabase
     .from("memberships")
-    .select("paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
+    .select("status, start_date, paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
     .eq("member_id", member.id)
+    .order("start_date", { ascending: false })
     .maybeSingle();
 
   const planRaw: any = (membership as any)?.membership_plans;
@@ -92,6 +93,9 @@ export default async function MemberCardPage() {
   const tier = normalizeTier(plan?.code);
   const computedStatus = computeMembershipStatus({
     tier,
+    start_date: (membership as any)?.start_date ?? null,
+    duration_days: plan?.duration_days ?? null,
+    db_status: (membership as any)?.status ?? null,
     paid_through: (membership as any)?.paid_through_date ?? null,
   });
 

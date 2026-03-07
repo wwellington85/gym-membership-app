@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TIERS, byCode } from "@/lib/plans/tiers";
 
+export const dynamic = "force-dynamic";
+
 function isMissingBenefitsTable(error: any) {
   const code = String(error?.code ?? "");
   const message = String(error?.message ?? "");
@@ -38,6 +40,7 @@ export default async function MemberBenefitsPage() {
       "id, membership_plans(id, code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
     )
     .eq("member_id", member.id)
+    .order("start_date", { ascending: false })
     .maybeSingle();
 
   const planRaw: any = (membership as any)?.membership_plans;
