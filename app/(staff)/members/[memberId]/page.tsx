@@ -13,6 +13,7 @@ import {
   changeMemberPlanAction,
   sendMemberLoginDetailsAction,
   setMemberActiveAction,
+  updateMemberContactAction,
 } from "./actions";
 import { ChangePlanForm } from "./ChangePlanForm";
 import { AutoClearMemberReset } from "./AutoClearMemberReset";
@@ -124,9 +125,10 @@ export default async function MemberProfilePage({
     plan?: string;
     plan_error?: string;
     duplicate_prevented?: string;
-    member_saved?: string;
-    member_error?: string;
-    member_reset?: string;
+      member_saved?: string;
+      member_update?: string;
+      member_error?: string;
+      member_reset?: string;
   }>;
 }) {
   const { memberId } = await params;
@@ -139,6 +141,7 @@ export default async function MemberProfilePage({
   const planError = sp.plan_error ?? "";
   const duplicatePrevented = sp.duplicate_prevented === "1";
   const memberSaved = sp.member_saved === "1";
+  const memberUpdate = sp.member_update ?? "";
   const memberErrorQuery = sp.member_error ?? "";
   const memberResetSent = sp.member_reset === "sent";
 
@@ -166,7 +169,7 @@ export default async function MemberProfilePage({
 
   const memberPromise = admin
     .from("members")
-    .select("id, full_name, phone, email, notes, is_active, created_at")
+    .select("id, user_id, full_name, phone, email, notes, is_active, created_at")
     .eq("id", memberId)
     .single();
 
@@ -427,10 +430,16 @@ if (!plan && (membership as any)?.plan_id) {
   const memberErrorMessage =
     memberErrorQuery === "forbidden"
       ? "Only Management can change member active status."
+      : memberErrorQuery === "invalid_email"
+      ? "Enter a valid email address."
       : memberErrorQuery === "no_email"
       ? "Member has no email on file. Add an email address before sending login details."
+      : memberErrorQuery === "email_in_use"
+      ? "That email address is already in use."
       : memberErrorQuery === "email_belongs_to_staff"
       ? "This email is already assigned to an active staff account. Use a different member email."
+      : memberErrorQuery === "auth_update_failed"
+      ? "Email updated in member record failed because the linked login could not be updated."
       : memberErrorQuery
       ? "Could not update member status. Please try again."
       : "";
@@ -540,7 +549,11 @@ if (!plan && (membership as any)?.plan_id) {
         <div className="oura-alert-success p-3 text-sm">
           <div className="font-medium">Member updated</div>
           <div className="mt-1 opacity-80">
-            {member.is_active === false ? "Member has been deactivated." : "Member has been reactivated."}
+            {memberUpdate === "contact"
+              ? "Contact information was saved."
+              : member.is_active === false
+              ? "Member has been deactivated."
+              : "Member has been reactivated."}
           </div>
         </div>
       ) : null}
@@ -618,6 +631,44 @@ if (!plan && (membership as any)?.plan_id) {
               ) : null}
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {canPayments ? (
+        <div className="oura-card p-3">
+          <div className="font-medium">Contact information</div>
+          <p className="mt-1 text-sm opacity-70">
+            Update the member’s phone number and email. If the member has a linked login, email changes update their login email too.
+          </p>
+
+          <form action={updateMemberContactAction} className="mt-3 space-y-3">
+            <input type="hidden" name="member_id" value={member.id} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="space-y-1 text-sm">
+                <span className="opacity-80">Phone</span>
+                <input
+                  name="phone"
+                  defaultValue={member.phone ?? ""}
+                  className="w-full rounded border px-3 py-2"
+                  placeholder="876-555-1234"
+                />
+              </label>
+              <label className="space-y-1 text-sm">
+                <span className="opacity-80">Email</span>
+                <input
+                  name="email"
+                  type="email"
+                  defaultValue={member.email ?? ""}
+                  className="w-full rounded border px-3 py-2"
+                  placeholder="member@email.com"
+                />
+              </label>
+            </div>
+
+            <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+              Save contact info
+            </button>
+          </form>
         </div>
       ) : null}
 

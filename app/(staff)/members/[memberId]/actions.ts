@@ -174,6 +174,114 @@ export async function setMemberActiveAction(formData: FormData) {
   redirect(`/members/${memberId}?member_saved=1`);
 }
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+export async function updateMemberContactAction(formData: FormData) {
+  const memberId = String(formData.get("member_id") ?? "").trim();
+  if (!memberId) redirect("/members");
+
+  const nextPhoneRaw = String(formData.get("phone") ?? "").trim();
+  const nextEmailRaw = String(formData.get("email") ?? "").trim();
+  const nextPhone = nextPhoneRaw || null;
+  const nextEmail = nextEmailRaw ? nextEmailRaw.toLowerCase() : null;
+
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/auth/login");
+
+  const { data: staffProfile } = await supabase
+    .from("staff_profiles")
+    .select("role")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const role = (staffProfile?.role ?? "") as string;
+  if (!["admin", "front_desk"].includes(role)) {
+    redirect(`/members/${memberId}?member_error=forbidden`);
+  }
+
+  if (nextEmail && !isValidEmail(nextEmail)) {
+    redirect(`/members/${memberId}?member_error=invalid_email`);
+  }
+
+  const { data: member, error: memberErr } = await admin
+    .from("members")
+    .select("id, user_id, email")
+    .eq("id", memberId)
+    .single();
+
+  if (memberErr || !member) {
+    redirect(`/members/${memberId}?member_error=not_found`);
+  }
+
+  if (nextEmail) {
+    const { data: matchingStaff } = await admin
+      .from("staff_profiles")
+      .select("user_id, is_active")
+      .eq("email", nextEmail)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (matchingStaff?.user_id && matchingStaff.user_id !== member.user_id) {
+      redirect(`/members/${memberId}?member_error=email_belongs_to_staff`);
+    }
+
+    const { data: matchingMember } = await admin
+      .from("members")
+      .select("id")
+      .eq("email", nextEmail)
+      .neq("id", memberId)
+      .maybeSingle();
+
+    if (matchingMember?.id) {
+      redirect(`/members/${memberId}?member_error=email_in_use`);
+    }
+  }
+
+  const currentEmail = String(member.email ?? "").trim().toLowerCase();
+  const emailChanged = !!nextEmail && nextEmail !== currentEmail;
+
+  if (emailChanged && member.user_id) {
+    const { error: authError } = await admin.auth.admin.updateUserById(String(member.user_id), {
+      email: nextEmail!,
+      email_confirm: true,
+    });
+
+    if (authError) {
+      const code = String((authError as any)?.code ?? "");
+      if (code === "email_exists") {
+        redirect(`/members/${memberId}?member_error=email_in_use`);
+      }
+      redirect(`/members/${memberId}?member_error=auth_update_failed`);
+    }
+  }
+
+  const payload: Record<string, any> = {
+    phone: nextPhone,
+  };
+  if (nextEmail !== null) payload.email = nextEmail;
+
+  const { error: updateError } = await admin
+    .from("members")
+    .update(payload)
+    .eq("id", memberId);
+
+  if (updateError) {
+    const code = String((updateError as any)?.code ?? "");
+    if (code === "23505") {
+      redirect(`/members/${memberId}?member_error=email_in_use`);
+    }
+    redirect(`/members/${memberId}?member_error=save_failed`);
+  }
+
+  redirect(`/members/${memberId}?member_saved=1&member_update=contact`);
+}
+
 async function getOrigin() {
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
