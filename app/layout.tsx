@@ -16,6 +16,17 @@ export const metadata: Metadata = {
   title: "Travellers Club",
   description: "Membership, rewards, and facility access for Travellers Beach Resort.",
   manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: "Travellers Club",
+    description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+    images: ["/api/og"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Travellers Club",
+    description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+    images: ["/api/og"],
+  },
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
