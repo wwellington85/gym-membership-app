@@ -40,13 +40,43 @@ export async function GET() {
           style={{
             position: "absolute",
             left: 76,
-            top: 74,
-            width: 420,
-            height: 420,
+            top: 54,
+            width: 460,
+            height: 460,
             borderRadius: "50%",
             background:
               "radial-gradient(circle at 50% 50%, rgba(14, 92, 73, 0.34), transparent 64%)",
-            filter: "blur(12px)",
+            filter: "blur(16px)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            left: 88,
+            bottom: 84,
+            width: 240,
+            height: 240,
+            borderRadius: "0 100% 0 100%",
+            borderTop: "1px solid rgba(233,210,153,0.18)",
+            borderLeft: "1px solid rgba(233,210,153,0.12)",
+            transform: "rotate(-18deg)",
+            opacity: 0.55,
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            left: 126,
+            bottom: 120,
+            width: 188,
+            height: 188,
+            borderRadius: "0 100% 0 100%",
+            borderTop: "1px solid rgba(233,210,153,0.14)",
+            borderLeft: "1px solid rgba(233,210,153,0.1)",
+            transform: "rotate(-18deg)",
+            opacity: 0.45,
           }}
         />
 
@@ -147,18 +177,18 @@ export async function GET() {
               marginTop: 18,
             }}
           >
-            <div
-              style={{
-                fontSize: 38,
-                fontWeight: 700,
-                lineHeight: 1.08,
-                color: "#fffaf0",
-              }}
-            >
-              Membership, rewards,
+              <div
+                style={{
+                  fontSize: 38,
+                  fontWeight: 700,
+                  lineHeight: 1.08,
+                  color: "#fffaf0",
+                }}
+              >
+              Elegant access,
               <br />
-              and resort access
-            </div>
+              modern hospitality
+              </div>
             <div
               style={{
                 fontSize: 18,
@@ -167,7 +197,7 @@ export async function GET() {
                 maxWidth: 280,
               }}
             >
-              Gym check-ins, member benefits, front desk operations, and club access in one place.
+              A polished member experience for benefits, check-ins, and front desk service.
             </div>
           </div>
 
@@ -205,15 +235,15 @@ export async function GET() {
           </div>
           <div
             style={{
-              fontSize: 72,
-              lineHeight: 0.98,
+              fontSize: 76,
+              lineHeight: 0.96,
               fontWeight: 700,
               color: "#fffaf0",
             }}
           >
-            Premium access,
+            Resort membership
             <br />
-            modern member ops
+            with a better finish
           </div>
           <div
             style={{
@@ -223,7 +253,7 @@ export async function GET() {
               maxWidth: 460,
             }}
           >
-            Built for Travellers Beach Resort with a cleaner, more boutique club presence across every shared link.
+            Built for Travellers Beach Resort with a boutique club feel across shared links, member touchpoints, and resort access.
           </div>
         </div>
 
@@ -236,7 +266,7 @@ export async function GET() {
             gap: 18,
           }}
         >
-          {["Member Benefits", "Check-ins", "Resort Access"].map((label) => (
+          {["Member Benefits", "Club Access", "Beach Resort"].map((label) => (
             <div
               key={label}
               style={{
