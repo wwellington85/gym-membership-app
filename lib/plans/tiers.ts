@@ -34,7 +34,7 @@ const TIERS: Tier[] = [
   {
     code: "club_day",
     name: "Travellers Club Day Pass",
-    priceLabel: "$25 / day",
+    priceLabel: "$15 / day",
     badge: "Full access",
     discounts: [
       { label: "Restaurant & Bar", value: "10% off" },

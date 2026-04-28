@@ -22,7 +22,7 @@ type JoinPlanOption = {
 
 const PLAN_LABELS: Record<PlanCode, string> = {
   rewards_free: "Travellers Rewards (Free) — Discounts only",
-  club_day: "Travellers Club Day Pass — $25",
+  club_day: "Travellers Club Day Pass — $15",
   club_weekly: "Travellers Club Weekly Pass — $45",
   club_monthly_95: "Travellers Club Monthly — $95",
 };
@@ -165,7 +165,7 @@ export default async function JoinPage({
       code: "club_day",
       label: PLAN_LABELS.club_day,
       name: "Travellers Club Day Pass",
-      price: 25,
+      price: 15,
       duration_days: 1,
       plan_type: "pass",
       grants_access: true,
