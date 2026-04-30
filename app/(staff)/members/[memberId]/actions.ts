@@ -336,7 +336,9 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   }
 
   const origin = await getOrigin();
-  const recoveryRedirectTo = `${origin}/auth/update-password?returnTo=/member`;
+  const recoveryRedirectTo = `${origin}/auth/confirm?next=${encodeURIComponent(
+    "/auth/update-password?returnTo=/member"
+  )}`;
   const createRes = await admin.auth.admin.createUser({
     email: normalizedEmail,
     password: `${crypto.randomUUID()}Aa!`,
@@ -355,8 +357,9 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
     redirect(`/members/${memberId}?member_error=${encodeURIComponent(createError.message)}`);
   }
 
-  // Use implicit flow for recipient-triggered email links so no PKCE verifier
-  // is required in the recipient's browser storage.
+  // Use a public client for recipient-triggered email links and route back
+  // through /auth/confirm so the server can complete auth before the user
+  // lands on the password screen.
   const publicClient = createSupabaseJsClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
