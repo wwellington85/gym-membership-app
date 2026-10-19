@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { FlashBanners } from "@/components/ui/flash-banners";
 import { safeReturnTo, withParam } from "@/lib/auth/return-to";
+import { SetStaffPasswordForm } from "@/components/staff/set-password-form";
 
 type Role = "admin" | "front_desk" | "security";
 const ROLES: Role[] = ["admin", "front_desk", "security"];
@@ -511,6 +512,7 @@ export default async function StaffManagementPage({
         <div className="mt-3 space-y-2">
           {(staff ?? []).map((s: any) => {
             const active = s.is_active !== false;
+            const hasNoEmail = !s.email || isSyntheticStaffEmail(s.email);
             return (
               <div key={s.user_id} className="oura-card p-3">
                 <div>
@@ -542,18 +544,23 @@ export default async function StaffManagementPage({
                       </button>
                     </form>
 
-                    <form action={sendResetEmail} className="w-1/2">
+                    {!hasNoEmail ? <form action={sendResetEmail} className="w-1/2">
                       <input type="hidden" name="returnTo" value={returnTo} />
                       <input type="hidden" name="email" value={s.email ?? ""} />
                       <button
-                        className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-                        disabled={isSyntheticStaffEmail(s.email)}
-                        title={isSyntheticStaffEmail(s.email) ? "No email on file for this account." : undefined}
+                        className="w-full rounded border px-3 py-2 text-sm hover:bg-gray-50"
                       >
-                        Reset password
+                        Send reset email
                       </button>
-                    </form>
+                    </form> : null}
                   </div>
+                  {hasNoEmail ? (
+                    <SetStaffPasswordForm
+                      userId={s.user_id}
+                      returnTo={returnTo}
+                      username={s.username ?? "this staff member"}
+                    />
+                  ) : null}
                 </div>
               </div>
             );

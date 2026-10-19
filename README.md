@@ -1,3 +1,18 @@
+## Gym app: staff password management
+
+Active admins can open **Settings → Staff Management** and expand **Set password**
+on a staff account without a real email address. Enter and confirm a password of
+at least eight characters, then select **Update password**. Share the password
+directly with the staff member; they can sign in using their existing username.
+Staff with an email address use **Send reset email** instead. Signed-in staff can
+also change their own password on the Account page.
+
+This uses the existing server-only Supabase service role configuration and needs
+no database migration. Run the password action regression checks with
+`node --test tests/staff-password.test.cjs`.
+
+The original starter documentation follows.
+
 <a href="https://demo-nextjs-with-supabase.vercel.app/">
   <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
   <h1 align="center">Next.js and Supabase Starter Kit</h1>
