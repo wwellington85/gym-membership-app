@@ -229,11 +229,11 @@ export function LoginForm({
                       onClick={handleMagicLinkClick}
                       className="underline underline-offset-4"
                     >
-                      Email me a login link instead
+                      Sign in with an email code or link
                     </Link>
                   ) : (
                     <span className="cursor-not-allowed opacity-50">
-                      Email me a login link instead
+                      Sign in with an email code or link
                     </span>
                   )}
                   {!emailOk ? (
