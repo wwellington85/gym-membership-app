@@ -63,7 +63,15 @@ function clearAllCookies(req: NextRequest, res: NextResponse) {
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
-  // Only protect staff routes
+  // Preserve a member deep link through the server-rendered login gate.
+  // Always overwrite the header, rather than trusting a client-supplied value.
+  if (pathname === "/member" || pathname.startsWith("/member/")) {
+    const headers = new Headers(request.headers);
+    headers.set("x-member-return-to", pathname + search);
+    return NextResponse.next({ request: { headers } });
+  }
+
+  // Protect staff routes
   if (!isStaffPath(pathname)) {
     return NextResponse.next();
   }
@@ -159,6 +167,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/member/:path*",
     "/dashboard/:path*",
     "/account/:path*",
     "/members/:path*",

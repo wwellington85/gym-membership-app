@@ -493,3 +493,51 @@ export async function getMemberLeaderboardSnapshot({
     badges,
   };
 }
+
+// The gym landing screen needs only this member's visits and an aggregate rank.
+// Do not load the full leaderboard or silently display zero after a query error.
+export async function getMemberGymSummary(supabase: any, memberId: string) {
+  const [summary, visits, count] = await Promise.all([
+    supabase.rpc("member_leaderboard_summary", {
+      p_member_id: memberId,
+      p_period: "all",
+    }),
+    supabase
+      .from("checkins")
+      .select("checked_in_at")
+      .eq("member_id", memberId)
+      .order("checked_in_at", { ascending: false })
+      .limit(120),
+    supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("member_id", memberId),
+  ]);
+  const rank = !summary.error
+    ? Number(summary.data?.[0]?.my_rank) || null
+    : null;
+  const allTimeCheckins = count.error ? null : Number(count.count ?? 0);
+  const streakDays = visits.error
+    ? null
+    : computeCurrentStreakDays(visits.data ?? []);
+  return {
+    rank,
+    rankingAvailable: !summary.error,
+    allTimeCheckins,
+    streakDays,
+    recentVisits: visits.error
+      ? null
+      : ((visits.data ?? []).slice(0, 5) as Array<{ checked_in_at: string }>),
+    badges:
+      allTimeCheckins !== null && streakDays !== null
+        ? deriveBadges({
+            streakDays,
+            allTimeCheckins,
+            rank,
+            totalRanked: !summary.error
+              ? Number(summary.data?.[0]?.total_ranked ?? 0)
+              : 0,
+          })
+        : [],
+  };
+}

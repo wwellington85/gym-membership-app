@@ -11,12 +11,7 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    const { data: staff } = await supabase
-      .from("staff_profiles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    redirect(staff?.role ? "/dashboard" : "/member");
+    redirect("/auth/post-login");
   }
   let plans: Awaited<ReturnType<typeof loadCatalogue>> = [];
   try {
@@ -26,7 +21,7 @@ export default async function HomePage() {
   }
   const rewards = plans.find((p) => p.code === "rewards_free");
   return (
-    <main id="main-content" className="h-svh overflow-y-auto px-5 py-10">
+    <main id="main-content" tabIndex={-1} className="h-svh overflow-y-auto px-5 py-10">
       <div className="mx-auto max-w-2xl space-y-8">
         <div className="space-y-4">
           <p className="text-sm uppercase tracking-widest">

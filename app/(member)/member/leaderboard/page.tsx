@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { BackButton } from "@/components/ui/back-button";
 import { getMemberLeaderboardSnapshot, type LeaderboardPeriod, type LeaderboardRow } from "@/lib/member/leaderboard";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +68,6 @@ export default async function MemberLeaderboardPage(props: {
         <div>
           <h1 className="text-xl font-semibold">Leaderboard</h1>
         </div>
-        <BackButton fallbackHref="/member" />
       </div>
 
       <div className="oura-card p-3">

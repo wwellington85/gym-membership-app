@@ -84,6 +84,12 @@ export default async function MemberHome() {
           {access.best ? "Manage or renew access" : "Explore access"}
         </Link>
       </section>
+      <Link
+        href="/member/gym"
+        className="block rounded border px-4 py-3 text-sm"
+      >
+        Visit your Gym section — history, progress, and rankings
+      </Link>
       <p className="text-sm opacity-80">
         Planning another visit or need help using a benefit?{" "}
         <Link href="/member/help" className="underline">
