@@ -5,6 +5,7 @@ type Role = "admin" | "front_desk" | "security";
 
 const STAFF_PREFIXES = [
   "/dashboard",
+  "/account",
   "/members",
   "/applications",
   "/payments",
@@ -14,11 +15,14 @@ const STAFF_PREFIXES = [
 ];
 
 function isStaffPath(pathname: string) {
-  return STAFF_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+  return STAFF_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
 }
 
 function roleAllowsPath(role: Role, pathname: string) {
   if (role === "admin") return true;
+  if (pathname === "/account" || pathname.startsWith("/account/")) return true;
 
   if (role === "security") {
     return (
@@ -83,7 +87,7 @@ export async function proxy(request: NextRequest) {
           });
         },
       },
-    }
+    },
   );
 
   const {
@@ -114,7 +118,7 @@ export async function proxy(request: NextRequest) {
   // Assumes: staff_profiles(user_id, role)
   const { data: staffProfile, error: staffErr } = await supabase
     .from("staff_profiles")
-    .select("role")
+    .select("role, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -133,6 +137,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(memberUrl);
   }
 
+  if (staffProfile.is_active === false) {
+    await supabase.auth.signOut();
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth/login";
+    loginUrl.search = "?staff=1&err=This%20staff%20account%20is%20inactive.";
+    return NextResponse.redirect(loginUrl);
+  }
+
   const role = staffProfile.role as Role;
 
   if (!roleAllowsPath(role, pathname)) {
@@ -148,6 +160,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/account/:path*",
     "/members/:path*",
     "/applications/:path*",
     "/payments/:path*",

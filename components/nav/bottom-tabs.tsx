@@ -11,7 +11,7 @@ type Props = { role: Role };
 type Tab = {
   href: string;
   label: string;
-  roles?: Role[];      // if omitted, everyone sees it
+  roles?: Role[]; // if omitted, everyone sees it
   adminOnly?: boolean; // backward compatibility if you still use it elsewhere
 };
 
@@ -21,7 +21,7 @@ const tabs: Tab[] = [
 
   // Shared operational tabs
   { href: "/payments", label: "Payments", roles: ["admin", "front_desk"] },
-  { href: "/checkins", label: "Check-ins" },
+  { href: "/checkins", label: "Visits" },
 
   // Admin: keep bottom bar compact, move rarely-used destinations under "More"
   { href: "/more", label: "More", roles: ["admin"] },
@@ -48,13 +48,18 @@ export function BottomTabs({ role }: Props) {
   const host = document.getElementById("app-portal") ?? document.body;
 
   const nav = (
-    <nav className="fixed bottom-0 left-0 right-0 z-[9999] border-t oura-tabbar oura-bottom-tabbar">
+    <nav
+      aria-label="Employee navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-[9999] border-t oura-tabbar oura-bottom-tabbar"
+    >
       <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
         {visibleTabs.map((t) => {
-          const active = pathname === t.href || pathname.startsWith(t.href + "/");
+          const active =
+            pathname === t.href || pathname.startsWith(t.href + "/");
           return (
             <Link
               key={t.href}
+              aria-current={active ? "page" : undefined}
               href={t.href}
               prefetch
               className={`flex-1 rounded px-1 py-2 text-center whitespace-nowrap text-[13px] leading-none ${

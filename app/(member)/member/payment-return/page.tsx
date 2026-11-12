@@ -1,95 +1,115 @@
 "use client";
-
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { BackButton } from "@/components/ui/back-button";
-
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 export default function PaymentReturnPage() {
-  const router = useRouter();
   const sp = useSearchParams();
-
-  const reference = sp.get("reference") || "—";
-  const customReference = sp.get("customReference") || sp.get("custom_reference") || sp.get("payment") || "";
-
-  const supabase = useMemo(() => createClient(), []);
-  const [status, setStatus] = useState<string>("checking");
-  const [detail, setDetail] = useState<string>("");
-
+  const reference =
+    sp.get("customReference") ||
+    sp.get("custom_reference") ||
+    sp.get("payment") ||
+    "";
+  const [message, setMessage] = useState("Checking your payment and access…");
+  const [ready, setReady] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const [checking, setChecking] = useState(true);
   useEffect(() => {
     let alive = true;
+    let timer: ReturnType<typeof setTimeout>;
     let tries = 0;
-
-    async function tick() {
-      tries += 1;
-
-      if (!customReference) {
-        setStatus("error");
-        setDetail("Missing payment reference.");
-        return;
+    const controller = new AbortController();
+    async function check() {
+      try {
+        if (!reference)
+          throw new Error(
+            "No payment reference was supplied. Open My account to find your purchase.",
+          );
+        const res = await fetch(
+          `/api/member/payments/${encodeURIComponent(reference)}`,
+          { cache: "no-store", signal: controller.signal },
+        );
+        const payment = await res.json();
+        if (!res.ok)
+          throw new Error(
+            payment.error || "We could not check payment status.",
+          );
+        if (!alive) return;
+        if (payment.status === "paid" && payment.fulfilled_at) {
+          setReady(true);
+          setChecking(false);
+          setMessage(
+            `Payment received and access activated: ${payment.access_start_date} through ${payment.access_end_date}, until 10 pm Jamaica time on the last day.`,
+          );
+          return;
+        }
+        if (
+          ["failed", "cancelled", "canceled", "refunded"].includes(
+            payment.status,
+          )
+        ) {
+          setChecking(false);
+          setMessage(
+            `Payment status: ${payment.status}. Please contact the front desk if you need help.`,
+          );
+          return;
+        }
+        if (++tries >= 20 || payment.status === "paid") {
+          setChecking(false);
+          setMessage(
+            "Your purchase needs confirmation. Do not pay again. Check status again or show your reference to the front desk.",
+          );
+          return;
+        }
+        setMessage(
+          "Still confirming payment and access. Do not pay again while this is processing.",
+        );
+        timer = setTimeout(check, 3000);
+      } catch (error) {
+        if (alive) {
+          setChecking(false);
+          setMessage(
+            error instanceof Error ? error.message : "Please try again.",
+          );
+        }
       }
-
-      const { data, error } = await supabase
-        .from("payments")
-        .select("id,status,amount,currency,provider,paid_on,updated_at")
-        .eq("id", customReference)
-        .maybeSingle();
-
-      if (!alive) return;
-
-      if (error || !data) {
-        setStatus("error");
-        setDetail(error?.message || "Payment not found.");
-        return;
-      }
-
-      const st = String(data.status || "").toLowerCase();
-      if (st === "paid" || st === "succeeded" || st === "success") {
-        setStatus("paid");
-        setDetail("Payment confirmed. Redirecting…");
-        setTimeout(() => router.replace("/member/card"), 600);
-        return;
-      }
-
-      setStatus("pending");
-      setDetail("Still confirming your payment…");
-
-      // Stop after ~60 seconds (20 tries at 3s)
-      if (tries >= 20) return;
-      setTimeout(tick, 3000);
     }
-
-    tick();
-
+    setChecking(true);
+    setReady(false);
+    void check();
     return () => {
       alive = false;
+      controller.abort();
+      clearTimeout(timer);
     };
-  }, [customReference, router, supabase]);
-
+  }, [reference, attempt]);
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">
-        {status === "paid" ? "Payment received" : "Confirming payment"}
+        {ready ? "Your access is ready" : "Payment status"}
       </h1>
-
-      <p className="text-sm opacity-70">
-        {detail || "Thanks — we’re confirming your payment now. This usually updates within a few seconds."}
+      <p role="status">{message}</p>
+      <p className="break-all rounded border p-3 text-sm">
+        Your reference: {reference || "Not supplied"}
       </p>
-
-      <div className="rounded border p-3 text-sm">
-        <div>
-          <span className="opacity-70">Fygaro reference:</span> {reference}
-        </div>
-        <div>
-          <span className="opacity-70">Your reference:</span> {customReference || "—"}
-        </div>
-      </div>
-
-      <div className="flex gap-2">
-        <BackButton fallbackHref="/member" />
-        <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/member/card">
-          View membership card
+      <div className="flex flex-wrap gap-3">
+        {ready ? (
+          <Link href="/member/card" className="rounded border p-3">
+            Show my card
+          </Link>
+        ) : (
+          <button
+            disabled={checking}
+            onClick={() => setAttempt((n) => n + 1)}
+            className="rounded border p-3 disabled:opacity-50"
+          >
+            {checking ? "Checking…" : "Check status again"}
+          </button>
+        )}
+        <Link href="/member/settings" className="rounded border p-3">
+          My purchases
+        </Link>
+        <Link href="/member/help" className="rounded border p-3">
+          Get help
         </Link>
       </div>
     </div>

@@ -1,310 +1,147 @@
 import Link from "next/link";
-import { BackButton } from "@/components/ui/back-button";
-import { titleCaseName } from "@/lib/format/name";
-
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { PlanPicker } from "@/components/member/plan-picker";
-import { TIERS } from "@/lib/plans/tiers";
+import { requireMember } from "@/lib/access/server";
 
 export const dynamic = "force-dynamic";
-
-function addDaysISO(baseISO: string, days: number) {
-  const d = new Date(baseISO + "T00:00:00.000Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-function fmtJamaicaDate(ts?: string | null) {
-  if (!ts) return "—";
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { timeZone: "America/Jamaica" });
-}
-
-export default async function MemberSettingsPage() {
-  const supabase = await createClient();
-  const admin = createAdminClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
-
-  const { data: member } = await supabase
-    .from("members")
-    .select("id, full_name, email")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!member) redirect("/join");
-
-  // Ensure we have a rewards_free plan to attach when membership row is missing
-  const { data: rewardsPlan } = await supabase
-    .from("membership_plans")
-    .select("id, duration_days, code, name")
-    .eq("code", "rewards_free")
-    .maybeSingle();
-
-  // Fetch membership row (include plan code + name)
-  let { data: membership } = await admin
-    .from("memberships")
-    .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ saved?: string; err?: string }>;
+}) {
+  const { member, admin } = await requireMember();
+  const sp = await searchParams;
+  const { data: payments, error } = await admin
+    .from("payments")
+    .select(
+      "id, amount, currency, status, fulfilled_at, created_at, purchased_plan_id, purchase_snapshot, access_start_date, access_end_date, provider",
+    )
     .eq("member_id", member.id)
-    .order("start_date", { ascending: false })
-    .maybeSingle();
-
-  // Create membership row if missing
-  if (!membership) {
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const duration = Number(rewardsPlan?.duration_days || 3650);
-    const paidThrough = addDaysISO(todayISO, duration);
-
-    await supabase.from("memberships").insert({
-      member_id: member.id,
-      plan_id: rewardsPlan?.id ?? null,
-      start_date: todayISO,
-      paid_through_date: paidThrough,
-      status: "active",
-    });
-
-    const res = await admin
-      .from("memberships")
-      .select("id, plan_id, paid_through_date, status, downgraded_from_plan_name, downgraded_on, membership_plans(code, name)")
-      .eq("member_id", member.id)
-      .order("start_date", { ascending: false })
-      .maybeSingle();
-
-    membership = res.data ?? null;
+    .order("created_at", { ascending: false })
+    .limit(30);
+  async function save(data: FormData) {
+    "use server";
+    const { member, admin } = await requireMember();
+    const name = String(data.get("full_name") || "").trim();
+    const phone = String(data.get("phone") || "").trim();
+    if (!name || name.length > 120 || phone.length > 40)
+      redirect(
+        "/member/settings?err=Please%20check%20your%20name%20and%20phone.",
+      );
+    const { error } = await admin
+      .from("members")
+      .update({ full_name: name, phone })
+      .eq("id", member.id);
+    redirect(
+      error
+        ? "/member/settings?err=Could%20not%20save.%20Please%20try%20again."
+        : "/member/settings?saved=1",
+    );
   }
-
-  const msPlanRaw: any = (membership as any)?.membership_plans;
-  const msPlan: any = Array.isArray(msPlanRaw) ? msPlanRaw[0] : msPlanRaw;
-
-  const currentPlanCode = String(msPlan?.code || "rewards_free");
-  
-  const isFree = currentPlanCode === "rewards_free";
-const currentPlanName = String(
-    msPlan?.name || rewardsPlan?.name || "Travellers Rewards (Free)"
-  );
-
-  const paidThroughLabel = fmtJamaicaDate((membership as any)?.paid_through_date ?? null);
-
   async function logout() {
     "use server";
-    const supabase = await createClient();
+    const { supabase } = await requireMember();
     await supabase.auth.signOut();
     redirect("/auth/login");
   }
-
-  async function savePlan(formData: FormData) {
-    "use server";
-
-    const planCode = String(formData.get("plan_code") || "");
-    if (!planCode) redirect("/member/settings?err=SETTINGS_MISSING_PLAN");
-
-    // Paid plans: go to upgrade page (Option B)
-    if (planCode !== "rewards_free") {
-      redirect(`/member/upgrade?plan=${encodeURIComponent(planCode)}`);
-    }
-
-    // Free plan: update membership directly
-    const supabase = await createClient();
-
-    const { data: plan } = await supabase
-      .from("membership_plans")
-      .select("id, duration_days")
-      .eq("code", "rewards_free")
-      .maybeSingle();
-
-    const todayISO = new Date().toISOString().slice(0, 10);
-    const duration = Number(plan?.duration_days || 3650);
-    const paidThrough = addDaysISO(todayISO, duration);
-
-    const { data: auth } = await supabase.auth.getUser();
-    const actionUser = auth?.user;
-    if (!actionUser) redirect("/auth/login");
-
-    const { data: m } = await supabase
-      .from("members")
-      .select("id")
-      .eq("user_id", actionUser.id)
-      .maybeSingle();
-
-    if (!m) redirect("/join");
-
-    await supabase
-      .from("memberships")
-      .update({
-        plan_id: plan?.id ?? null,
-        status: "active",
-        start_date: todayISO,
-        paid_through_date: paidThrough,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("member_id", m.id);
-
-    redirect("/member/settings?ok=Updated");
-  }
-
-  const { data: plans } = await supabase
-    .from("membership_plans")
-    .select("code, name, price, duration_days, is_active, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa")
-    .eq("is_active", true)
-    .order("price", { ascending: true });
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-5">
+      <h1 className="text-xl font-semibold">My account</h1>
+      {sp.saved && (
+        <p role="status" className="oura-alert-success">
+          Your details were saved.
+        </p>
+      )}
+      {sp.err && (
+        <p role="alert" className="oura-alert-danger">
+          {sp.err}
+        </p>
+      )}
+      <form action={save} className="space-y-3">
         <div>
-          <h1 className="text-xl font-semibold">Settings</h1>
-          <p className="text-sm opacity-70">Signed in as</p>
-          <p className="text-sm font-medium">{titleCaseName(member?.full_name) || "Member"}</p>
+          <label htmlFor="account-name">Full name</label>
+          <input
+            id="account-name"
+            name="full_name"
+            autoComplete="name"
+            required
+            maxLength={120}
+            defaultValue={member.full_name}
+            className="oura-input mt-2 w-full p-3"
+          />
         </div>
-        <BackButton fallbackHref="/member" />
-      </div>
-
-      <div className="space-y-3">
-        <div className="oura-card p-3">
-          <div className="font-medium">Membership plan</div>
-
-          <div className={["mt-2 grid gap-2 text-sm", isFree ? "grid-cols-1" : "grid-cols-2"].join(" ")}>
-            <div>
-              <div className="opacity-70">Current plan</div>
-              <div className="font-medium">{currentPlanName}</div>
-            </div>
-            <div>
-              {!isFree && (
-              <div>
-                <div className="opacity-70">Paid through</div>
-                <div className="font-medium">{paidThroughLabel}</div>
-              </div>
-              )}
-            </div>
-          </div>
-
-          {isFree && (membership as any)?.downgraded_from_plan_name ? (
-            <div className="mt-2 text-xs opacity-75">
-              Previous paid plan: {(membership as any).downgraded_from_plan_name}
-              {(membership as any)?.downgraded_on ? ` (expired ${(membership as any).downgraded_on})` : ""}
-            </div>
-          ) : null}
+        <div>
+          <label htmlFor="account-phone">Phone (optional)</label>
+          <input
+            id="account-phone"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            maxLength={40}
+            defaultValue={member.phone || ""}
+            className="oura-input mt-2 w-full p-3"
+          />
         </div>
-
-        <div className="oura-card p-3">
-          <div className="font-medium">Choose a plan</div>
-          <p className="mt-1 text-sm opacity-70">
-            Paid plans will take you to secure checkout.
-          </p>
-
-          <form action={savePlan} className="mt-3 space-y-3">
-            <PlanPicker
-              name="plan_code"
-              defaultValue={currentPlanCode as any}
-              currentPlan={currentPlanCode as any}
-                  showSubmit
-              submitLabel="Continue"
-            />
-
-</form>
-        </div>
-
-        {(() => {
-          const rows = (plans ?? []).filter((x: any) => !!x?.code);
-          const byCode = new Map<string, any>();
-          rows.forEach((r: any) => byCode.set(String(r.code), r));
-
-          const pct = (v: any) => {
-            const n = Number(v ?? 0);
-            if (!Number.isFinite(n)) return "—";
-            return `${Math.round(n * 100)}% off`;
-          };
-
-          return (
-            <div className="oura-card p-3">
-              <div className="font-medium">Compare tiers</div>
-              <p className="mt-1 text-sm opacity-70">Quick view of what changes when you upgrade.</p>
-
-              <div className="mt-3 space-y-3">
-                {TIERS.map((t) => {
-                  const db = byCode.get(String(t.code)) || null;
-
-                  return (
-                    <div key={t.code} className="oura-card p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-medium">{t.name}</div>
-                          <div className="mt-1 text-sm opacity-70">
-                            {t.badge ? `${t.badge} • ` : ""}{t.priceLabel}
-                          </div>
-                        </div>
-
-                        <div className="text-xs opacity-70">
-                          {String(t.code) === String(currentPlanCode) ? "Current" : ""}
-                        </div>
-                      </div>
-
-                      <div className="mt-3 space-y-2 text-sm">
-                        {/* Access bullets (display copy stays hard-coded via TIERS) */}
-                        {t.access?.length ? (
-                          <div className="space-y-1">
-                            {t.access.map((a) => (
-                              <div key={a} className="opacity-85">{a}</div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="opacity-70">Discounts only (no facility access).</div>
-                        )}
-
-                        {/* Discounts from DB */}
-                        <div className="mt-2 grid grid-cols-2 gap-2">
-                          <div className="oura-surface-muted rounded border border-white/10 p-2">
-                            <div className="text-xs opacity-70">Food</div>
-                            <div className="font-medium">{db ? pct(db.discount_food) : "—"}</div>
-                          </div>
-                          <div className="oura-surface-muted rounded border border-white/10 p-2">
-                            <div className="text-xs opacity-70">Watersports</div>
-                            <div className="font-medium">{db ? pct(db.discount_watersports) : "—"}</div>
-                          </div>
-                          <div className="oura-surface-muted rounded border border-white/10 p-2">
-                            <div className="text-xs opacity-70">Gift Shop</div>
-                            <div className="font-medium">{db ? pct(db.discount_giftshop) : "—"}</div>
-                          </div>
-                          <div className="oura-surface-muted rounded border border-white/10 p-2">
-                            <div className="text-xs opacity-70">Spa</div>
-                            <div className="font-medium">{db ? pct(db.discount_spa) : "—"}</div>
-                          </div>
-                        </div>
-
-                        {t.notes?.length ? (
-                          <div className="oura-surface-muted mt-2 rounded border border-white/10 p-2 text-xs opacity-80">
-                            {t.notes.join(" ")}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
+        <p className="text-sm opacity-80">
+          Sign-in email: {member.email}. Contact the front desk if you need to
+          change it.
+        </p>
+        <button className="rounded border px-4 py-3">Save details</button>
+      </form>
+      <div className="flex flex-wrap gap-3">
         <Link
           href="/auth/update-password"
-          className="block rounded border px-3 py-2 text-sm hover:oura-surface-muted"
+          className="rounded border px-3 py-3 text-sm"
         >
           Change password
         </Link>
-
-        <form action={logout}>
-          <button className="w-full rounded border px-3 py-2 text-sm hover:oura-surface-muted">
-            Log out
-          </button>
-        </form>
+        <Link href="/member/help" className="rounded border px-3 py-3 text-sm">
+          Help & membership information
+        </Link>
       </div>
+      <section className="space-y-3">
+        <h2 className="font-semibold">Recent purchases</h2>
+        {error ? (
+          <p role="alert">We could not load purchases. Please try again.</p>
+        ) : !payments?.length ? (
+          <p className="text-sm opacity-80">No purchases yet.</p>
+        ) : (
+          payments.map((p) => (
+            <div key={p.id} className="rounded border p-3 text-sm">
+              <h3 className="font-medium">
+                {p.purchase_snapshot?.name || "Membership payment"}
+              </h3>
+              <p className="mt-2">
+                ${Number(p.amount).toFixed(2)} {p.currency || "USD"} ·{" "}
+                {p.status || "Recorded at desk"}
+                {p.status === "paid" && p.purchased_plan_id
+                  ? p.fulfilled_at
+                    ? " · Access activated"
+                    : " · Activation needs review"
+                  : ""}
+              </p>
+              {p.access_start_date && (
+                <p className="mt-2">
+                  {p.access_start_date} — {p.access_end_date}
+                </p>
+              )}
+              <p className="mt-2 break-all text-xs opacity-80">
+                Reference: {p.id}
+              </p>
+              {p.provider === "fygaro" && (
+                <Link
+                  className="inline-block py-3 underline"
+                  href={`/member/payment-return?payment=${p.id}`}
+                >
+                  Check payment status
+                </Link>
+              )}
+            </div>
+          ))
+        )}
+      </section>
+      <form action={logout}>
+        <button className="w-full rounded border px-4 py-3">Log out</button>
+      </form>
     </div>
   );
 }

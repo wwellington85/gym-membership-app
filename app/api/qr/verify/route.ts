@@ -1,59 +1,69 @@
 import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyQrToken } from "@/lib/qr/token";
-import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
-
+import { loadAccess } from "@/lib/access/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
 export async function POST(req: Request) {
-  const secret = process.env.QR_TOKEN_SECRET || "";
-  if (!secret) return new NextResponse("Missing QR_TOKEN_SECRET", { status: 500 });
-
-  let body: any = null;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  const { data: staff } = await supabase
+    .from("staff_profiles")
+    .select("role, is_active")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (
+    !staff ||
+    staff.is_active === false ||
+    !["admin", "front_desk", "security"].includes(staff.role)
+  )
+    return NextResponse.json({ error: "Not authorised" }, { status: 403 });
+  const secret = process.env.QR_TOKEN_SECRET;
+  if (!secret)
+    return NextResponse.json(
+      { error: "QR verification unavailable" },
+      { status: 503 },
+    );
+  let body;
   try {
     body = await req.json();
   } catch {
-    return new NextResponse("Bad JSON", { status: 400 });
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
-
-  const token = String(body?.token || "").trim();
-  if (!token) return new NextResponse("Missing token", { status: 400 });
-
-  const v = verifyQrToken(token, secret);
-  if (!v.ok) return NextResponse.json({ ok: false, reason: v.reason }, { status: 400 });
-
-  const supabase = createAdminClient();
-
-  const { data: member } = await supabase
+  const result = verifyQrToken(String(body?.token || ""), secret);
+  if (!result.ok)
+    return NextResponse.json(
+      { ok: false, reason: result.reason },
+      { status: 400 },
+    );
+  const { data: member } = await createAdminClient()
     .from("members")
-    .select("id, full_name, phone, email")
-    .eq("id", v.claims.mid)
+    .select("id, full_name, is_active")
+    .eq("id", result.claims.mid)
     .maybeSingle();
-
-  if (!member?.id) return NextResponse.json({ ok: false, reason: "member_not_found" }, { status: 404 });
-
-  const { data: membership } = await supabase
-    .from("memberships")
-    .select("status, start_date, paid_through_date, membership_plans(code, name, duration_days)")
-    .eq("member_id", member.id)
-    .order("start_date", { ascending: false })
-    .maybeSingle();
-
-  const planRaw: any = (membership as any)?.membership_plans;
-  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-  const activeNow = isAccessActiveAtJamaicaCutoff({
-    status: (membership as any)?.status ?? null,
-    startDate: (membership as any)?.start_date ?? null,
-    paidThroughDate: (membership as any)?.paid_through_date ?? null,
-    durationDays: plan?.duration_days ?? null,
-  });
-
-  return NextResponse.json({
-    ok: true,
-    member,
-    membership,
-    active_now: activeNow,
-    exp: v.claims.exp,
-  });
+  if (!member)
+    return NextResponse.json({ error: "Member not found" }, { status: 404 });
+  try {
+    const access = await loadAccess(member.id, member.is_active);
+    return NextResponse.json(
+      {
+        ok: true,
+        member,
+        gym_access: access.gym,
+        resort_access: access.resort,
+        exp: result.claims.exp,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  } catch {
+    return NextResponse.json(
+      { error: "Access cannot be verified right now" },
+      { status: 503 },
+    );
+  }
 }

@@ -1,23 +1,12 @@
-import Link from "next/link";
-
-import { BackButton } from "@/components/ui/back-button";
-export default function PaymentReturnPage() {
-  return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Thanks — processing your payment</h1>
-        <p className="text-sm opacity-70">
-          Your membership will update as soon as we receive confirmation from the payment processor.
-          This usually takes a few seconds.
-        </p>
-      </div>
-
-      <div className="rounded border p-4 text-sm space-y-2">
-        <div>Tip: If your status hasn’t updated yet, refresh in a moment.</div>
-        <div>
-          <BackButton fallbackHref="/member" />
-        </div>
-      </div>
-    </div>
-  );
+import { redirect } from "next/navigation";
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(sp))
+    if (typeof value === "string") query.set(key, value);
+  redirect(`/member/payment-return?${query.toString()}`);
 }

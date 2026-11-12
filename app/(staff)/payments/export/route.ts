@@ -1,103 +1,64 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-
-function escapeCsv(value: any) {
-  const s = String(value ?? "");
-  // Escape quotes and wrap if needed
-  const needsWrap = /[",\n\r]/.test(s);
-  const escaped = s.replace(/"/g, '""');
-  return needsWrap ? `"${escaped}"` : escaped;
+import { createAdminClient } from "@/lib/supabase/admin";
+function csv(value: unknown) {
+  let text = String(value ?? "");
+  if (/^[=+@\-\t\r]/.test(text)) text = `'${text}`;
+  return `"${text.replace(/"/g, '""')}"`;
 }
-
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const from = (url.searchParams.get("from") ?? "").trim();
-  const to = (url.searchParams.get("to") ?? "").trim();
-  const q = (url.searchParams.get("q") ?? "").trim().toLowerCase();
-  const method = (url.searchParams.get("method") ?? "").trim();
-
   const supabase = await createClient();
-
-  // Auth guard (staff only)
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
-  const { data: staffProfile, error: staffErr } = await supabase
+  if (!user) return new NextResponse("Not authenticated", { status: 401 });
+  const { data: staff } = await supabase
     .from("staff_profiles")
-    .select("role")
+    .select("role, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
-
-  if (staffErr || !staffProfile) {
-    return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-  }
-
-  // Fetch payments in date range + method, then apply q filter in JS (same approach as UI)
-  let query = supabase
-    .from("payments")
-    .select(
-      "id, paid_on, amount, payment_method, notes, created_at, member:members(id, full_name, phone)"
-    )
-    .order("paid_on", { ascending: false })
-    .limit(5000);
-
-  if (from) query = query.gte("paid_on", from);
-  if (to) query = query.lte("paid_on", to);
-  if (method) query = query.eq("payment_method", method);
-
-  const { data: rows, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  const filtered = (rows ?? []).filter((r: any) => {
-    if (!q) return true;
-    const name = String(r.member?.full_name ?? "").toLowerCase();
-    const phone = String(r.member?.phone ?? "").toLowerCase();
-    return name.includes(q) || phone.includes(q);
-  });
-
-  // Build CSV
-  const header = [
-    "paid_on",
+  if (
+    !staff ||
+    staff.is_active === false ||
+    !["admin", "front_desk"].includes(staff.role)
+  )
+    return new NextResponse("Not authorised", { status: 403 });
+  const sp = new URL(req.url).searchParams;
+  const { data, error } = await createAdminClient().rpc(
+    "search_club_payments",
+    {
+      p_query: (sp.get("q") || "").slice(0, 120),
+      p_status: sp.get("status") || "all",
+      p_from: sp.get("from") || null,
+      p_to: sp.get("to") || null,
+      p_page: 0,
+      p_size: 5000,
+    },
+  );
+  if (error)
+    return new NextResponse("Could not export payments. Check filters.", {
+      status: 400,
+    });
+  const fields = [
+    "id",
+    "full_name",
     "amount",
+    "currency",
+    "status",
     "payment_method",
-    "member_name",
-    "member_phone",
-    "notes",
+    "created_at",
+    "fulfilled_at",
   ];
-
-  const lines = [
-    header.join(","),
-    ...filtered.map((r: any) =>
-      [
-        escapeCsv(r.paid_on),
-        escapeCsv(Number(r.amount ?? 0).toFixed(2)),
-        escapeCsv(r.payment_method),
-        escapeCsv(r.member?.full_name),
-        escapeCsv(r.member?.phone),
-        escapeCsv(r.notes),
-      ].join(",")
+  const output = [
+    fields.join(","),
+    ...(data || []).map((row: Record<string, unknown>) =>
+      fields.map((f) => csv(row[f])).join(","),
     ),
-  ];
-
-  const csv = lines.join("\n");
-
-  const safeFrom = from || "all";
-  const safeTo = to || "all";
-  const filename = `payments_${safeFrom}_to_${safeTo}.csv`;
-
-  return new NextResponse(csv, {
-    status: 200,
+  ].join("\r\n");
+  return new NextResponse(output, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Disposition": 'attachment; filename="travellers-payments.csv"',
       "Cache-Control": "no-store",
     },
   });

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 import { LogoutButton } from "@/components/logout-button";
 
 const KEY_PREV = "tbr_prev_path";
@@ -17,7 +18,7 @@ function fallbackFor(pathname: string) {
   return "/dashboard";
 }
 
-export function StaffTopbar() {
+export function StaffTopbar({ role }: { role: string }) {
   const router = useRouter();
   const pathname = usePathname() || "/dashboard";
   const showBack = pathname !== "/dashboard";
@@ -54,6 +55,19 @@ export function StaffTopbar() {
         ) : (
           <span className="h-9 w-9" aria-hidden="true" />
         )}
+        <div className="flex items-center gap-3 text-sm">
+          <Link href="/dashboard" className="hidden py-2 sm:inline">
+            Travellers Club · Staff
+          </Link>
+          {role !== "security" && (
+            <Link href="/applications" className="py-2">
+              Requests
+            </Link>
+          )}
+          <Link href="/account" className="py-2">
+            My account
+          </Link>
+        </div>
         <div className="my-1">
           <LogoutButton />
         </div>

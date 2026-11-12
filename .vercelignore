@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.vercel
+.env*
+!.env.example
+supabase/.temp
+tests
+docs
+*.tsbuildinfo
+build

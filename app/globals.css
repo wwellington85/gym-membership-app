@@ -422,50 +422,6 @@ html, body {
   overscroll-behavior: contain;
 }
 
-/* ---------- Oura Inputs ---------- */
-.oura-input{
-/* Chrome autofill (prevents gray/yellow fill on glass inputs) */
-input.oura-input:-webkit-autofill,
-textarea.oura-input:-webkit-autofill,
-select.oura-input:-webkit-autofill{
-  -webkit-text-fill-color: rgb(var(--fg)) !important;
-  transition: background-color 9999s ease-in-out 0s;
-  box-shadow: 0 0 0px 1000px rgba(10,10,14,0.42) inset !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-}
-
-/* =========================================
-   OURA INPUT: force indigo wet-glass look
-   (wins over shadcn tokens + utilities)
-   ========================================= */
-.dark input.oura-input,
-.dark textarea.oura-input,
-.dark select.oura-input
-html.dark input.oura-input,
-html.dark textarea.oura-input,
-html.dark select.oura-input{
-/* Chrome autofill (prevents gray/yellow fill) */
-.dark input.oura-input:-webkit-autofill,
-.dark textarea.oura-input:-webkit-autofill,
-.dark select.oura-input:-webkit-autofill
-html.dark input.oura-input:-webkit-autofill,
-html.dark textarea.oura-input:-webkit-autofill,
-html.dark select.oura-input:-webkit-autofill{
-
-
-/* =========================================
-   OURA INPUT PLACEHOLDER (single source)
-   Let autoprefixer generate ::-moz-placeholder
-   ========================================= */
-html.dark input.oura-input::placeholder,
-html.dark textarea.oura-input::placeholder{
-  color: rgba(210,210,215,0.55) !important;
-  opacity: 1;
-}
-}
-}
-}
-
 /* =========================================
    OURA INPUTS (final): indigo wet-glass, not gray
    ========================================= */
@@ -622,3 +578,11 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
 input.join-date-input[type="date"]::-webkit-calendar-picker-indicator {
   margin-left: auto;
 }
+
+/* Shared feedback must remain readable against both light and dark surfaces. */
+.oura-alert-danger { @apply border-red-300 bg-red-50 text-red-950 dark:border-red-300/40 dark:bg-red-950/70 dark:text-red-100; }
+.oura-alert-warning { @apply border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-300/40 dark:bg-amber-950/70 dark:text-amber-100; }
+.oura-alert-success { @apply border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-950/70 dark:text-emerald-100; }
+
+/* Root aurora stacking rules must not unfix the desktop staff navigation. */
+.staff-sidebar { position: fixed !important; z-index: 30 !important; }

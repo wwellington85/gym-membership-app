@@ -20,7 +20,10 @@ const VERSION = "v1";
 function isStandalone() {
   if (typeof window === "undefined") return false;
   const nav = window.navigator as Navigator & { standalone?: boolean };
-  return window.matchMedia("(display-mode: standalone)").matches || nav.standalone === true;
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    nav.standalone === true
+  );
 }
 
 function isLikelyMobile() {
@@ -44,10 +47,12 @@ function markDismissed(sessionCount: number) {
 export function InstallAppPrompt({ audience }: { audience: Audience }) {
   const [visible, setVisible] = useState(false);
   const [iosLike, setIosLike] = useState(false);
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [showSteps, setShowSteps] = useState(false);
 
-  const title = audience === "staff" ? "Install Staff App" : "Install Membership App";
+  const title =
+    audience === "staff" ? "Install Staff App" : "Install Travellers Club";
   const subtitle =
     audience === "staff"
       ? "Faster check-ins and fewer browser issues at the desk and gate."
@@ -80,19 +85,26 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
       sessionStorage.setItem(SESSION_MARK, "1");
     }
 
-    const installed = isStandalone() || localStorage.getItem(INSTALLED_KEY) === "1";
+    const installed =
+      isStandalone() || localStorage.getItem(INSTALLED_KEY) === "1";
     if (installed) {
       localStorage.setItem(INSTALLED_KEY, "1");
       setVisible(false);
       return () => {
-        window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          onBeforeInstallPrompt,
+        );
       };
     }
 
     if (!isLikelyMobile()) {
       setVisible(false);
       return () => {
-        window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          onBeforeInstallPrompt,
+        );
       };
     }
 
@@ -100,11 +112,20 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
     const dismissedAt = readNumber(DISMISSED_AT_KEY);
     const dismissedAtSession = readNumber(DISMISSED_SESSION_KEY);
 
-    // First authenticated session: prompt.
+    if (
+      audience === "member" &&
+      (!localStorage.getItem("tbr_card_used") || sessionCount < 2)
+    )
+      return;
+
+    // Offer installation after the member has used their card.
     if (!dismissedAt) {
       setVisible(true);
       return () => {
-        window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
+        window.removeEventListener(
+          "beforeinstallprompt",
+          onBeforeInstallPrompt,
+        );
       };
     }
 
@@ -119,9 +140,12 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstallPrompt);
     };
-  }, []);
+  }, [audience]);
 
-  const canOneTapInstall = useMemo(() => Boolean(deferredPrompt), [deferredPrompt]);
+  const canOneTapInstall = useMemo(
+    () => Boolean(deferredPrompt),
+    [deferredPrompt],
+  );
   if (!visible) return null;
 
   async function handleInstallNow() {
@@ -163,11 +187,17 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
       <div className="mt-1 opacity-80">{subtitle}</div>
 
       {canOneTapInstall ? (
-        <div className="mt-2 opacity-80">Install for full-screen access and faster launch.</div>
+        <div className="mt-2 opacity-80">
+          Install for full-screen access and faster launch.
+        </div>
       ) : iosLike ? (
-        <div className="mt-2 opacity-80">Tap Install to view iPhone steps (Safari required).</div>
+        <div className="mt-2 opacity-80">
+          Tap Install to view iPhone steps (Safari required).
+        </div>
       ) : (
-        <div className="mt-2 opacity-80">Use your browser menu and choose Install app.</div>
+        <div className="mt-2 opacity-80">
+          Use your browser menu and choose Install app.
+        </div>
       )}
 
       {showSteps && !canOneTapInstall ? (

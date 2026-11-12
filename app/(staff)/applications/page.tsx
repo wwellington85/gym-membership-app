@@ -7,7 +7,9 @@ type Status = "pending" | "contacted" | "converted" | "canceled" | "all";
 
 function safeStatus(s: string | undefined): Status {
   const v = (s || "pending").trim();
-  return (["pending", "contacted", "converted", "canceled", "all"] as Status[]).includes(v as Status)
+  return (
+    ["pending", "contacted", "converted", "canceled", "all"] as Status[]
+  ).includes(v as Status)
     ? (v as Status)
     : "pending";
 }
@@ -15,7 +17,7 @@ function safeStatus(s: string | undefined): Status {
 export default async function ApplicationsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ q?: string; status?: string }>;
+  searchParams?: Promise<{ q?: string; status?: string; page?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
   const supabase = await createClient();
@@ -37,27 +39,32 @@ export default async function ApplicationsPage({
   const role = staffProfile.role as Role;
   if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
 
-  const q = (sp.q ?? "").trim();
+  const q = (sp.q ?? "")
+    .trim()
+    .slice(0, 120)
+    .replace(/[(),%]/g, " ");
+  const page = Math.max(0, Math.floor(Number(sp.page) || 0));
   const status = safeStatus(sp.status);
 
   let query = supabase
     .from("membership_applications")
     .select(
-      "id, full_name, phone, email, requested_plan_code, requested_start_date, status, created_at"
+      "id, full_name, phone, email, requested_plan_code, requested_start_date, status, created_at",
+      { count: "exact" },
     )
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(page * 50, page * 50 + 49);
 
   if (status !== "all") query = query.eq("status", status);
 
   if (q) {
     // PostgREST OR filter
     query = query.or(
-      `full_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`
+      `full_name.ilike.%${q}%,email.ilike.%${q}%,phone.ilike.%${q}%`,
     );
   }
 
-  const { data: apps, error } = await query;
+  const { data: apps, error, count } = await query;
 
   const statusTabs: { key: Status; label: string }[] = [
     { key: "pending", label: "Pending" },
@@ -67,14 +74,15 @@ export default async function ApplicationsPage({
     { key: "all", label: "All" },
   ];
 
-  const backTo = `/applications?status=${status}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const backTo = `/applications?page=${page}&status=${status}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
 
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-xl font-semibold">Applications</h1>
+        <h1 className="text-xl font-semibold">Access requests</h1>
         <p className="text-sm opacity-70">
-          Requests submitted from the public join form (activate after payment).
+          Review existing access requests. Free Rewards signup is immediate
+          after account verification.
         </p>
       </div>
 
@@ -135,11 +143,14 @@ export default async function ApplicationsPage({
               <div>
                 <div className="font-medium">{a.full_name}</div>
                 <div className="text-sm opacity-70">
-                  {a.email || "(no email)"}{a.phone ? ` • ${a.phone}` : ""}
+                  {a.email || "(no email)"}
+                  {a.phone ? ` • ${a.phone}` : ""}
                 </div>
                 <div className="text-xs opacity-60">
                   Plan: {a.requested_plan_code}
-                  {a.requested_start_date ? ` • Start: ${a.requested_start_date}` : ""}
+                  {a.requested_start_date
+                    ? ` • Start: ${a.requested_start_date}`
+                    : ""}
                 </div>
               </div>
               <div className="rounded-full border px-2 py-1 text-xs">
@@ -148,6 +159,26 @@ export default async function ApplicationsPage({
             </div>
           </Link>
         ))}
+      </div>
+      <div className="flex justify-between gap-3">
+        {page > 0 ? (
+          <Link
+            href={`/applications?${new URLSearchParams({ q, status, page: String(page - 1) })}`}
+            className="rounded border p-3"
+          >
+            Previous
+          </Link>
+        ) : (
+          <span />
+        )}
+        {(page + 1) * 50 < (count || 0) && (
+          <Link
+            href={`/applications?${new URLSearchParams({ q, status, page: String(page + 1) })}`}
+            className="rounded border p-3"
+          >
+            Next
+          </Link>
+        )}
       </div>
     </div>
   );

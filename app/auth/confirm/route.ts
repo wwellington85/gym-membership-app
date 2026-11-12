@@ -4,7 +4,7 @@ import { safeReturnTo } from "@/lib/auth/return-to";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import type { NextRequest } from "next/server";
 
-function getSupabaseVerifyUrl(requestUrl: URL) {
+function getSupabaseVerifyUrl() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!supabaseUrl) return null;
 
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   if (confirmationUrlRaw) {
     try {
       const confirmationUrl = new URL(confirmationUrlRaw);
-      const verifyUrl = getSupabaseVerifyUrl(url);
+      const verifyUrl = getSupabaseVerifyUrl();
 
       if (
         verifyUrl &&
@@ -51,14 +51,14 @@ export async function GET(request: NextRequest) {
   // Some templates also hit /auth/confirm with token + type. Redirect those
   // back to Supabase's verify endpoint so the rest of the flow still works.
   if (token && type) {
-    const verifyUrl = getSupabaseVerifyUrl(url);
+    const verifyUrl = getSupabaseVerifyUrl();
     if (verifyUrl) {
       verifyUrl.searchParams.set("token", token);
       verifyUrl.searchParams.set("type", type);
       verifyUrl.searchParams.set(
         "redirect_to",
         sp.get("redirect_to") ??
-          `${url.origin}/auth/confirm${nextRaw ? `?next=${encodeURIComponent(nextRaw)}` : ""}`
+          `${url.origin}/auth/confirm${nextRaw ? `?next=${encodeURIComponent(nextRaw)}` : ""}`,
       );
       return NextResponse.redirect(verifyUrl);
     }
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(next, url));
     }
     return NextResponse.redirect(
-      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url)
+      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url),
     );
   }
 
@@ -84,13 +84,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(next, url));
     }
     return NextResponse.redirect(
-      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url)
+      new URL(`/auth/error?error=${encodeURIComponent(error.message)}`, url),
     );
   }
 
   // Helpful debug so we can see what params actually arrived
   const debug = encodeURIComponent(url.search || "(no query string)");
   return NextResponse.redirect(
-    new URL(`/auth/error?error=${encodeURIComponent("Missing code or token_hash/type")}&debug=${debug}`, url)
+    new URL(
+      `/auth/error?error=${encodeURIComponent("Missing code or token_hash/type")}&debug=${debug}`,
+      url,
+    ),
   );
 }

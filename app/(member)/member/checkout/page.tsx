@@ -12,7 +12,11 @@ function base64url(input: string | Buffer) {
     .replace(/\//g, "_");
 }
 
-function signHS256(header: Record<string, any>, payload: Record<string, any>, secret: string) {
+function signHS256(
+  header: Record<string, any>,
+  payload: Record<string, any>,
+  secret: string,
+) {
   const h = base64url(JSON.stringify(header));
   const p = base64url(JSON.stringify(payload));
   const msg = `${h}.${p}`;
@@ -33,7 +37,8 @@ export default async function FygaroCheckoutPage(props: {
   const sp = await props.searchParams;
   const paymentId = String(sp.payment || "").trim();
 
-  if (!paymentId) redirect("/member/settings?err=Missing%20payment%20reference");
+  if (!paymentId)
+    redirect("/member/settings?err=Missing%20payment%20reference");
 
   const supabase = await createClient();
   const {
@@ -44,24 +49,40 @@ export default async function FygaroCheckoutPage(props: {
 
   const { data: member } = await supabase
     .from("members")
-    .select("id")
+    .select("id, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (!member?.id) redirect("/join");
+  if (!member.is_active) redirect("/member/help");
 
   const { data: payment } = await supabase
     .from("payments")
-    .select("id, member_id, membership_id, amount, currency, status, provider, provider_reference")
+    .select(
+      "id, member_id, membership_id, amount, currency, status, provider, provider_reference, fulfilled_at, purchase_snapshot, access_start_date, access_end_date",
+    )
     .eq("id", paymentId)
     .maybeSingle();
 
   if (!payment?.id) redirect("/member/settings?err=Payment%20not%20found");
-  if (payment.member_id !== member.id) redirect("/member/settings?err=Unauthorized%20payment");
+  if (payment.member_id !== member.id)
+    redirect("/member/settings?err=Unauthorized%20payment");
 
   if (String(payment.provider || "") !== "fygaro") {
     redirect("/member/settings?err=Invalid%20payment%20provider");
   }
+
+  if (payment.status !== "pending")
+    redirect(`/member/payment-return?payment=${payment.id}`);
+
+  if (
+    !payment.purchase_snapshot ||
+    !payment.access_start_date ||
+    !payment.access_end_date
+  )
+    redirect(
+      "/member/access?err=This%20older%20checkout%20needs%20front%20desk%20review.%20Do%20not%20pay%20again%20if%20already%20charged.",
+    );
 
   const buttonUrl = process.env.FYGARO_BUTTON_URL || "";
   const keyId = process.env.FYGARO_API_KEY || "";
@@ -89,7 +110,10 @@ export default async function FygaroCheckoutPage(props: {
 
   // Try to keep the flow "in-app" by returning to our branded return page after payment.
   // Fygaro parameter names vary by product; we set a few common ones.
-  const base = process.env.NEXT_PUBLIC_APP_URL || "";
+  const base =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
   if (base) {
     const returnTo = new URL("/member/payment-return", base);
     returnTo.searchParams.set("customReference", String(payment.id));
@@ -99,14 +123,14 @@ export default async function FygaroCheckoutPage(props: {
     fyUrl.searchParams.set("callback_url", returnTo.toString());
   }
 
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Secure checkout</h1>
           <div className="text-sm opacity-70">
-            Amount: ${Number(payment.amount || 0).toFixed(2)} {payment.currency || "USD"}
+            Amount: ${Number(payment.amount || 0).toFixed(2)}{" "}
+            {payment.currency || "USD"}
           </div>
         </div>
 

@@ -1,52 +1,71 @@
-import { createClient } from "@/lib/supabase/server";
-import MemberForm from "./MemberForm";
+import Link from "next/link";
+import { randomUUID } from "crypto";
+import { requireStaff } from "@/lib/auth/staff";
 import { createMember } from "./actions";
-
-type PlanRow = {
-  id: string;
-  name: string;
-  price: number;
-  duration_days: number;
-  plan_type?: string | null;
-  code?: string | null;
-};
-
 export default async function NewMemberPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams: Promise<{ err?: string }>;
 }) {
-  const sp = (await searchParams) ?? {};
-  const supabase = await createClient();
-
-  const { data: plansRaw, error: plansError } = await supabase
-    .from("membership_plans")
-    .select("id,name,price,duration_days,plan_type,code,is_active")
-    .order("price", { ascending: true });
-
-  const plans = ((plansRaw as any) ?? []) as PlanRow[];
-
+  await requireStaff(["admin", "front_desk"]);
+  const sp = await searchParams;
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold">Add Club Member</h1>
-        <p className="text-sm opacity-70">Create a profile and assign a plan</p>
-      </div>
-
-      {plansError ? (
-        <div className="oura-alert-warning p-3 text-sm">
-          <div className="font-medium">Could not load membership plans</div>
-          <div className="mt-1 opacity-70">{plansError.message}</div>
+    <div className="max-w-xl space-y-4">
+      <h1 className="text-xl font-semibold">Add Rewards member</h1>
+      <p className="text-sm opacity-80">
+        Create the free membership first. Sell optional gym or resort access
+        from the member record.
+      </p>
+      <Link href="/members" className="inline-block py-2 underline">
+        Check for an existing member
+      </Link>
+      {sp.err && (
+        <p role="alert" className="oura-alert-danger">
+          {sp.err}
+        </p>
+      )}
+      <form action={createMember} className="space-y-4">
+        <input type="hidden" name="enrolment_key" value={randomUUID()} />
+        <div>
+          <label htmlFor="new-name">Full name</label>
+          <input
+            id="new-name"
+            name="full_name"
+            required
+            maxLength={120}
+            autoComplete="name"
+            className="oura-input mt-2 w-full p-3"
+          />
         </div>
-      ) : null}
-
-      {sp.error === "invalid_discount" ? (
-        <div className="text-sm font-medium text-red-200">
-          Discount must be between 0% and 100%.
+        <div>
+          <label htmlFor="new-phone">Phone (optional)</label>
+          <input
+            id="new-phone"
+            name="phone"
+            type="tel"
+            maxLength={40}
+            autoComplete="tel"
+            className="oura-input mt-2 w-full p-3"
+          />
         </div>
-      ) : null}
-
-      <MemberForm plans={plans} action={createMember} />
+        <div>
+          <label htmlFor="new-email">Email (optional)</label>
+          <input
+            id="new-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            className="oura-input mt-2 w-full p-3"
+          />
+        </div>
+        <p className="text-sm opacity-80">
+          An email lets the guest claim their digital membership through a
+          verified sign-in link.
+        </p>
+        <button className="w-full rounded border p-3">
+          Create free membership
+        </button>
+      </form>
     </div>
   );
 }

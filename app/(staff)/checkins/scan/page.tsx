@@ -1,328 +1,240 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { randomUUID } from "crypto";
+import { redirect } from "next/navigation";
+import { requireStaff } from "@/lib/auth/staff";
+import { loadAccess, loadCatalogue } from "@/lib/access/server";
+import { memberIdFromNumber, memberNumber } from "@/lib/access/rules";
 import { verifyQrToken } from "@/lib/qr/token";
-import { isAccessActiveAtJamaicaCutoff } from "@/lib/membership/status";
 import { QrScanner } from "@/components/checkins/qr-scanner";
-import { AutoSubmitCheckin } from "@/components/checkins/auto-submit-checkin";
 
-function parsePayload(raw: string): { memberId?: string; token?: string; err?: string } {
-  const v = (raw || "").trim();
-  if (!v) return { err: "Empty code" };
-
-  // Accept URL payloads from scanner apps (e.g. https://.../?token=... or ?code=...)
-  if (/^https?:\/\//i.test(v)) {
-    try {
-      const u = new URL(v);
-      const qp =
-        u.searchParams.get("token") ||
-        u.searchParams.get("qr") ||
-        u.searchParams.get("code") ||
-        "";
-      const inner = String(qp).trim();
-      if (inner) return parsePayload(inner);
-    } catch {
-      // fall through
-    }
-  }
-
-  // Expected formats:
-  // 1) member:<uuid>
-  // 2) qr:<token>
-  // 3) <uuid>
-  // 4) <token>  (payload.sig)
-  if (v.startsWith("member:")) {
-    const id = v.slice("member:".length).trim();
-    return { memberId: id || undefined, err: id ? undefined : "Invalid member code" };
-  }
-
-  if (v.startsWith("qr:")) {
-    const token = v.slice("qr:".length).trim();
-    return { token: token || undefined, err: token ? undefined : "Invalid QR token" };
-  }
-
-  // If it looks like our signed token format (payload.sig), treat as token.
-  if (v.split(".").length === 2 && v.length > 20) {
-    return { token: v };
-  }
-
-  return { memberId: v };
-}
-
-async function resolveMemberIdFromParsed(parsed: { memberId?: string; token?: string; err?: string }) {
-  if (parsed.err) return { ok: false as const, err: parsed.err };
-  if (parsed.memberId) return { ok: true as const, memberId: parsed.memberId };
-
-  const token = String(parsed.token || "").trim();
-  if (!token) return { ok: false as const, err: "Invalid code" };
-
-  const secret = process.env.QR_TOKEN_SECRET || "";
-  if (!secret) return { ok: false as const, err: "Missing QR_TOKEN_SECRET" };
-
-  const v = verifyQrToken(token, secret);
-  if (!v.ok) return { ok: false as const, err: `QR token ${v.reason}` };
-
-  return { ok: true as const, memberId: v.claims.mid };
-}
-
-
-function pct(n?: number | null) {
-  const v = typeof n === "number" ? n : 0;
-  return `${Math.round(v * 100)}%`;
-}
-
-export default async function ScanCheckinPage({
+export const dynamic = "force-dynamic";
+export default async function ScanPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ code?: string; ok?: string; err?: string; auto?: string }>;
+  searchParams: Promise<{
+    member?: string;
+    code?: string;
+    err?: string;
+    ok?: string;
+  }>;
 }) {
-  const sp = (await searchParams) ?? {};
-  const code = sp.code ?? "";
-  const ok = sp.ok ?? "";
-  const errMsg = sp.err ?? "";
-  const auto = sp.auto === "1";
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login?returnTo=/checkins/scan");
-
-  const { data: staffProfile } = await supabase
-    .from("staff_profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!staffProfile) redirect("/auth/login?returnTo=/checkins/scan");
-
-  const canCheckin = ["admin", "front_desk", "security"].includes(staffProfile.role);
-
-  if (!canCheckin) redirect("/dashboard?err=Not%20authorized");
-
-  async function lookup(formData: FormData) {
+  const { admin, staff } = await requireStaff();
+  const sp = await searchParams;
+  async function lookup(data: FormData) {
     "use server";
-    const raw = String(formData.get("code") || "").trim();
-    if (!raw) {
-      redirect(`/checkins/scan?err=Enter%20a%20code`);
+    await requireStaff();
+    const code = String(data.get("code") || "").trim();
+    let id = memberIdFromNumber(code.replace(/^member:/, ""));
+    if (!id) {
+      const token = code.replace(/^qr:/, "");
+      const secret = process.env.QR_TOKEN_SECRET;
+      const result = secret ? verifyQrToken(token, secret) : null;
+      if (result?.ok) id = result.claims.mid;
     }
-    redirect(`/checkins/scan?code=${encodeURIComponent(raw)}`);
+    if (!id)
+      redirect(
+        "/checkins/scan?err=This%20code%20is%20invalid%20or%20expired.%20Ask%20the%20guest%20to%20refresh%20their%20card%20or%20use%20member%20lookup.",
+      );
+    redirect(`/checkins/scan?member=${id}`);
   }
-
-  async function checkin(formData: FormData) {
+  async function recordVisit(data: FormData) {
     "use server";
-
-    const raw = String(formData.get("code") || "").trim();
-        const parsed = parsePayload(raw);
-    const resolved = await resolveMemberIdFromParsed(parsed);
-    if (!resolved.ok) {
-      redirect(`/checkins?err=${encodeURIComponent(resolved.err || "Invalid code")}`);
-    }
-    const memberId = resolved.memberId;
-
-
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) redirect("/auth/login?returnTo=/checkins/scan");
-
-    // Load member + membership + plan benefits
-    const { data: membership } = await supabase
-      .from("memberships")
-      .select(
-        "id, member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
-      )
-      .eq("member_id", memberId)
-      .order("start_date", { ascending: false })
-      .maybeSingle();
-
-    const plan = Array.isArray((membership as any)?.membership_plans)
-      ? (membership as any).membership_plans[0]
-      : (membership as any)?.membership_plans;
-
-    const activeNow = isAccessActiveAtJamaicaCutoff({
-      status: membership?.status ?? null,
-      startDate: (membership as any)?.start_date ?? null,
-      paidThroughDate: (membership as any)?.paid_through_date ?? null,
-      durationDays: (plan as any)?.duration_days ?? null,
+    const { admin, user } = await requireStaff();
+    const id = String(data.get("member_id") || "");
+    const { data: outcome, error } = await admin.rpc("record_gym_visit", {
+      p_member_id: id,
+      p_staff_id: user.id,
     });
-
-    const gymAccessAllowed = activeNow && !!plan?.grants_access;
-    const diningOnly = activeNow && !gymAccessAllowed;
-    // Gym access is separate from loyalty check-ins.
-    // Rewards/Free members can still be checked in to earn points.
-    const canRecordCheckin = activeNow;
-
-    if (!canRecordCheckin) {
-      redirect(`/checkins?err=Member%20is%20not%20active%20for%20check-in`);
-    }
-
-    // Points per check-in
-    const { data: settingRow } = await supabase
-      .from("app_settings")
-      .select("int_value")
-      .eq("key", "points_per_checkin")
-      .maybeSingle();
-
-    const pointsEarned = Math.max(1, Number(settingRow?.int_value ?? 3));
-
-    const { error } = await supabase.from("checkins").insert({
-      member_id: memberId,
-      staff_user_id: user.id,
-      points_earned: pointsEarned,
+    redirect(
+      `/checkins/scan?member=${encodeURIComponent(id)}&${error ? "err=Gym%20visit%20could%20not%20be%20recorded.%20Verify%20access%20or%20contact%20the%20front%20desk." : `ok=${outcome ? "recorded" : "already"}`}`,
+    );
+  }
+  async function recordBenefit(data: FormData) {
+    "use server";
+    const { admin, user } = await requireStaff(["admin", "front_desk"]);
+    const id = String(data.get("member_id") || "");
+    const { error } = await admin.rpc("record_benefit_use", {
+      p_member_id: id,
+      p_outlet: String(data.get("outlet") || ""),
+      p_reference: String(data.get("bill_reference") || "").slice(0, 100),
+      p_staff_id: user.id,
+      p_key: String(data.get("submission_key") || ""),
     });
-
-    if (error) {
-      if ((error as any).code === "23505") {
-        redirect(`/checkins?ok=already`);
-      }
-      redirect(`/checkins?err=${encodeURIComponent(error.message || "Check-in failed")}`);
-    }
-
-    redirect(`/checkins?ok=checked_in`);
-}
-
-  let member: any = null;
-  let membership: any = null;
-  let plan: any = null;
-  if (code) {
-    const parsed = parsePayload(code);
-    const resolved = await resolveMemberIdFromParsed(parsed);
-    if (resolved.ok) {
-      const mid = resolved.memberId;
-
-      const { data: m } = await supabase
+    redirect(
+      `/checkins/scan?member=${encodeURIComponent(id)}&${error ? "err=Benefit%20use%20was%20not%20recorded.%20Check%20eligibility%20and%20whether%20this%20bill%20was%20already%20recorded." : "ok=benefit"}`,
+    );
+  }
+  const id = sp.member && memberIdFromNumber(sp.member);
+  const { data: member } = id
+    ? await admin
         .from("members")
-        .select("id, full_name, phone, email")
-        .eq("id", mid)
-        .maybeSingle();
-
-      member = m;
-
-      const { data: ms } = await supabase
-        .from("memberships")
-        .select(
-          "id, member_id, status, start_date, paid_through_date, membership_plans(name, code, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
-        )
-        .eq("member_id", mid)
-        .order("start_date", { ascending: false })
-        .maybeSingle();
-
-      membership = ms;
-      plan = Array.isArray((ms as any)?.membership_plans)
-        ? (ms as any).membership_plans[0]
-        : (ms as any)?.membership_plans;
-    }
-  }
-
-  const activeNow = isAccessActiveAtJamaicaCutoff({
-    status: membership?.status ?? null,
-    startDate: membership?.start_date ?? null,
-    paidThroughDate: membership?.paid_through_date ?? null,
-    durationDays: plan?.duration_days ?? null,
-  });
-  const gymAccessAllowed = activeNow && !!plan?.grants_access;
-  const diningOnly = activeNow && !gymAccessAllowed;
-
+        .select("id, full_name, is_active")
+        .eq("id", id)
+        .maybeSingle()
+    : { data: null };
+  const access = member ? await loadAccess(member.id, member.is_active) : null;
+  const catalogue = member ? await loadCatalogue() : [];
+  const free = catalogue.find((p) => p.code === "rewards_free");
+  const eligible = [
+    free,
+    ...(access?.current.map((p) => p.plan_snapshot) ?? []),
+  ].filter(Boolean);
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Scan Check-in</h1>
-          <p className="text-sm opacity-70">Paste the QR code value to look up a member.</p>
-        </div>
-        <Link href="/checkins" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
-          Back
-        </Link>
-      </div>
-
-      {ok === "checked_in" ? (
-        <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
-          <div className="font-medium">Checked in</div>
-          <div className="mt-1 opacity-80">Visit recorded successfully.</div>
-        </div>
-      ) : null}
-
-      {errMsg ? (
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-          <div className="font-medium">Notice</div>
-          <div className="mt-1 opacity-80">{errMsg}</div>
-        </div>
-      ) : null}
-      <QrScanner autoRecord />
+      <h1 className="text-xl font-semibold">Verify member</h1>
+      {sp.err && (
+        <p role="alert" className="oura-alert-danger">
+          {sp.err}
+        </p>
+      )}
+      {sp.ok && (
+        <p role="status" className="oura-alert-success">
+          {sp.ok === "benefit"
+            ? "Benefit use recorded. No gym visit was created."
+            : sp.ok === "already"
+              ? "Gym visit already recorded today."
+              : "Gym visit recorded."}
+        </p>
+      )}
+      <QrScanner lookup={lookup} />
       <form action={lookup} className="space-y-2">
-        <label className="text-sm font-medium">QR / Code</label>
+        <label htmlFor="member-code" className="text-sm">
+          Membership number or QR value
+        </label>
         <input
+          id="member-code"
           name="code"
-          defaultValue={code}
-          placeholder="e.g., member:uuid…"
-          className="w-full rounded border px-3 py-2 font-mono text-sm"
+          required
+          className="oura-input w-full p-3"
+          autoComplete="off"
         />
-        <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-gray-50">
-          Look up
-        </button>
+        <button className="rounded border px-4 py-3">Look up card</button>
       </form>
-
-      {code && !member ? (
-        <div className="rounded border p-3 text-sm opacity-70">No member found for that code.</div>
-      ) : null}
-
-      {member ? (
-        <div className="rounded border p-3 space-y-2">
-          <div className="font-medium">{member.full_name}</div>
-          <div className="text-sm opacity-70">{member.phone ?? member.id}</div>
-
-          <div className="oura-card p-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-medium">Access</div>
-              <div className="text-sm font-semibold">{gymAccessAllowed ? "Allowed" : diningOnly ? "Dining Only" : "Not active"}</div>
+      <Link href="/members" className="inline-block py-3 underline">
+        Search by name or phone
+      </Link>
+      {id && !member && (
+        <p role="status">
+          No member found. Search by name or ask the front desk.
+        </p>
+      )}
+      {member && access && (
+        <section className="oura-card space-y-4 p-4">
+          <h2 className="text-xl font-semibold">{member.full_name}</h2>
+          <p className="break-all font-mono text-xs">
+            {memberNumber(member.id)}
+          </p>
+          <p>
+            {member.is_active
+              ? "Rewards membership active"
+              : "Member inactive — refer to front desk"}
+          </p>
+          <div className="rounded border p-3">
+            <h3 className="font-semibold">Facility permission now</h3>
+            <p className="mt-2">
+              Gym: <strong>{access.gym ? "Allowed" : "No paid access"}</strong>
+            </p>
+            <p className="mt-2">
+              Pool & resort facilities:{" "}
+              <strong>{access.resort ? "Allowed" : "No paid access"}</strong>
+            </p>
+            <p className="mt-2 text-sm opacity-80">
+              Room-booking inclusions must be verified separately at the front
+              desk.
+            </p>
+          </div>
+          {member.is_active && (
+            <div className="space-y-2">
+              <h3 className="font-semibold">Discounts valid now</h3>
+              {(
+                [
+                  ["Restaurant & bar", "discount_food"],
+                  ["Spa", "discount_spa"],
+                  ["Gift shop", "discount_giftshop"],
+                  ["Watersports", "discount_watersports"],
+                ] as const
+              ).map(([label, key]) => (
+                <p className="flex justify-between text-sm" key={key}>
+                  <span>{label}</span>
+                  <strong>
+                    {Math.round(
+                      Math.max(
+                        0,
+                        ...eligible.map((p) => Number(p?.[key] ?? 0)),
+                      ) * 100,
+                    )}
+                    %
+                  </strong>
+                </p>
+              ))}
+              <p className="text-sm opacity-80">
+                Verifying or applying a discount does not record a gym visit.
+              </p>
             </div>
-            <div className="mt-2 text-xs opacity-70">
-              Plan: {plan?.name ?? "—"} • Type: {plan?.plan_type ?? "—"} • Status: {activeNow ? "active" : "expired"}
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Food</div>
-                <div className="font-medium">{pct(plan?.discount_food)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Watersports</div>
-                <div className="font-medium">{pct(plan?.discount_watersports)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Gift Shop</div>
-                <div className="font-medium">{pct(plan?.discount_giftshop)}</div>
-              </div>
-              <div className="rounded border p-2">
-                <div className="text-xs opacity-70">Spa</div>
-                <div className="font-medium">{pct(plan?.discount_spa)}</div>
-              </div>
-            </div>
-
-            <form id="scan-checkin-form" action={checkin} className="mt-3">
-              <AutoSubmitCheckin enabled={auto && activeNow} />
-              <input type="hidden" name="code" value={code} />
-              <button
-                type="submit"
-                className="w-full rounded border px-3 py-2 hover:bg-gray-50 disabled:opacity-60"
-                disabled={!activeNow}
-              >
-                {auto && activeNow ? "Recording check-in..." : "Record check-in"}
+          )}
+          {member.is_active && staff.role !== "security" && (
+            <details className="rounded border p-3">
+              <summary className="cursor-pointer py-2 font-semibold">
+                Record benefit use
+              </summary>
+              <form action={recordBenefit} className="space-y-3 pt-3">
+                <input type="hidden" name="member_id" value={member.id} />
+                <input
+                  type="hidden"
+                  name="submission_key"
+                  value={randomUUID()}
+                />
+                <div>
+                  <label htmlFor="benefit-outlet">Outlet</label>
+                  <select
+                    id="benefit-outlet"
+                    name="outlet"
+                    className="oura-input mt-2 w-full p-3"
+                  >
+                    <option value="restaurant">Restaurant & bar</option>
+                    <option value="spa">Spa</option>
+                    <option value="giftshop">Gift shop</option>
+                    <option value="watersports">Watersports</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="benefit-bill">Bill / receipt reference</label>
+                  <input
+                    id="benefit-bill"
+                    name="bill_reference"
+                    required
+                    maxLength={100}
+                    className="oura-input mt-2 w-full p-3"
+                  />
+                </div>
+                <p className="text-sm opacity-80">
+                  Record after applying the verified discount through the
+                  outlet’s billing process. This logs use; it does not change a
+                  bill or redeem points. A bill can be recorded once per outlet
+                  per Jamaica day.
+                </p>
+                <button className="rounded border p-3">
+                  Record verified benefit use
+                </button>
+              </form>
+            </details>
+          )}
+          {access.gym && (
+            <form action={recordVisit}>
+              <input type="hidden" name="member_id" value={member.id} />
+              <button className="w-full rounded border bg-indigo-500/20 p-3">
+                Record gym visit
               </button>
             </form>
-
-            {diningOnly ? (
-              <div className="mt-2 text-xs opacity-70">
-                Dining Only: Rewards members can earn loyalty points and use discounts, but do not have gym access.
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+          )}
+          <Link
+            href={`/members/${member.id}`}
+            className="inline-block py-2 underline"
+          >
+            Open member record
+          </Link>
+        </section>
+      )}
     </div>
   );
 }

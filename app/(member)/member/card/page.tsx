@@ -1,184 +1,61 @@
 import Link from "next/link";
-import { BackButton } from "@/components/ui/back-button";
-import { titleCaseName } from "@/lib/format/name";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { computeMembershipStatus, type MembershipTier } from "@/lib/membership/status";
+import { requireMember, loadAccess } from "@/lib/access/server";
+import { memberNumber, facilities } from "@/lib/access/rules";
 import { RotatingQr } from "./RotatingQr";
 
 export const dynamic = "force-dynamic";
-
-function fmtJamaicaDate(ts?: string | null) {
-  if (!ts) return "—";
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("en-US", { timeZone: "America/Jamaica" });
-}
-
-function normalizeTier(planCode?: string | null): MembershipTier {
-  const code = String(planCode || "").toLowerCase();
-  if (
-    code === "rewards_free" ||
-    code === "club_day" ||
-    code === "club_weekly" ||
-    code === "club_monthly_95"
-  ) {
-    return code as MembershipTier;
-  }
-  return "rewards_free";
-}
-
-function membershipStatusPillClass(status: string) {
-  if (status === "active") {
-    return "border-emerald-300/50 bg-emerald-400/20 text-emerald-50";
-  }
-  if (status === "pending") {
-    return "border-amber-300/50 bg-amber-400/20 text-amber-50";
-  }
-  if (status === "expired") {
-    return "border-rose-300/50 bg-rose-400/20 text-rose-50";
-  }
-  return "border-white/30 oura-surface-muted text-white";
-}
-
-export default async function MemberCardPage() {
-  const supabase = await createClient();
-  const admin = createAdminClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
-
-  const { data: member } = await supabase
-    .from("members")
-    .select("id, full_name, phone, email")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  // Always show the page; if not linked yet, show a friendly empty state.
-  if (!member) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-semibold">Membership Card</h1>
-            <p className="text-sm opacity-70">Travellers Club</p>
-          </div>
-          <BackButton fallbackHref="/member" />
-        </div>
-
-        <div className="rounded border p-3 text-sm">
-          We couldn’t find a membership profile linked to this login yet.
-          <div className="mt-2 flex gap-2">
-            <Link className="rounded border px-3 py-2 text-sm hover:oura-surface-muted" href="/join">
-              Join Travellers Club
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const { data: membership } = await admin
-    .from("memberships")
-    .select("status, start_date, paid_through_date, downgraded_from_plan_name, downgraded_on, membership_plans(code, name, duration_days)")
-    .eq("member_id", member.id)
-    .order("start_date", { ascending: false })
-    .maybeSingle();
-
-  const planRaw: any = (membership as any)?.membership_plans;
-  const plan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-
-  const tier = normalizeTier(plan?.code);
-  const computedStatus = computeMembershipStatus({
-    tier,
-    start_date: (membership as any)?.start_date ?? null,
-    duration_days: plan?.duration_days ?? null,
-    db_status: (membership as any)?.status ?? null,
-    paid_through: (membership as any)?.paid_through_date ?? null,
-  });
-
-  const statusLabel =
-    computedStatus === "active"
-      ? "Active"
-      : computedStatus === "pending"
-      ? "Pending"
-      : computedStatus === "expired"
-      ? "Expired"
-      : "Free";
-
-  
-  const isFree = computedStatus === "free";
-const statusHint =
-    computedStatus === "active"
-      ? "Enjoy full access."
-      : computedStatus === "pending"
-      ? "Payment needed to activate."
-      : computedStatus === "expired"
-      ? "Renew to regain access."
-      : "Limited perks only.";
-
-  const paidThroughLabel = fmtJamaicaDate((membership as any)?.paid_through_date ?? null);
-  const cardNumberRaw = String(member.id).replace(/-/g, "").toUpperCase().slice(0, 16);
-  const cardNumber = cardNumberRaw.replace(/(.{4})/g, "$1 ").trim();
+export default async function MemberCard() {
+  const { member } = await requireMember();
+  const access = await loadAccess(member.id, member.is_active);
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Membership Card</h1>
-          <p className="text-sm opacity-70">Show this at the gate / front desk</p>
-        </div>
-        <BackButton fallbackHref="/member" />
+      <h1 className="text-xl font-semibold">My membership card</h1>
+      <div className="oura-card space-y-3 p-4">
+        <p className="text-sm uppercase tracking-widest">Travellers Rewards</p>
+        <h2 className="text-xl font-semibold">{member.full_name}</h2>
+        <p className="text-sm">
+          {member.is_active
+            ? "Rewards member · Active"
+            : "Membership needs front desk assistance"}
+        </p>
+        <p
+          className="break-all font-mono text-xs"
+          aria-label="Membership number"
+        >
+          {memberNumber(member.id)}
+        </p>
+        {member.is_active && <RotatingQr />}
+        <p className="text-sm opacity-80">
+          Show this card to staff to verify your benefits. If the QR cannot
+          load, staff can look up your membership number or name.
+        </p>
       </div>
-
-      <div className="oura-card p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-sm opacity-70">Name</div>
-            <div className="text-lg font-semibold">{titleCaseName(member.full_name)}</div>
-            <div className="mt-1 font-mono text-sm tracking-[0.1em]">{cardNumber}</div>
-          </div>
-
-          <span
-            className={[
-              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
-              membershipStatusPillClass(computedStatus),
-            ].join(" ")}
-            title={statusHint}
-          >
-            {statusLabel}
-          </span>
-        </div>
-
-        <div className={["mt-3 grid gap-3 text-sm", isFree ? "grid-cols-1" : "grid-cols-2"].join(" ")}>
-          <div>
-            <div className="opacity-70">Plan</div>
-            <div className="font-medium">{plan?.name ?? (tier === "rewards_free" ? "Free" : "—")}</div>
-          </div>
-          <div>
-            {!isFree && (
-            <div>
-              <div className="opacity-70">Paid through</div>
-              <div className="font-medium">{paidThroughLabel}</div>
+      <section className="space-y-3">
+        <h2 className="font-semibold">Facility access now</h2>
+        {access.current.length ? (
+          access.current.map((p) => (
+            <div key={p.id} className="rounded border p-3 text-sm">
+              <p className="font-medium">{p.plan_snapshot.name}</p>
+              <p className="mt-2">{facilities(p.plan_snapshot).join(" · ")}</p>
+              <p className="mt-2 opacity-80">
+                Valid through {p.paid_through_date}, until 10 pm Jamaica time.
+              </p>
             </div>
-            )}
-          </div>
-        </div>
-
-        {isFree && (membership as any)?.downgraded_from_plan_name ? (
-          <div className="mt-3 text-xs opacity-75">
-            Previous paid plan: {(membership as any).downgraded_from_plan_name}
-            {(membership as any)?.downgraded_on ? ` (expired ${(membership as any).downgraded_on})` : ""}
-          </div>
-        ) : null}
-
-        <div className="mt-3 text-xs opacity-70">{statusHint}</div>
-
-        <RotatingQr />
-      </div>
+          ))
+        ) : (
+          <p className="text-sm opacity-80">
+            No paid facility access is valid now. Your Rewards membership is
+            separate from gym/resort passes. In-house guests should ask the
+            front desk about access included in their booking.
+          </p>
+        )}
+      </section>
+      <Link
+        href="/member/access"
+        className="inline-block rounded border px-3 py-3 text-sm"
+      >
+        View passes and dates
+      </Link>
     </div>
   );
 }

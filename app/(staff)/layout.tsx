@@ -4,9 +4,13 @@ import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { StaffTopbar } from "@/components/nav/staff-topbar";
 import { HistoryTracker } from "@/components/ui/history-tracker";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
-import { maybeRunAutoDowngradeToFree } from "@/lib/membership/auto-downgrade";
+import Link from "next/link";
 
-export default async function StaffLayout({ children }: { children: React.ReactNode }) {
+export default async function StaffLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const STAFF_ROLES = new Set(["admin", "front_desk", "security"]);
   const supabase = await createClient();
   const {
@@ -31,28 +35,63 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     redirect("/auth/login");
   }
 
-  try {
-    await maybeRunAutoDowngradeToFree();
-  } catch {
-    // Non-blocking maintenance task; do not block layout rendering.
-  }
-
   const isSecurity = staffProfile.role === "security";
 
   return (
     <>
-      <div
+      <aside
+        className="staff-sidebar fixed bottom-0 left-0 top-[60px] z-30 hidden w-52 space-y-2 border-r border-white/10 bg-[rgb(8,10,20)] p-4 md:block"
+        aria-label="Employee navigation"
+      >
+        {[
+          ["/dashboard", "Overview"],
+          ["/members", "Members"],
+          ["/checkins/scan", "Verify member"],
+          ["/checkins", "Gym visits"],
+          ...(!isSecurity
+            ? [
+                ["/applications", "Requests"],
+                ["/payments", "Payments"],
+              ]
+            : []),
+          ...(staffProfile.role === "admin"
+            ? [["/more", "Programme & admin"]]
+            : []),
+          ["/account", "My staff account"],
+        ].map(([href, label]) => (
+          <Link
+            key={href}
+            href={href}
+            className="block rounded px-3 py-3 text-sm hover:bg-white/10"
+          >
+            {label}
+          </Link>
+        ))}
+      </aside>
+      <main
+        id="main-content"
         className={[
-          "w-full h-svh overflow-y-auto overscroll-y-contain pt-[calc(env(safe-area-inset-top)+60px)] pb-28",
+          "w-full md:pl-52 h-svh overflow-y-auto overscroll-y-contain pt-[calc(env(safe-area-inset-top)+60px)] pb-28",
         ].join(" ")}
       >
         <HistoryTracker />
-        <StaffTopbar />
+        <StaffTopbar role={staffProfile.role} />
         <InstallAppPrompt audience="staff" />
-        <div className={["mx-auto w-full", isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6"].join(" ")}>
-          <div className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(" ")}>{children}</div>
+        <div
+          className={[
+            "mx-auto w-full",
+            isSecurity ? "max-w-md px-4" : "max-w-6xl px-4 md:px-6",
+          ].join(" ")}
+        >
+          <div
+            className={["mt-4 oura-shell p-4", isSecurity ? "" : "md:p-5"].join(
+              " ",
+            )}
+          >
+            {children}
+          </div>
         </div>
-      </div>
+      </main>
 
       <BottomTabs role={staffProfile.role} />
     </>

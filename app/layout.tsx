@@ -3,10 +3,17 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import { Archivo, Poppins } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
-const archivo = Archivo({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-sans" });
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
+});
 
-
-const poppins = Poppins({ subsets: ["latin"], weight: ["300", "400", "500", "600"], variable: "--font-bubble" });
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-bubble",
+});
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://127.0.0.1:3000";
@@ -14,17 +21,20 @@ const defaultUrl = process.env.VERCEL_URL
 export const metadata: Metadata = {
   metadataBase: new URL(defaultUrl),
   title: "Travellers Club",
-  description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+  description:
+    "Membership, rewards, and facility access for Travellers Beach Resort.",
   manifest: "/manifest.webmanifest",
   openGraph: {
     title: "Travellers Club",
-    description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+    description:
+      "Membership, rewards, and facility access for Travellers Beach Resort.",
     images: ["/api/og"],
   },
   twitter: {
     card: "summary_large_image",
     title: "Travellers Club",
-    description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+    description:
+      "Membership, rewards, and facility access for Travellers Beach Resort.",
     images: ["/api/og"],
   },
   icons: {
@@ -32,7 +42,13 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
     ],
-    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [
+      {
+        url: "/icons/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    ],
   },
   appleWebApp: {
     capable: true,
@@ -41,11 +57,32 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${archivo.variable} ${poppins.variable}`}>
-      <body suppressHydrationWarning className="min-h-svh oura-bg text-[rgb(var(--fg))] overflow-hidden font-sans">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${archivo.variable} ${poppins.variable}`}
+    >
+      <body
+        suppressHydrationWarning
+        className="min-h-svh oura-bg text-[rgb(var(--fg))] overflow-hidden font-sans"
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+        >
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[10000] focus:rounded focus:bg-white focus:p-3 focus:text-black"
+          >
+            Skip to content
+          </a>
           <ServiceWorkerRegister />
           {children}
           <div id="app-portal" />

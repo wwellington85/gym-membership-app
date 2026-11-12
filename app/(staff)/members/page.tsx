@@ -1,633 +1,180 @@
-export const dynamic = "force-dynamic";
-
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  deriveStaffMembershipStatus,
-  isAccessActiveAtJamaicaCutoff,
-} from "@/lib/membership/status";
-import { redirect } from "next/navigation";
-
-
-function getMemberPlan(m: any): any {
-  const plan =
-    m?.membership?.membership_plans ??
-    m?.memberships?.membership_plans ??
-    m?.membership_plans ??
-    m?.plan ??
-    null;
-
-  if (Array.isArray(plan)) return plan[0] ?? null;
-  return plan ?? null;
-}
-
-
-type Filter =
-  | "all"
-  | "active"
-  | "due_soon"
-  | "past_due"
-  | "downgraded"
-  | "needs_contact"
-  | "past_due_needs_contact";
-
-function badge(status?: string | null) {
-  const s = (status ?? "").toLowerCase();
-  if (s === "active") return "Active";
-  if (s === "due_soon") return "Due Soon";
-  if (s === "past_due") return "Past Due";
-  return status ?? "—";
-}
-
-function statusTone(status?: string | null) {
-  const s = (status ?? "").toLowerCase();
-  if (s === "active") return "border-emerald-200 bg-emerald-50";
-  if (s === "due_soon") return "border-amber-200 bg-amber-50";
-  if (s === "past_due") return "border-red-200 bg-red-50";
-  return "border";
-}
-
-function derivedStatusFromMembership(ms: any) {
-  const planRaw: any = ms?.membership_plans;
-  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-  return deriveStaffMembershipStatus({
-    status: ms?.status ?? null,
-    startDate: ms?.start_date ?? null,
-    paidThroughDate: ms?.paid_through_date ?? null,
-    durationDays: plan?.duration_days ?? null,
-  });
-}
-
-function isDowngradedMembership(ms: any) {
-  const planRaw: any = ms?.membership_plans;
-  const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-  const planCode = String(plan?.code ?? "").toLowerCase();
-  return planCode === "rewards_free" && !!ms?.downgraded_from_plan_code;
-}
-
-function ymdToUtcMs(ymd?: string | null) {
-  const v = String(ymd ?? "");
-  const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return null;
-  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-
+import { requireStaff } from "@/lib/auth/staff";
+export const dynamic = "force-dynamic";
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams?: Promise<{
+  searchParams: Promise<{
     q?: string;
-    filter?: Filter;
-    done?: string;
-    mid?: string;
-    confirm?: string;
+    filter?: string;
+    page?: string;
+    access?: string;
   }>;
 }) {
-  const sp = (await searchParams) ?? {};
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
-
-  const { data: staffProfile } = await supabase
-    .from("staff_profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!staffProfile) redirect("/auth/login");
-
-  const role = staffProfile.role as string;
-  const isSecurity = role === "security";
-  const admin = createAdminClient();
-
-  const q = (sp.q ?? "").trim();
-  const filter = (sp.filter ?? "all") as Filter;
-
-  const done = sp.done ?? ""; // "saved" | "already" | "inactive" | ""
-  const mid = (sp.mid ?? "").trim();
-  const confirm = sp.confirm ?? ""; // "1" | ""
-
-  // Base query: members first, then fetch membership snapshot separately.
-  const base = admin
-    .from("members")
-    .select(
-      "id, full_name, phone, email, is_active, created_at"
-    )
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(isSecurity ? 20 : 50);
-
-  // Query-param filters (from dashboard tiles)
-  const qStatus = ((sp as any).status ?? "").toString().toLowerCase();
-  const qAccess = ((sp as any).access ?? "").toString(); // "1" | "0" | ""
-  const qNeeds = ((sp as any).needs_contact ?? "").toString(); // "1" | "true" | ""
-  const qDowngradedDaysRaw = ((sp as any).downgraded_days ?? "").toString();
-  const qDowngradedDays = Number.parseInt(qDowngradedDaysRaw || "0", 10);
-
-  const query = q
-    ? base.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`)
-    : base;
-
-  const { data: memberRows, error } = await query;
-  const memberIds = (memberRows ?? []).map((m: any) => m.id).filter(Boolean);
-
-  const { data: membershipRows, error: membershipError } = memberIds.length
-    ? await admin
-        .from("memberships")
-        .select(
-          "id, member_id, status, paid_through_date, needs_contact, start_date, downgraded_on, downgraded_from_plan_code, membership_plans(name, code, price, plan_type, duration_days, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
-        )
-        .in("member_id", memberIds)
-        .order("start_date", { ascending: false })
-    : { data: [] as any[], error: null };
-
-  const membershipByMemberId = new Map<string, any>();
-  (membershipRows ?? []).forEach((row: any) => {
-    const key = String(row.member_id);
-    if (!membershipByMemberId.has(key)) membershipByMemberId.set(key, row);
-  });
-
-  const members = (memberRows ?? []).map((m: any) => {
-    const membership = membershipByMemberId.get(String(m.id)) ?? null;
-    return {
-      ...m,
-      membership,
-      derived_status: derivedStatusFromMembership(membership),
-    };
-  });
-
-  // Filtering (only used for Admin/Front Desk view)
-  let filtered = members.filter((m: any) => {
-    const ms = m.membership;
-    const derived = m.derived_status;
-    if (filter === "all") return true;
-    if (filter === "active") return derived === "active";
-    if (filter === "due_soon") return derived === "due_soon";
-    if (filter === "past_due") return derived === "past_due";
-    if (filter === "downgraded") return isDowngradedMembership(ms);
-    if (filter === "needs_contact") return !!ms?.needs_contact;
-    if (filter === "past_due_needs_contact")
-      return derived === "past_due" && !!ms?.needs_contact;
-    return true;
-  });
-
-  
-
-  // Apply query-param filters (dashboard tiles) on top of the tab filter
-  if (qStatus) {
-    filtered = (filtered ?? []).filter((m: any) => {
-      return String(m.derived_status ?? "").toLowerCase() === qStatus;
-    });
-  }
-
-  if (qNeeds && (qNeeds === "1" || qNeeds === "true")) {
-    filtered = (filtered ?? []).filter((m: any) => !!m.membership?.needs_contact);
-  }
-  if (filter === "downgraded" && Number.isFinite(qDowngradedDays) && qDowngradedDays > 0) {
-    const now = Date.now();
-    const dayMs = 24 * 60 * 60 * 1000;
-    filtered = (filtered ?? []).filter((m: any) => {
-      const downgradedMs = ymdToUtcMs(m?.membership?.downgraded_on);
-      if (downgradedMs == null) return false;
-      return downgradedMs >= now - qDowngradedDays * dayMs;
-    });
-  }
-  if (qAccess === "1" || qAccess === "0") {
-    const want = qAccess === "1";
-    filtered = (filtered ?? []).filter((m: any) => {
-      const plan = getMemberPlan(m);
-      const code = String(plan?.code ?? "").toLowerCase();
-      const price = Number(plan?.price ?? 0);
-
-      // Prefer explicit column if/when it exists
-      const explicit = (plan as any)?.grants_access;
-      const grants =
-        typeof explicit === "boolean" ? explicit : (!code.includes("rewards") && (code.startsWith("club_") || price > 0));
-
-      return !!grants === want;
-    });
-  }
-
-  // For Security gate mode: use first match as the "Gate Status" member
-  const gateMember = isSecurity && q && members.length > 0 ? members[0] : null;
-  const gateMembership = gateMember?.membership;
-  const gatePlanRaw: any = gateMembership?.membership_plans;
-  const gatePlan = Array.isArray(gatePlanRaw) ? gatePlanRaw[0] : gatePlanRaw;
-  const gateDerivedStatus = derivedStatusFromMembership(gateMembership);
-  const gateActiveNow = isAccessActiveAtJamaicaCutoff({
-    status: gateMembership?.status ?? null,
-    startDate: gateMembership?.start_date ?? null,
-    paidThroughDate: gateMembership?.paid_through_date ?? null,
-    durationDays: gatePlan?.duration_days ?? null,
-  });
-
-  const isPastDueGate = gateDerivedStatus === "past_due" || !gateActiveNow;
-  const isConfirmingThisMember = !!gateMember && confirm === "1" && mid === gateMember.id;
-
-  // SECURITY: inline check-in (server action)
-  async function checkInGate(formData: FormData) {
-    "use server";
-
-    const supabase = await createClient();
-    const member_id = String(formData.get("member_id") || "").trim();
-    const q = String(formData.get("q") || "").trim();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) redirect("/auth/login");
-
-    const { data: gateMembership } = await supabase
-      .from("memberships")
-      .select("status, start_date, paid_through_date, membership_plans(duration_days)")
-      .eq("member_id", member_id)
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const planRaw: any = (gateMembership as any)?.membership_plans;
-    const plan = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-    const canCheckIn = isAccessActiveAtJamaicaCutoff({
-      status: (gateMembership as any)?.status ?? null,
-      startDate: (gateMembership as any)?.start_date ?? null,
-      paidThroughDate: (gateMembership as any)?.paid_through_date ?? null,
-      durationDays: plan?.duration_days ?? null,
-    });
-    if (!canCheckIn) {
-      const qs = new URLSearchParams();
-      if (q) qs.set("q", q);
-      qs.set("mid", member_id);
-      qs.set("done", "inactive");
-      redirect(`/members?${qs.toString()}`);
-    }
-
-    // Read points setting (default 1)
-    const { data: settingRow } = await supabase
-      .from("app_settings")
-      .select("int_value")
-      .eq("key", "points_per_checkin")
-      .maybeSingle();
-
-    const pointsEarned = Math.max(1, Number(settingRow?.int_value ?? 3));
-
-    const { error } = await supabase.from("checkins").insert({
-      member_id,
-      staff_user_id: user.id,
-      points_earned: pointsEarned,
-    });
-
-    const qs = new URLSearchParams();
-    if (q) qs.set("q", q);
-    qs.set("mid", member_id);
-
-    if (error) {
-      // 23505 = unique violation (already checked in today)
-      if ((error as any).code === "23505") {
-        qs.set("done", "already");
-        redirect(`/members?${qs.toString()}`);
-      }
-      throw new Error(`Check-in failed: ${error.message}`);
-    }
-
-    qs.set("done", "saved");
-    redirect(`/members?${qs.toString()}`);
-  }
-
-  const filters: { key: Filter; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "active", label: "Active" },
-    { key: "due_soon", label: "Due Soon" },
-    { key: "downgraded", label: "Downgraded" },
-    { key: "needs_contact", label: "Needs Contact" },
+  const { admin, staff } = await requireStaff();
+  const sp = await searchParams;
+  const query = String(sp.q || "")
+    .trim()
+    .slice(0, 120);
+  const allowed = [
+    "all",
+    "access",
+    "rewards",
+    "due_soon",
+    "inactive",
+    "all_records",
   ];
-
-  // -------------------------
-  // SECURITY QUICK LOOKUP UI
-  // -------------------------
-  if (isSecurity) {
-    const showBanner = !!done && !!mid && gateMember?.id === mid;
-
-    const qParamsBase = new URLSearchParams();
-    if (q) qParamsBase.set("q", q);
-
-    const confirmParams = new URLSearchParams(qParamsBase.toString());
-    if (gateMember?.id) confirmParams.set("mid", gateMember.id);
-    confirmParams.set("confirm", "1");
-
-    const cancelParams = new URLSearchParams(qParamsBase.toString());
-return (
-      <div className="space-y-4">
-        <div>
-          <h1 className="text-xl font-semibold">Quick Lookup</h1>
-          <p className="text-sm opacity-70">
-            Search by name or phone to confirm membership at the gate
-          </p>
-        </div>
-
-        {showBanner && done === "saved" ? (
-          <div className="rounded border border-emerald-200 bg-emerald-50 p-3 text-sm">
-            <div className="font-medium">Checked in</div>
-            <div className="mt-1 opacity-80">Visit recorded successfully.</div>
-          </div>
-        ) : null}
-
-        {showBanner && done === "already" ? (
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-            <div className="font-medium">Already checked in</div>
-            <div className="mt-1 opacity-80">This member already checked in today.</div>
-          </div>
-        ) : null}
-
-        {showBanner && done === "inactive" ? (
-          <div className="rounded border border-red-200 bg-red-50 p-3 text-sm">
-            <div className="font-medium">Membership expired</div>
-            <div className="mt-1 opacity-80">This member cannot be checked in after expiry cutoff.</div>
-          </div>
-        ) : null}
-
-        <form className="rounded border p-3 space-y-2" action="/members" method="get">
-          <div className="text-sm font-medium">Search member</div>
-          <input
-            name="q"
-            defaultValue={q}
-            className="w-full rounded border px-3 py-3 text-base"
-            placeholder="Type name or phone…"
-            autoFocus
-          />
-          <button className="w-full rounded border px-3 py-3 text-sm hover:bg-gray-50">
-            Search
-          </button>
-          <div className="text-xs opacity-60">
-            Tip: Try last name or last 4 digits of phone.
-          </div>
-        </form>
-
-        {error || membershipError ? (
-          <div className="rounded border p-3 text-sm">
-            Could not load members.
-            <div className="mt-1 text-xs opacity-70">{error?.message ?? membershipError?.message}</div>
-          </div>
-        ) : null}
-
-        {q && members.length === 0 && !error && !membershipError ? (
-          <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm">
-            <div className="font-medium">No match found</div>
-            <div className="mt-1 opacity-80">
-              Ask the guest for another phone number or check spelling.
-            </div>
-          </div>
-        ) : null}
-
-        {gateMember ? (
-          <div className={`rounded border p-3 ${statusTone(gateDerivedStatus)}`}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs opacity-70">Gate Status</div>
-                <div className="text-lg font-semibold">{gateMember.full_name}</div>
-                <div className="text-sm opacity-70">{gateMember.phone}</div>
-
-                <div className="mt-2 text-sm">
-                  Status:{" "}
-                  <span className="font-semibold">{badge(gateDerivedStatus)}</span>
-                </div>
-                <div className="text-sm opacity-70">
-                  Paid-through: {gateMembership?.paid_through_date ?? "—"}
-                </div>
-                <div className="text-xs opacity-70 mt-1">
-                  Plan: {gateMembership?.membership_plans?.name ?? "—"}
-                </div>
-
-                {isPastDueGate && isConfirmingThisMember ? (
-                  <div className="mt-3 rounded border border-red-200 bg-red-50 p-2 text-sm">
-                    <div className="font-medium">Confirm check-in</div>
-                    <div className="mt-1 opacity-80">
-                      This membership is <b>Past Due</b>. Confirm with Front Desk before allowing access.
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="flex flex-col gap-2 items-end">
-                <Link
-                  href={`/members/${gateMember.id}`}
-                  className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                >
-                  Open
-                </Link>
-
-                {/* Check-in button with confirmation for Past Due */}
-                {isPastDueGate ? (
-                  isConfirmingThisMember ? (
-                    <>
-                      <form action={checkInGate}>
-                        <input type="hidden" name="member_id" value={gateMember.id} />
-                        <input type="hidden" name="q" value={q} />
-                        <button className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50">
-                          Proceed check-in
-                        </button>
-                      </form>
-
-                      <Link
-                        href={`/members?${cancelParams.toString()}`}
-                        className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                      >
-                        Cancel
-                      </Link>
-                    </>
-                  ) : (
-                    <Link
-                      href={`/members?${confirmParams.toString()}`}
-                      className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                      Confirm check-in
-                    </Link>
-                  )
-                ) : (
-                  <form action={checkInGate}>
-                    <input type="hidden" name="member_id" value={gateMember.id} />
-                    <input type="hidden" name="q" value={q} />
-                    <button className="rounded border bg-white px-3 py-2 text-sm hover:bg-gray-50">
-                      Check in now
-                    </button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Other matches */}
-        {q && members.length > 1 ? (
-          <div className="oura-card p-3">
-            <div className="flex items-center justify-between">
-              <div className="font-medium">Other matches</div>
-              <div className="text-xs opacity-70">{members.length - 1}</div>
-            </div>
-
-            <div className="mt-2 space-y-2">
-              {members.slice(1, 6).map((m: any) => (
-                <Link
-                  key={m.id}
-                  href={`/members/${m.id}`}
-                  className="block rounded border p-3 hover:bg-gray-50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">{m.full_name}</div>
-                      <div className="text-sm opacity-70">{m.phone}</div>
-                    </div>
-                    <div className="text-right text-xs opacity-70">
-                      <div>{badge(m.derived_status)}</div>
-                      <div>{m.membership?.paid_through_date ?? ""}</div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {members.length > 6 ? (
-                <div className="text-xs opacity-60">
-                  Showing first 5 additional matches.
-                </div>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {/* Always show a member list below search for security */}
-        {members.length > 0 ? (
-          <div className="oura-card p-3">
-            <div className="flex items-center justify-between">
-              <div className="font-medium">{q ? "Member list" : "Recent members"}</div>
-              <div className="text-xs opacity-70">{q ? members.length : Math.min(members.length, 10)}</div>
-            </div>
-
-            <div className="mt-2 space-y-2">
-              {(q ? members : members.slice(0, 10)).map((m: any) => (
-                <Link
-                  key={m.id}
-                  href={`/members/${m.id}`}
-                  className="block rounded border p-3 hover:bg-gray-50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium">{m.full_name}</div>
-                      <div className="text-sm opacity-70">{m.phone}</div>
-                    </div>
-                    <div className="text-right text-xs opacity-70">
-                      <div>{badge(m.derived_status)}</div>
-                      <div>{m.membership?.paid_through_date ?? ""}</div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  // -------------------------
-  // ADMIN / FRONT DESK UI
-  // -------------------------
-
+  const requested =
+    sp.access === "1"
+      ? "access"
+      : sp.access === "0"
+        ? "rewards"
+        : sp.filter || "all";
+  const filter =
+    allowed.includes(requested) &&
+    (staff.role === "admin" || !["inactive", "all_records"].includes(requested))
+      ? requested
+      : "all";
+  const page = Math.min(100000, Math.max(0, Math.floor(Number(sp.page) || 0)));
+  const size = 25;
+  const { data: rows, error } = await admin.rpc("search_club_members", {
+    p_query: query,
+    p_filter: filter,
+    p_page: page,
+    p_size: size,
+  });
+  const total = Number(rows?.[0]?.total ?? 0);
+  const href = (overrides: Record<string, string>) =>
+    `/members?${new URLSearchParams({ q: query, filter, ...overrides }).toString()}`;
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Members</h1>
-          <p className="text-sm opacity-70">Search and manage gym members</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">
+          {staff.role === "security" ? "Member lookup" : "Members"}
+        </h1>
+        {staff.role !== "security" && (
+          <Link className="rounded border p-3 text-sm" href="/members/new">
+            Add member
+          </Link>
+        )}
+      </div>
+      <form action="/members" className="space-y-2">
+        <label htmlFor="member-search" className="text-sm">
+          Name, phone, email or full membership number
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="member-search"
+            name="q"
+            defaultValue={query}
+            className="oura-input min-w-0 flex-1 p-3"
+            maxLength={120}
+          />
+          <input type="hidden" name="filter" value={filter} />
+          <button className="rounded border p-3">Search</button>
         </div>
-
-        <Link
-          href="/members/new"
-          className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
-        >
-          + Add Member
-        </Link>
-      </div>
-
-      {/* Filter pills */}
-      <div className="flex flex-wrap gap-2">
-        {filters.map((f) => {
-          const active = f.key === filter;
-          const qs = new URLSearchParams();
-          if (q) qs.set("q", q);
-          if (f.key !== "all") qs.set("filter", f.key);
-          const href = `/members${qs.toString() ? `?${qs.toString()}` : ""}`;
-          return (
-            <Link
-              key={f.key}
-              href={href}
-              className={`rounded border px-3 py-1.5 text-xs ${
-                active ? "font-semibold" : "opacity-70 hover:bg-gray-50"
-              }`}
-            >
-              {f.label}
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Search */}
-      <form className="flex gap-2" action="/members" method="get">
-        <input type="hidden" name="filter" value={filter} />
-        <input
-          name="q"
-          defaultValue={q}
-          className="w-full oura-input px-3 py-2"
-          placeholder="Search name or phone…"
-        />
-        <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
-          Search
-        </button>
       </form>
-
-      {/* Errors */}
-      {error || membershipError ? (
-        <div className="rounded border p-3 text-sm">
-          Could not load members.
-          <div className="mt-1 text-xs opacity-70">{error?.message ?? membershipError?.message}</div>
-        </div>
-      ) : null}
-
-      {/* Empty */}
-      {!error && !membershipError && filtered.length === 0 ? (
-        <div className="rounded border p-3 text-sm opacity-70">
-          No members found{q ? " for that search" : ""}.
-          <div className="mt-1">
-            <Link href="/members/new" className="underline underline-offset-2">
-              Add your first member
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
-      {/* List */}
-      <div className="space-y-2">
-        {filtered.map((m: any) => (
+      <nav aria-label="Member filters" className="flex flex-wrap gap-2">
+        {[
+          ["all", "Active members"],
+          ["access", "Valid access"],
+          ["rewards", "Rewards only"],
+          ["due_soon", "Access ends soon"],
+          ...(staff.role === "admin"
+            ? [
+                ["inactive", "Inactive"],
+                ["all_records", "All records"],
+              ]
+            : []),
+        ].map(([value, label]) => (
           <Link
-            key={m.id}
-            href={`/members/${m.id}`}
-            className="block rounded border p-3 hover:bg-gray-50"
+            key={value}
+            href={href({ filter: value, page: "0" })}
+            aria-current={value === filter ? "page" : undefined}
+            className={`rounded border px-3 py-3 text-sm ${value === filter ? "bg-indigo-500/20 font-semibold" : ""}`}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-medium">{m.full_name}</div>
-                <div className="text-sm opacity-70">{m.phone}</div>
-                {m.email ? <div className="text-xs opacity-60">{m.email}</div> : null}
-              </div>
-              <div className="text-right text-xs opacity-70">
-                <div>{badge(m.derived_status)}</div>
-                <div>{m.membership?.paid_through_date ?? ""}</div>
-              </div>
-            </div>
+            {label}
           </Link>
         ))}
-      </div>
+      </nav>
+      {error ? (
+        <p role="alert" className="oura-alert-danger">
+          Member search is unavailable. Please try again.
+        </p>
+      ) : (
+        <>
+          <p className="text-sm opacity-80">
+            {total
+              ? `${total} matching members`
+              : page > 0
+                ? "No members on this page. Return to the previous page."
+                : "No matching members. Try another name or membership number."}{" "}
+            Select the correct person before taking action.
+          </p>
+          <div className="space-y-2">
+            {rows?.map(
+              (m: {
+                id: string;
+                full_name: string;
+                phone: string;
+                email: string;
+                scope: string;
+                is_active: boolean;
+                valid_through: string;
+              }) => (
+                <Link
+                  key={m.id}
+                  href={
+                    staff.role === "security"
+                      ? `/checkins/scan?member=${m.id}`
+                      : `/members/${m.id}`
+                  }
+                  className="block rounded border p-4"
+                >
+                  <h2 className="font-semibold">{m.full_name}</h2>
+                  <p className="mt-2 text-sm opacity-80">
+                    {staff.role === "security"
+                      ? m.phone
+                        ? `Phone ending ${m.phone.slice(-4)}`
+                        : "Verify membership number"
+                      : [m.phone, m.email].filter(Boolean).join(" · ")}
+                  </p>
+                  <p className="mt-2 text-sm">
+                    {!m.is_active
+                      ? "Inactive"
+                      : m.scope === "resort"
+                        ? "Gym & resort access"
+                        : m.scope === "gym"
+                          ? "Gym only"
+                          : "Rewards benefits · No paid facility access"}
+                    {m.valid_through ? ` · Through ${m.valid_through}` : ""}
+                  </p>
+                </Link>
+              ),
+            )}
+          </div>
+          <div className="flex justify-between gap-3">
+            {page > 0 ? (
+              <Link
+                href={href({ page: String(page - 1) })}
+                className="rounded border p-3"
+              >
+                Previous
+              </Link>
+            ) : (
+              <span />
+            )}
+            {(page + 1) * size < total && (
+              <Link
+                href={href({ page: String(page + 1) })}
+                className="rounded border p-3"
+              >
+                Next
+              </Link>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

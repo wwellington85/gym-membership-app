@@ -1,7 +1,14 @@
-export default function AuthLayout({ children }: { children: React.ReactNode }) {
+export default function AuthLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="mx-auto w-full max-w-md px-4 pt-10 pb-10">
+    <main
+      id="main-content"
+      className="mx-auto h-svh w-full max-w-md overflow-y-auto overscroll-y-contain px-4 pt-6 pb-10"
+    >
       {children}
-    </div>
+    </main>
   );
 }
