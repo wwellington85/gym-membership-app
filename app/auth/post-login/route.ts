@@ -123,6 +123,6 @@ export async function GET(request: Request) {
   );
   if (error) return fail();
   return NextResponse.redirect(
-    new URL(returnTo && memberReturn ? returnTo : "/member", url),
+    new URL(returnTo && memberReturn ? returnTo : "/member/start", url),
   );
 }

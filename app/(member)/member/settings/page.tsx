@@ -1,14 +1,20 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/access/server";
+import { startScreenPreference } from "@/lib/member/navigation";
+import { saveStartingScreen } from "./actions";
 
 export const dynamic = "force-dynamic";
 export default async function AccountPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string; err?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    preference_saved?: string;
+    err?: string;
+  }>;
 }) {
-  const { member, admin } = await requireMember();
+  const { member, admin, user } = await requireMember();
   const sp = await searchParams;
   const { data: payments, error } = await admin
     .from("payments")
@@ -49,6 +55,11 @@ export default async function AccountPage({
       {sp.saved && (
         <p role="status" className="oura-alert-success">
           Your details were saved.
+        </p>
+      )}
+      {sp.preference_saved && (
+        <p role="status" className="oura-alert-success">
+          Your starting screen was saved.
         </p>
       )}
       {sp.err && (
@@ -98,6 +109,39 @@ export default async function AccountPage({
           Help & membership information
         </Link>
       </div>
+      <section id="starting-screen" className="oura-card space-y-3 p-4">
+        <h2 className="font-semibold">Starting screen</h2>
+        <p id="starting-screen-help" className="text-sm opacity-80">
+          Choose where the app opens when you sign in or launch it. Links to a
+          specific screen still take you there.
+        </p>
+        <form action={saveStartingScreen} className="space-y-3">
+          <label htmlFor="starting-screen-choice" className="block text-sm">
+            Open on
+          </label>
+          <select
+            id="starting-screen-choice"
+            name="starting_screen"
+            defaultValue={startScreenPreference(
+              user.user_metadata?.member_start_screen,
+            )}
+            aria-describedby="starting-screen-help starting-screen-auto"
+            className="oura-input w-full p-3"
+          >
+            <option value="auto">Automatic</option>
+            <option value="home">Home — Rewards and hotel benefits</option>
+            <option value="gym">Gym — visits, progress, and access</option>
+          </select>
+          <p id="starting-screen-auto" className="text-sm opacity-80">
+            Automatic opens Gym while a gym-specific pass is active, whether
+            paid or complimentary. Otherwise it opens Home. Resort access that
+            includes the gym keeps Home as the default.
+          </p>
+          <button className="rounded border px-4 py-3 text-sm">
+            Save starting screen
+          </button>
+        </form>
+      </section>
       <section className="space-y-3">
         <h2 className="font-semibold">Recent purchases</h2>
         {error ? (

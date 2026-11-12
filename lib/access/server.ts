@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { memberLoginHref } from "@/lib/auth/member-login";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -13,7 +14,7 @@ export async function requireMember() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect("/auth/login?returnTo=/member");
+  if (!user) redirect(await memberLoginHref());
   const admin = createAdminClient();
   const { data: member, error } = await admin
     .from("members")

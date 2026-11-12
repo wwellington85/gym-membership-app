@@ -1,51 +1,33 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { backDestination } from "@/lib/member/navigation";
 
 export function BackButton({
   fallbackHref = "/member",
   className = "",
+  label = "Back",
 }: {
   fallbackHref?: string;
   className?: string;
+  label?: string;
 }) {
-  const router = useRouter();
-  const sp = useSearchParams();
-
-  function goBack() {
-    // If a returnTo is present, prefer that.
-    const returnTo = sp.get("returnTo");
-    if (returnTo) {
-      router.replace(returnTo);
-      return;
-    }
-
-    // Try history back first. If the page was opened directly, fallback.
-    router.back();
-
-    // Fallback after a tick (prevents getting stuck on pages with no history)
-    setTimeout(() => {
-      // If we're still on the same page for any reason, force fallback.
-      // (We can't reliably detect route change here without extra state,
-      // but this is light and works well in practice.)
-      router.replace(fallbackHref);
-    }, 120);
-  }
-
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const href = backDestination(
+    searchParams.get("returnTo"),
+    fallbackHref,
+    pathname,
+  );
   return (
-    <button
-      type="button"
-      onClick={goBack}
-      aria-label="Back"
-      className={[
-        "inline-flex h-9 w-9 items-center justify-center rounded-full",
-        "hover:oura-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20",
-        "transition",
-        className,
-      ].join(" ")}
+    <Link
+      href={href}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm hover:oura-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 ${className}`}
     >
-      <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
-    </button>
+      <ArrowLeft className="h-5 w-5" strokeWidth={2.4} aria-hidden="true" />
+      {label}
+    </Link>
   );
 }

@@ -4,9 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { memberTab } from "@/lib/member/navigation";
 
 const tabs = [
   { href: "/member", label: "Home" },
+  { href: "/member/gym", label: "Gym" },
   { href: "/member/card", label: "Card" },
   { href: "/member/benefits", label: "Benefits" },
   { href: "/member/settings", label: "Account" },
@@ -27,10 +29,7 @@ export function MemberTabs() {
     >
       <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
         {tabs.map((t) => {
-          const active =
-            t.href === "/member"
-              ? pathname === "/member"
-              : pathname === t.href || pathname.startsWith(t.href + "/");
+          const active = memberTab(pathname) === t.href;
 
           return (
             <Link
