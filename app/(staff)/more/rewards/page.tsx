@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import { requireStaff } from "@/lib/auth/staff";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { RewardsOkBanner } from "@/components/staff/rewards-ok-banner";
 
@@ -45,22 +45,7 @@ type ScheduledUpdateRow = {
 };
 
 async function requireAdminUser() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login?returnTo=/more/rewards");
-
-  const { data: me } = await supabase
-    .from("staff_profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!me || me.role !== "admin") {
-    redirect("/dashboard?err=Not%20authorized");
-  }
+  await requireStaff(["admin"]);
 }
 
 function pctToDb(input: FormDataEntryValue | null) {
@@ -82,7 +67,9 @@ function isMissingBenefitsTable(error: any) {
 function isMissingScheduledUpdatesTable(error: any) {
   const code = String(error?.code ?? "");
   const message = String(error?.message ?? "");
-  return code === "PGRST205" || /membership_plan_scheduled_updates/i.test(message);
+  return (
+    code === "PGRST205" || /membership_plan_scheduled_updates/i.test(message)
+  );
 }
 
 function maybePctToDb(input: FormDataEntryValue | null) {
@@ -98,24 +85,24 @@ function boolModeToValue(input: FormDataEntryValue | null): boolean | null {
   return null;
 }
 
-function todayJM() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Jamaica",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
 export default async function RewardsManagerPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ ok?: string; err?: string; benefit_view?: "active" | "inactive" | "all" }>;
+  searchParams?: Promise<{
+    ok?: string;
+    err?: string;
+    benefit_view?: "active" | "inactive" | "all";
+  }>;
 }) {
   const sp = (await searchParams) ?? {};
-  const benefitView = sp.benefit_view === "inactive" || sp.benefit_view === "all" ? sp.benefit_view : "active";
+  const benefitView =
+    sp.benefit_view === "inactive" || sp.benefit_view === "all"
+      ? sp.benefit_view
+      : "active";
   const clearOkHref =
-    benefitView === "active" ? "/more/rewards" : `/more/rewards?benefit_view=${benefitView}`;
+    benefitView === "active"
+      ? "/more/rewards"
+      : `/more/rewards?benefit_view=${benefitView}`;
 
   await requireAdminUser();
 
@@ -129,19 +116,25 @@ export default async function RewardsManagerPage({
     const withJoinVisibility = await admin
       .from("membership_plans")
       .select(
-        "id, code, name, price, duration_days, is_active, grants_access, discount_food, discount_spa, discount_giftshop, discount_watersports, visible_on_join"
+        "id, code, name, price, duration_days, is_active, grants_access, discount_food, discount_spa, discount_giftshop, discount_watersports, visible_on_join",
       )
       .order("price", { ascending: true });
 
-    if (withJoinVisibility.error && /visible_on_join/i.test(String(withJoinVisibility.error.message || ""))) {
+    if (
+      withJoinVisibility.error &&
+      /visible_on_join/i.test(String(withJoinVisibility.error.message || ""))
+    ) {
       joinVisibilityFieldAvailable = false;
       const fallback = await admin
         .from("membership_plans")
         .select(
-          "id, code, name, price, duration_days, is_active, grants_access, discount_food, discount_spa, discount_giftshop, discount_watersports"
+          "id, code, name, price, duration_days, is_active, grants_access, discount_food, discount_spa, discount_giftshop, discount_watersports",
         )
         .order("price", { ascending: true });
-      plansRows = (fallback.data ?? []).map((p: any) => ({ ...p, visible_on_join: true }));
+      plansRows = (fallback.data ?? []).map((p: any) => ({
+        ...p,
+        visible_on_join: true,
+      }));
       plansErr = fallback.error;
     } else {
       plansRows = withJoinVisibility.data;
@@ -191,68 +184,19 @@ export default async function RewardsManagerPage({
 
   let scheduledUpdatesFeatureUnavailable = false;
 
-  // Auto-apply due scheduled updates.
-  {
-    const dueRes = await admin
-      .from("membership_plan_scheduled_updates")
-      .select(
-        "id, plan_id, effective_on, discount_food, discount_spa, discount_giftshop, discount_watersports, grants_access, visible_on_join"
-      )
-      .is("applied_at", null)
-      .lte("effective_on", todayJM())
-      .order("effective_on", { ascending: true });
-
-    if (dueRes.error && isMissingScheduledUpdatesTable(dueRes.error)) {
-      scheduledUpdatesFeatureUnavailable = true;
-    } else if (dueRes.error) {
-      console.error("Could not load due scheduled updates:", dueRes.error);
-    } else {
-      for (const u of dueRes.data ?? []) {
-        const payload: any = {};
-        if (u.discount_food !== null) payload.discount_food = u.discount_food;
-        if (u.discount_spa !== null) payload.discount_spa = u.discount_spa;
-        if (u.discount_giftshop !== null) payload.discount_giftshop = u.discount_giftshop;
-        if (u.discount_watersports !== null) payload.discount_watersports = u.discount_watersports;
-        if (u.grants_access !== null) payload.grants_access = u.grants_access;
-        if (u.visible_on_join !== null) payload.visible_on_join = u.visible_on_join;
-
-        if (Object.keys(payload).length > 0) {
-          let updateErr: any = null;
-          const updated = await admin.from("membership_plans").update(payload).eq("id", u.plan_id);
-          updateErr = updated.error;
-
-          if (updateErr && /visible_on_join/i.test(String(updateErr.message || ""))) {
-            const fallbackPayload = { ...payload };
-            delete fallbackPayload.visible_on_join;
-            updateErr = Object.keys(fallbackPayload).length
-              ? (await admin.from("membership_plans").update(fallbackPayload).eq("id", u.plan_id)).error
-              : null;
-          }
-
-          if (updateErr) {
-            console.error("Could not apply scheduled update:", updateErr);
-            continue;
-          }
-        }
-
-        await admin
-          .from("membership_plan_scheduled_updates")
-          .update({ applied_at: new Date().toISOString() })
-          .eq("id", u.id);
-      }
-    }
-  }
-
   const scheduledRes = await admin
     .from("membership_plan_scheduled_updates")
     .select(
-      "id, plan_id, effective_on, discount_food, discount_spa, discount_giftshop, discount_watersports, grants_access, visible_on_join, note, applied_at"
+      "id, plan_id, effective_on, discount_food, discount_spa, discount_giftshop, discount_watersports, grants_access, visible_on_join, note, applied_at",
     )
     .in("plan_id", planIds)
     .order("effective_on", { ascending: true })
     .order("created_at", { ascending: true });
 
-  if (scheduledRes.error && isMissingScheduledUpdatesTable(scheduledRes.error)) {
+  if (
+    scheduledRes.error &&
+    isMissingScheduledUpdatesTable(scheduledRes.error)
+  ) {
     scheduledUpdatesFeatureUnavailable = true;
   }
 
@@ -286,9 +230,13 @@ export default async function RewardsManagerPage({
 
     const { error } = await admin
       .from("app_settings")
-      .upsert({ key: "points_per_checkin", int_value: intVal }, { onConflict: "key" });
+      .upsert(
+        { key: "points_per_checkin", int_value: intVal },
+        { onConflict: "key" },
+      );
 
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=points");
   }
 
@@ -309,7 +257,10 @@ export default async function RewardsManagerPage({
       visible_on_join: formData.get("visible_on_join") === "on",
     };
 
-    let { error } = await admin.from("membership_plans").update(payload).eq("id", planId);
+    let { error } = await admin
+      .from("membership_plans")
+      .update(payload)
+      .eq("id", planId);
     if (error && /visible_on_join/i.test(String(error.message || ""))) {
       const fallback = await admin
         .from("membership_plans")
@@ -324,7 +275,8 @@ export default async function RewardsManagerPage({
       error = fallback.error;
     }
 
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=plan");
   }
 
@@ -337,7 +289,9 @@ export default async function RewardsManagerPage({
     const effectiveOn = String(formData.get("effective_on") ?? "").trim();
     const note = String(formData.get("note") ?? "").trim();
     if (!planId || !effectiveOn) {
-      redirect("/more/rewards?err=Plan%20and%20effective%20date%20are%20required");
+      redirect(
+        "/more/rewards?err=Plan%20and%20effective%20date%20are%20required",
+      );
     }
 
     const payload = {
@@ -352,11 +306,16 @@ export default async function RewardsManagerPage({
       note: note || null,
     };
 
-    const { error } = await admin.from("membership_plan_scheduled_updates").insert(payload);
+    const { error } = await admin
+      .from("membership_plan_scheduled_updates")
+      .insert(payload);
     if (error && isMissingScheduledUpdatesTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=scheduled");
   }
 
@@ -366,13 +325,20 @@ export default async function RewardsManagerPage({
 
     const admin = createAdminClient();
     const scheduleId = String(formData.get("schedule_id") ?? "").trim();
-    if (!scheduleId) redirect("/more/rewards?err=Missing%20scheduled%20update%20id");
+    if (!scheduleId)
+      redirect("/more/rewards?err=Missing%20scheduled%20update%20id");
 
-    const { error } = await admin.from("membership_plan_scheduled_updates").delete().eq("id", scheduleId);
+    const { error } = await admin
+      .from("membership_plan_scheduled_updates")
+      .delete()
+      .eq("id", scheduleId);
     if (error && isMissingScheduledUpdatesTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20scheduled%20updates",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=schedule_removed");
   }
 
@@ -385,10 +351,14 @@ export default async function RewardsManagerPage({
     const label = String(formData.get("label") ?? "").trim();
     const value = String(formData.get("value") ?? "").trim();
     const sortOrderRaw = Number(formData.get("sort_order") ?? 100);
-    const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, Math.floor(sortOrderRaw)) : 100;
+    const sortOrder = Number.isFinite(sortOrderRaw)
+      ? Math.max(0, Math.floor(sortOrderRaw))
+      : 100;
 
     if (!planId || !label) {
-      redirect("/more/rewards?err=Plan%20and%20benefit%20label%20are%20required");
+      redirect(
+        "/more/rewards?err=Plan%20and%20benefit%20label%20are%20required",
+      );
     }
 
     const { error } = await admin.from("membership_plan_benefits").insert({
@@ -400,9 +370,12 @@ export default async function RewardsManagerPage({
     });
 
     if (error && isMissingBenefitsTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=benefit_added");
   }
 
@@ -415,7 +388,9 @@ export default async function RewardsManagerPage({
     const label = String(formData.get("label") ?? "").trim();
     const value = String(formData.get("value") ?? "").trim();
     const sortOrderRaw = Number(formData.get("sort_order") ?? 100);
-    const sortOrder = Number.isFinite(sortOrderRaw) ? Math.max(0, Math.floor(sortOrderRaw)) : 100;
+    const sortOrder = Number.isFinite(sortOrderRaw)
+      ? Math.max(0, Math.floor(sortOrderRaw))
+      : 100;
     const isActive = formData.get("is_active") === "on";
 
     if (!benefitId || !label) {
@@ -434,9 +409,12 @@ export default async function RewardsManagerPage({
       .eq("id", benefitId);
 
     if (error && isMissingBenefitsTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=benefit_saved");
   }
 
@@ -456,10 +434,15 @@ export default async function RewardsManagerPage({
       .eq("id", benefitId);
 
     if (error && isMissingBenefitsTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
-    redirect(`/more/rewards?ok=${nextActive ? "benefit_restored" : "benefit_removed"}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    redirect(
+      `/more/rewards?ok=${nextActive ? "benefit_restored" : "benefit_removed"}`,
+    );
   }
 
   async function deleteBenefit(formData: FormData) {
@@ -470,11 +453,17 @@ export default async function RewardsManagerPage({
     const benefitId = String(formData.get("benefit_id") ?? "").trim();
     if (!benefitId) redirect("/more/rewards?err=Missing%20benefit%20id");
 
-    const { error } = await admin.from("membership_plan_benefits").delete().eq("id", benefitId);
+    const { error } = await admin
+      .from("membership_plan_benefits")
+      .delete()
+      .eq("id", benefitId);
     if (error && isMissingBenefitsTable(error)) {
-      redirect("/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits");
+      redirect(
+        "/more/rewards?err=Run%20the%20latest%20migration%20to%20enable%20custom%20benefits",
+      );
     }
-    if (error) redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
+    if (error)
+      redirect(`/more/rewards?err=${encodeURIComponent(error.message)}`);
     redirect("/more/rewards?ok=benefit_deleted");
   }
 
@@ -482,10 +471,22 @@ export default async function RewardsManagerPage({
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Rewards Manager</h1>
-          <p className="text-sm opacity-70">Update discounts, points, and custom plan benefits.</p>
+          <h1 className="text-xl font-semibold">Programme & Benefits</h1>
+          <p className="mt-2 text-sm opacity-80">
+            Catalogue changes apply to new access purchases. Existing passes
+            retain their recorded product terms; revoke a specific pass from the
+            member record if necessary. Free Rewards benefits use the current
+            programme settings. Scheduled changes run daily at midnight Jamaica
+            time when maintenance is configured.
+          </p>
+          <p className="text-sm opacity-70">
+            Update discounts, points, and custom plan benefits.
+          </p>
         </div>
-        <Link href="/more" className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+        <Link
+          href="/more"
+          className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
+        >
           Back to More
         </Link>
       </div>
@@ -499,25 +500,33 @@ export default async function RewardsManagerPage({
       ) : null}
       {benefitsFeatureUnavailable ? (
         <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Custom benefits are temporarily unavailable. Run the latest database migration to enable them.
+          Custom benefits are temporarily unavailable. Run the latest database
+          migration to enable them.
         </div>
       ) : null}
       {!joinVisibilityFieldAvailable ? (
         <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Join visibility toggle is temporarily unavailable. Run the latest migration to enable it.
+          Join visibility toggle is temporarily unavailable. Run the latest
+          migration to enable it.
         </div>
       ) : null}
       {scheduledUpdatesFeatureUnavailable ? (
         <div className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-          Scheduled updates are temporarily unavailable. Run the latest migration to enable them.
+          Scheduled updates are temporarily unavailable. Run the latest
+          migration to enable them.
         </div>
       ) : null}
 
       <div className="oura-card p-4">
-        <div className="font-medium">Loyalty points</div>
-        <p className="mt-1 text-sm opacity-70">Points awarded for each check-in.</p>
+        <div className="font-medium">Visit activity points</div>
+        <p className="mt-1 text-sm opacity-70">
+          Points awarded for each check-in.
+        </p>
 
-        <form action={savePoints} className="mt-3 flex flex-wrap items-center gap-2">
+        <form
+          action={savePoints}
+          className="mt-3 flex flex-wrap items-center gap-2"
+        >
           <input
             name="points"
             type="number"
@@ -525,7 +534,9 @@ export default async function RewardsManagerPage({
             defaultValue={pointsPerCheckin}
             className="w-28 rounded border px-3 py-2"
           />
-          <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">Save points</button>
+          <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+            Save points
+          </button>
         </form>
       </div>
 
@@ -533,19 +544,28 @@ export default async function RewardsManagerPage({
         <span className="opacity-70">Benefits view:</span>
         <Link
           href="/more/rewards?benefit_view=active"
-          className={["rounded border px-2 py-1", benefitView === "active" ? "font-medium" : "opacity-80"].join(" ")}
+          className={[
+            "rounded border px-2 py-1",
+            benefitView === "active" ? "font-medium" : "opacity-80",
+          ].join(" ")}
         >
           Active
         </Link>
         <Link
           href="/more/rewards?benefit_view=inactive"
-          className={["rounded border px-2 py-1", benefitView === "inactive" ? "font-medium" : "opacity-80"].join(" ")}
+          className={[
+            "rounded border px-2 py-1",
+            benefitView === "inactive" ? "font-medium" : "opacity-80",
+          ].join(" ")}
         >
           Inactive
         </Link>
         <Link
           href="/more/rewards?benefit_view=all"
-          className={["rounded border px-2 py-1", benefitView === "all" ? "font-medium" : "opacity-80"].join(" ")}
+          className={[
+            "rounded border px-2 py-1",
+            benefitView === "all" ? "font-medium" : "opacity-80",
+          ].join(" ")}
         >
           All
         </Link>
@@ -557,14 +577,17 @@ export default async function RewardsManagerPage({
           const planBenefits =
             benefitView === "all"
               ? planBenefitsAll
-              : planBenefitsAll.filter((b) => (benefitView === "active" ? b.is_active : !b.is_active));
+              : planBenefitsAll.filter((b) =>
+                  benefitView === "active" ? b.is_active : !b.is_active,
+                );
           return (
             <div key={p.id} className="oura-card p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold">{p.name}</h2>
                   <p className="text-xs opacity-70">
-                    Code: {p.code} • Price: ${Number(p.price ?? 0).toFixed(2)} • Duration: {p.duration_days ?? 0} day(s)
+                    Code: {p.code} • Price: ${Number(p.price ?? 0).toFixed(2)} •
+                    Duration: {p.duration_days ?? 0} day(s)
                   </p>
                 </div>
                 <span className="rounded border px-2 py-1 text-xs opacity-70">
@@ -643,38 +666,83 @@ export default async function RewardsManagerPage({
                 </label>
 
                 <div className="col-span-2">
-                  <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">Save plan rewards</button>
+                  <button className="rounded border px-3 py-2 text-sm hover:bg-gray-50">
+                    Save plan rewards
+                  </button>
                 </div>
               </form>
 
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Schedule future change</div>
-                <p className="text-xs opacity-70">Set changes now and they apply automatically on the effective date (Jamaica time).</p>
-                <form action={schedulePlanUpdate} className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4">
+                <p className="text-xs opacity-70">
+                  Set changes now and they apply automatically on the effective
+                  date (Jamaica time).
+                </p>
+                <form
+                  action={schedulePlanUpdate}
+                  className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4"
+                >
                   <input type="hidden" name="plan_id" value={p.id} />
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Effective date</span>
-                    <input name="effective_on" type="date" className="w-full rounded border px-2 py-2 text-sm" required />
+                    <input
+                      name="effective_on"
+                      type="date"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                      required
+                    />
                   </label>
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Restaurant (%)</span>
-                    <input name="discount_food" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                    <input
+                      name="discount_food"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Keep current"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                    />
                   </label>
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Spa (%)</span>
-                    <input name="discount_spa" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                    <input
+                      name="discount_spa"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Keep current"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                    />
                   </label>
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Gift shop (%)</span>
-                    <input name="discount_giftshop" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                    <input
+                      name="discount_giftshop"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Keep current"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                    />
                   </label>
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Watersports (%)</span>
-                    <input name="discount_watersports" type="number" min={0} max={100} placeholder="Keep current" className="w-full rounded border px-2 py-2 text-sm" />
+                    <input
+                      name="discount_watersports"
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Keep current"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                    />
                   </label>
                   <label className="space-y-1 text-xs opacity-90">
                     <span className="opacity-70">Facility access</span>
-                    <select name="grants_access_mode" className="w-full rounded border px-2 py-2 text-sm" defaultValue="keep">
+                    <select
+                      name="grants_access_mode"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                      defaultValue="keep"
+                    >
                       <option value="keep">Keep current</option>
                       <option value="yes">Set to yes</option>
                       <option value="no">Set to no</option>
@@ -695,7 +763,11 @@ export default async function RewardsManagerPage({
                   </label>
                   <label className="space-y-1 text-xs opacity-90 md:col-span-2">
                     <span className="opacity-70">Note (optional)</span>
-                    <input name="note" className="w-full rounded border px-2 py-2 text-sm" placeholder="Why this change is scheduled" />
+                    <input
+                      name="note"
+                      className="w-full rounded border px-2 py-2 text-sm"
+                      placeholder="Why this change is scheduled"
+                    />
                   </label>
                   <button
                     disabled={scheduledUpdatesFeatureUnavailable}
@@ -707,29 +779,56 @@ export default async function RewardsManagerPage({
 
                 <div className="mt-3 space-y-2">
                   {(scheduledUpdatesByPlan.get(p.id) ?? []).length === 0 ? (
-                    <div className="text-sm opacity-70">No scheduled updates for this plan.</div>
+                    <div className="text-sm opacity-70">
+                      No scheduled updates for this plan.
+                    </div>
                   ) : (
                     (scheduledUpdatesByPlan.get(p.id) ?? []).map((u) => (
-                      <form key={u.id} action={deleteScheduledUpdate} className="rounded border p-2 text-sm">
+                      <form
+                        key={u.id}
+                        action={deleteScheduledUpdate}
+                        className="rounded border p-2 text-sm"
+                      >
                         <input type="hidden" name="schedule_id" value={u.id} />
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="font-medium">
-                              Effective: {u.effective_on} {u.applied_at ? "• Applied" : "• Pending"}
+                              Effective: {u.effective_on}{" "}
+                              {u.applied_at ? "• Applied" : "• Pending"}
                             </div>
                             <div className="mt-1 text-xs opacity-80">
                               {[
-                                u.discount_food !== null ? `Restaurant ${pctFromDb(u.discount_food)}%` : "",
-                                u.discount_spa !== null ? `Spa ${pctFromDb(u.discount_spa)}%` : "",
-                                u.discount_giftshop !== null ? `Gift ${pctFromDb(u.discount_giftshop)}%` : "",
-                                u.discount_watersports !== null ? `Watersports ${pctFromDb(u.discount_watersports)}%` : "",
-                                u.grants_access === null ? "" : u.grants_access ? "Access: yes" : "Access: no",
-                                u.visible_on_join === null ? "" : u.visible_on_join ? "Join: visible" : "Join: hidden",
+                                u.discount_food !== null
+                                  ? `Restaurant ${pctFromDb(u.discount_food)}%`
+                                  : "",
+                                u.discount_spa !== null
+                                  ? `Spa ${pctFromDb(u.discount_spa)}%`
+                                  : "",
+                                u.discount_giftshop !== null
+                                  ? `Gift ${pctFromDb(u.discount_giftshop)}%`
+                                  : "",
+                                u.discount_watersports !== null
+                                  ? `Watersports ${pctFromDb(u.discount_watersports)}%`
+                                  : "",
+                                u.grants_access === null
+                                  ? ""
+                                  : u.grants_access
+                                    ? "Access: yes"
+                                    : "Access: no",
+                                u.visible_on_join === null
+                                  ? ""
+                                  : u.visible_on_join
+                                    ? "Join: visible"
+                                    : "Join: hidden",
                               ]
                                 .filter(Boolean)
                                 .join(" • ") || "No field changes"}
                             </div>
-                            {u.note ? <div className="mt-1 text-xs opacity-70">Note: {u.note}</div> : null}
+                            {u.note ? (
+                              <div className="mt-1 text-xs opacity-70">
+                                Note: {u.note}
+                              </div>
+                            ) : null}
                           </div>
                           {!u.applied_at ? (
                             <button className="rounded border border-red-300 px-2 py-1 text-xs hover:bg-red-950/20">
@@ -745,11 +844,22 @@ export default async function RewardsManagerPage({
 
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Custom benefits for this plan</div>
-                <p className="text-xs opacity-70">These appear on the member Benefits screen.</p>
-                <p className="text-xs opacity-60">Display order: lower numbers appear first.</p>
-                <p className="text-xs opacity-60">Value examples: <span className="font-medium">15% off</span>, <span className="font-medium">2 free passes</span>, or leave blank for <span className="font-medium">Included</span>.</p>
+                <p className="text-xs opacity-70">
+                  These appear on the member Benefits screen.
+                </p>
+                <p className="text-xs opacity-60">
+                  Display order: lower numbers appear first.
+                </p>
+                <p className="text-xs opacity-60">
+                  Value examples: <span className="font-medium">15% off</span>,{" "}
+                  <span className="font-medium">2 free passes</span>, or leave
+                  blank for <span className="font-medium">Included</span>.
+                </p>
 
-                <form action={addBenefit} className="mt-2 grid grid-cols-1 items-end gap-2 md:grid-cols-12">
+                <form
+                  action={addBenefit}
+                  className="mt-2 grid grid-cols-1 items-end gap-2 md:grid-cols-12"
+                >
                   <input type="hidden" name="plan_id" value={p.id} />
                   <label className="space-y-1 text-xs opacity-90 md:col-span-3">
                     <span className="opacity-70">Benefit label</span>
@@ -788,11 +898,16 @@ export default async function RewardsManagerPage({
 
                 <div className="mt-3 space-y-2">
                   {planBenefits.length === 0 ? (
-                    <div className="text-sm opacity-70">No custom benefits yet.</div>
+                    <div className="text-sm opacity-70">
+                      No custom benefits yet.
+                    </div>
                   ) : (
                     planBenefits.map((b) => (
                       <div key={b.id} className="rounded border p-2">
-                        <form action={updateBenefit} className="grid grid-cols-1 gap-2 md:grid-cols-12">
+                        <form
+                          action={updateBenefit}
+                          className="grid grid-cols-1 gap-2 md:grid-cols-12"
+                        >
                           <input type="hidden" name="benefit_id" value={b.id} />
                           <input
                             name="label"
@@ -817,7 +932,11 @@ export default async function RewardsManagerPage({
                             />
                           </label>
                           <label className="flex items-center gap-2 text-sm md:col-span-3">
-                            <input name="is_active" type="checkbox" defaultChecked={b.is_active} />
+                            <input
+                              name="is_active"
+                              type="checkbox"
+                              defaultChecked={b.is_active}
+                            />
                             <span>Active</span>
                           </label>
                           <div className="md:col-span-12">
@@ -833,8 +952,16 @@ export default async function RewardsManagerPage({
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           {b.is_active ? (
                             <form action={setBenefitActive}>
-                              <input type="hidden" name="benefit_id" value={b.id} />
-                              <input type="hidden" name="next_active" value="0" />
+                              <input
+                                type="hidden"
+                                name="benefit_id"
+                                value={b.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="next_active"
+                                value="0"
+                              />
                               <button
                                 disabled={benefitsFeatureUnavailable}
                                 className="rounded border border-amber-300 px-3 py-2 text-sm hover:bg-amber-950/20 disabled:cursor-not-allowed disabled:opacity-50"
@@ -844,8 +971,16 @@ export default async function RewardsManagerPage({
                             </form>
                           ) : (
                             <form action={setBenefitActive}>
-                              <input type="hidden" name="benefit_id" value={b.id} />
-                              <input type="hidden" name="next_active" value="1" />
+                              <input
+                                type="hidden"
+                                name="benefit_id"
+                                value={b.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="next_active"
+                                value="1"
+                              />
                               <button
                                 disabled={benefitsFeatureUnavailable}
                                 className="rounded border border-emerald-300 px-3 py-2 text-sm hover:bg-emerald-950/20 disabled:cursor-not-allowed disabled:opacity-50"
@@ -856,7 +991,11 @@ export default async function RewardsManagerPage({
                           )}
                           {!b.is_active ? (
                             <form action={deleteBenefit}>
-                              <input type="hidden" name="benefit_id" value={b.id} />
+                              <input
+                                type="hidden"
+                                name="benefit_id"
+                                value={b.id}
+                              />
                               <button
                                 disabled={benefitsFeatureUnavailable}
                                 className="rounded border border-red-300 px-3 py-2 text-sm text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-50"

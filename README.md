@@ -1,3 +1,11 @@
+## Travellers Club: loyalty and access
+
+Free Rewards membership is separate from dated gym/resort passes. Gym Day Access is $15 USD; the resort day pass is $25 USD with its existing wider inclusions. Prices and discounts are loaded from the database catalogue.
+
+**Before deploying these changes, apply the migration and follow the staging/reconciliation checklist in [implementation notes](docs/implementation/2026-11-12-loyalty-access-foundation.md).** Configure `CRON_SECRET` for scheduled programme updates. No migration has been applied automatically.
+
+Run `npm test`, `npm run lint`, `npx tsc --noEmit --incremental false`, and `npm run build`. Tests include embedded PostgreSQL transaction and migration checks and do not access hotel data.
+
 ## Gym app: staff password management
 
 Active admins can open **Settings → Staff Management** and expand **Set password**

@@ -1,108 +1,119 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { purchasePeriod, type AccessPass } from "@/lib/access/rules";
 
 export const dynamic = "force-dynamic";
 
-function base64url(input: string | Buffer) {
-  return Buffer.from(input)
-    .toString("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
-
-function signHS256(header: Record<string, any>, payload: Record<string, any>, secret: string) {
-  const h = base64url(JSON.stringify(header));
-  const p = base64url(JSON.stringify(payload));
-  const msg = `${h}.${p}`;
-  const sig = crypto
-    .createHmac("sha256", secret)
-    .update(msg)
-    .digest("base64")
-    .replace(/=/g, "")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-
-  return `${msg}.${sig}`;
-}
-
-function redirectUpgrade(reqUrl: string, planCode: string, err: string) {
-  const u = new URL("/member/upgrade", reqUrl);
-  if (planCode) u.searchParams.set("plan", planCode);
-  if (err) u.searchParams.set("err", err);
-  return NextResponse.redirect(u, 303);
-}
-
 export async function POST(req: Request) {
-  const url = new URL(req.url);
-
-  // Prefer querystring, but also accept POST body (hidden input)
-  let planCode = String(url.searchParams.get("plan") || "").trim();
-  if (!planCode) {
-    try {
-      const fd = await req.formData();
-      planCode = String(fd.get("plan") || fd.get("plan_code") || "").trim();
-    } catch {
-      // ignore
-    }
-  }
-
-  if (!planCode) {
-    return redirectUpgrade(req.url, "", "Missing plan");
-  }
-
+  if (req.headers.get("origin") !== new URL(req.url).origin)
+    return new NextResponse("Invalid origin", { status: 403 });
+  const fd = await req.formData();
+  const planCode = String(fd.get("plan") || "");
+  const fail = (message: string) => {
+    const url = new URL("/member/upgrade", req.url);
+    url.searchParams.set("plan", planCode);
+    url.searchParams.set("err", message);
+    return NextResponse.redirect(url, 303);
+  };
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const user = auth?.user;
-
-  if (!user) {
-    return NextResponse.redirect(new URL("/auth/login", req.url), 303);
-  }
-
-  const { data: member, error: memberErr } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user)
+    return NextResponse.redirect(
+      new URL("/auth/login?returnTo=/member/access", req.url),
+      303,
+    );
+  const admin = createAdminClient();
+  const { data: member } = await admin
     .from("members")
-    .select("id")
+    .select("id, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
-
-  if (memberErr) console.error("checkout: members lookup error", memberErr);
-
-  if (!member?.id) {
-    return NextResponse.redirect(new URL("/join", req.url));
-  }
-
-  const { data: plan, error: planErr } = await supabase
+  if (!member?.is_active)
+    return fail("Your membership needs front desk assistance.");
+  if (
+    !process.env.FYGARO_BUTTON_URL ||
+    !process.env.FYGARO_API_KEY ||
+    !process.env.FYGARO_API_SECRET
+  )
+    return fail(
+      "Online payment is temporarily unavailable. Please contact the front desk.",
+    );
+  const key = String(fd.get("checkout_key") || "");
+  if (!/^[0-9a-f-]{36}$/i.test(key))
+    return fail("Please reload the confirmation page and try again.");
+  const { data: prior } = await admin
+    .from("payments")
+    .select("id")
+    .eq("member_id", member.id)
+    .eq("checkout_key", key)
+    .maybeSingle();
+  if (prior)
+    return NextResponse.redirect(
+      new URL(`/member/checkout?payment=${prior.id}`, req.url),
+      303,
+    );
+  const { data: plan } = await admin
     .from("membership_plans")
-    .select("id, code, name, price, duration_days, is_active")
+    .select(
+      "id, code, name, price, duration_days, grants_access, access_scope, discount_food, discount_spa, discount_giftshop, discount_watersports",
+    )
     .eq("code", planCode)
+    .eq("visible_on_join", true)
     .eq("is_active", true)
     .maybeSingle();
-
-  if (planErr) console.error("checkout: plan lookup error", planErr);
-
-  if (!plan?.id) {
-    return redirectUpgrade(req.url, planCode, "Invalid plan");
-  }
-
-  if (plan.code === "rewards_free") {
-    return redirectUpgrade(req.url, planCode, "Free plan does not require payment");
-  }
-
-  const { data: membership, error: msErr } = await supabase
+  if (!plan?.grants_access || Number(plan.price) <= 0)
+    return fail("Select an available access product.");
+  if (String(fd.get("quote")) !== JSON.stringify(plan))
+    return fail(
+      "This product has changed. Review the current details before continuing.",
+    );
+  if (fd.get("waiver") !== "on")
+    return fail("Please accept the facility waiver before buying access.");
+  const { data: membership } = await admin
     .from("memberships")
     .select("id")
     .eq("member_id", member.id)
     .maybeSingle();
-
-  if (msErr) console.error("checkout: memberships lookup error", msErr);
-
-  if (!membership?.id) {
-    return redirectUpgrade(req.url, planCode, "No membership row");
+  if (!membership)
+    return fail("Please ask the front desk to finish setting up your account.");
+  const { data: passes, error: passError } = await admin
+    .from("access_passes")
+    .select("*")
+    .eq("member_id", member.id)
+    .eq("plan_id", plan.id)
+    .eq("status", "active")
+    .order("paid_through_date", { ascending: false })
+    .limit(1);
+  if (passError)
+    return fail("We could not verify existing access. Please try again.");
+  let period;
+  try {
+    period = purchasePeriod({
+      start: String(fd.get("start_date") || ""),
+      duration: Number(plan.duration_days),
+      renew: fd.get("intent") === "renew",
+      current: (passes?.[0] as AccessPass) ?? null,
+      planId: plan.id,
+    });
+  } catch (error) {
+    return fail(
+      error instanceof Error ? error.message : "Check your start date.",
+    );
   }
-
-  // Create pending payment record
-  const { data: payment, error: payErr } = await supabase
+  const { data: extraBenefits, error: benefitsError } = await admin
+    .from("membership_plan_benefits")
+    .select("label, value")
+    .eq("plan_id", plan.id)
+    .eq("is_active", true)
+    .order("sort_order");
+  if (benefitsError)
+    return fail(
+      "We could not verify current product benefits. Please try again.",
+    );
+  const { data: payment, error } = await admin
     .from("payments")
     .insert({
       membership_id: membership.id,
@@ -112,43 +123,35 @@ export async function POST(req: Request) {
       provider: "fygaro",
       status: "pending",
       provider_reference: plan.code,
-      notes: `Plan=${plan.code}`,
+      purchased_plan_id: plan.id,
+      purchase_snapshot: { ...plan, benefits: extraBenefits ?? [] },
+      access_start_date: period.start,
+      access_end_date: period.end,
+      checkout_key: key,
+      waiver_accepted_at: new Date().toISOString(),
+      waiver_version: "facilities-2026-11-12",
+      notes: `Access purchase: ${plan.name}`,
     })
     .select("id")
     .single();
-
-  if (payErr) console.error("checkout: payments insert error", payErr);
-
-  if (!payment?.id) {
-    const msg =
-      (payErr as any)?.message ? String((payErr as any).message) : "Payment create failed";
-    return redirectUpgrade(req.url, planCode, msg);
+  if (error || !payment) {
+    if (error?.code === "23505") {
+      const { data: existing } = await admin
+        .from("payments")
+        .select("id")
+        .eq("member_id", member.id)
+        .eq("checkout_key", key)
+        .maybeSingle();
+      if (existing)
+        return NextResponse.redirect(
+          new URL(`/member/checkout?payment=${existing.id}`, req.url),
+          303,
+        );
+    }
+    return fail("We could not start checkout. Please try again.");
   }
-
-  const buttonUrl = process.env.FYGARO_BUTTON_URL || "";
-  const keyId = process.env.FYGARO_API_KEY || "";
-  const secret = process.env.FYGARO_API_SECRET || "";
-
-  if (!buttonUrl || !keyId || !secret) {
-    return redirectUpgrade(req.url, planCode, "Missing Fygaro env");
-  }
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "HS256", typ: "JWT", kid: keyId };
-  const payload = {
-    amount: Number(plan.price).toFixed(2),
-    currency: "USD",
-    custom_reference: payment.id,
-    exp: now + 60 * 30,
-    nbf: now - 5,
-  };
-
-  const jwt = signHS256(header, payload, secret);
-
-  const fyUrl = new URL(buttonUrl);
-  fyUrl.searchParams.set("jwt", jwt);
-
-    const checkoutUrl = new URL("/member/checkout", req.url);
-  checkoutUrl.searchParams.set("payment", String(payment.id));
-  return NextResponse.redirect(checkoutUrl, 303);
+  return NextResponse.redirect(
+    new URL(`/member/checkout?payment=${payment.id}`, req.url),
+    303,
+  );
 }

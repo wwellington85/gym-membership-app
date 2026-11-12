@@ -13,7 +13,10 @@ function randId() {
 async function issueToken() {
   const secret = process.env.QR_TOKEN_SECRET || "";
   if (!secret) {
-    return NextResponse.json({ ok: false, error: "Missing QR_TOKEN_SECRET" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Missing QR_TOKEN_SECRET" },
+      { status: 500 },
+    );
   }
 
   const supabase = await createClient();
@@ -22,17 +25,23 @@ async function issueToken() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.json({ ok: false, error: "Not authenticated" }, { status: 401 });
+    return NextResponse.json(
+      { ok: false, error: "Not authenticated" },
+      { status: 401 },
+    );
   }
 
   const { data: member } = await supabase
     .from("members")
-    .select("id")
+    .select("id, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  if (!member?.id) {
-    return NextResponse.json({ ok: false, error: "Member not found" }, { status: 404 });
+  if (!member?.id || member.is_active === false) {
+    return NextResponse.json(
+      { ok: false, error: "Member not found" },
+      { status: 404 },
+    );
   }
   const now = Math.floor(Date.now() / 1000);
   const ttl = Number(process.env.QR_TOKEN_TTL_SECONDS || 60); // short-lived prevents screenshot sharing
@@ -44,8 +53,11 @@ async function issueToken() {
     exp: now + safeTtl,
     jti: randId(),
   };
-const token = signQrToken(claims, secret);
-  return NextResponse.json({ ok: true, token, exp: claims.exp });
+  const token = signQrToken(claims, secret);
+  return NextResponse.json(
+    { ok: true, token, exp: claims.exp },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function GET() {

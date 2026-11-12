@@ -1,282 +1,172 @@
 "use client";
-
-import { useMemo, useState } from "react";
-
-type PlanRow = {
-  id: string;
-  name: string;
-  price: number;
-  duration_days: number;
-  plan_type?: string | null;
-};
-
-function money(v?: number | null) {
-  const n = typeof v === "number" ? v : 0;
-  return n === 0 ? "Free" : `$${n}`;
+import { useState } from "react";
+import { useFormStatus } from "react-dom";
+import {
+  purchasePeriod,
+  type AccessPlan,
+  type AccessPass,
+} from "@/lib/access/rules";
+function Submit() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      disabled={pending}
+      className="w-full rounded border p-3 disabled:opacity-50"
+    >
+      {pending ? "Saving…" : "Confirm access & record payment"}
+    </button>
+  );
 }
-
-function formatDuration(days: number) {
-  if (days === 1) return "1 day";
-  if (days === 7) return "7 days";
-  if (days === 30) return "30 days";
-  if (days >= 3650) return "No expiry";
-  return `${days} days`;
-}
-
-function todayYmd() {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 export function ChangePlanForm({
   memberId,
-  currentPlanId,
   plans,
+  passes,
+  checkoutKey,
+  today,
   action,
 }: {
   memberId: string;
-  currentPlanId?: string | null;
-  plans: PlanRow[];
-  action: (formData: FormData) => void;
+  plans: AccessPlan[];
+  passes: AccessPass[];
+  checkoutKey: string;
+  today: string;
+  action: (data: FormData) => Promise<void>;
 }) {
-  const [planId, setPlanId] = useState<string>(currentPlanId ?? "");
-  const initialPlan = useMemo(() => plans.find((p) => p.id === (currentPlanId ?? "")) ?? null, [plans, currentPlanId]);
-  const [recordPayment, setRecordPayment] = useState<"no" | "yes">((initialPlan?.price ?? 0) > 0 ? "yes" : "no");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card" | "bank_transfer" | "other" | "complimentary">("cash");
-  const [paymentDiscountPercent, setPaymentDiscountPercent] = useState<string>("0");
-  const [paymentReason, setPaymentReason] = useState("");
-  const [paymentNotes, setPaymentNotes] = useState("");
-  const [startDate, setStartDate] = useState<string>(todayYmd());
-
-  const selected = useMemo(() => plans.find((p) => p.id === planId) ?? null, [plans, planId]);
-  const isPaid = (selected?.price ?? 0) > 0;
-
-  const needsCompReason = recordPayment === "yes" && paymentMethod === "complimentary";
-  const discountNumber = Math.max(0, Math.min(100, Number.parseFloat(paymentDiscountPercent || "0") || 0));
-  const discountedAmount =
-    paymentMethod === "complimentary"
-      ? 0
-      : Math.max(0, Number((((selected?.price ?? 0) * (1 - discountNumber / 100)).toFixed(2))));
-
+  const [planId, setPlanId] = useState(plans[0]?.id || "");
+  const [start, setStart] = useState(today);
+  const [intent, setIntent] = useState("buy");
+  const [method, setMethod] = useState("cash");
+  const [amount, setAmount] = useState(String(plans[0]?.price ?? 0));
+  const selected = plans.find((p) => p.id === planId);
+  const current = passes.find(
+    (p) => p.plan_id === planId && p.status === "active",
+  );
+  let period;
+  try {
+    if (selected)
+      period = purchasePeriod({
+        start,
+        duration: selected.duration_days,
+        planId,
+        renew: intent === "renew",
+        current,
+      });
+  } catch {
+    /* incomplete date */
+  }
   return (
     <form action={action} className="space-y-3">
       <input type="hidden" name="member_id" value={memberId} />
-
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Plan</label>
+      <input type="hidden" name="checkout_key" value={checkoutKey} />
+      <div>
+        <label htmlFor="staff-product">Access product</label>
         <select
+          id="staff-product"
           name="plan_id"
-          required
           value={planId}
+          required
           onChange={(e) => {
-            const nextPlanId = e.target.value;
-            const nextPlan = plans.find((p) => p.id === nextPlanId) ?? null;
-            setPlanId(nextPlanId);
-            setRecordPayment((nextPlan?.price ?? 0) > 0 ? "yes" : "no");
-            setPaymentDiscountPercent("0");
+            setPlanId(e.target.value);
+            setAmount(
+              String(plans.find((p) => p.id === e.target.value)?.price ?? 0),
+            );
           }}
-          className="w-full oura-input px-3 py-2"
+          className="oura-input mt-2 w-full p-3"
         >
-          <option value="">Select a plan</option>
           {plans.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} • {formatDuration(p.duration_days)} • {money(p.price)}
+              {p.name} · ${p.price} USD · {p.duration_days} day(s)
             </option>
           ))}
         </select>
       </div>
-
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Start date</label>
+      <div>
+        <label htmlFor="staff-intent">Purchase type</label>
+        <select
+          id="staff-intent"
+          name="intent"
+          value={intent}
+          onChange={(e) => setIntent(e.target.value)}
+          className="oura-input mt-2 w-full p-3"
+        >
+          <option value="buy">New pass — keep other passes</option>
+          <option value="renew">
+            Renew this product after its existing end date
+          </option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="staff-start">Earliest start date</label>
         <input
+          id="staff-start"
           name="start_date"
           type="date"
+          min={today}
           required
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className="w-full min-w-0 oura-input join-date-input px-3 py-2"
+          value={start}
+          onChange={(e) => setStart(e.target.value)}
+          className="oura-input mt-2 w-full p-3"
         />
       </div>
-
-      {isPaid ? (
-        <div className="oura-card p-3 space-y-3">
-          <div className="font-medium">Payment (optional)</div>
-          <div className="text-sm opacity-70">If you collected payment at the desk, record it now.</div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Record payment?</label>
-              <select
-                name="record_payment"
-                value={recordPayment}
-                onChange={(e) => setRecordPayment(e.target.value as any)}
-                className="w-full oura-input px-3 py-2"
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Method</label>
-              <select
-                name="payment_method"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="w-full oura-input px-3 py-2"
-                disabled={recordPayment !== "yes"}
-              >
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank transfer</option>
-                <option value="complimentary">Complimentary</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          {recordPayment === "yes" ? (
-            <div className="grid grid-cols-1 gap-3">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Apply discount (%)</label>
-                <input
-                  name="payment_discount_percent"
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={paymentDiscountPercent}
-                  onChange={(e) => setPaymentDiscountPercent(e.target.value)}
-                  className="w-full oura-input px-3 py-2 disabled:opacity-60"
-                  disabled={paymentMethod === "complimentary"}
-                />
-                <div className="text-xs opacity-70">
-                  {paymentMethod === "complimentary"
-                    ? "Discount is not used for complimentary payments."
-                    : "Management override for this payment only."}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">
-                  {needsCompReason ? "Complimentary reason *" : "Payment notes"}
-                </label>
-                <textarea
-                  name={needsCompReason ? "complimentary_reason" : "payment_notes"}
-                  value={needsCompReason ? paymentReason : paymentNotes}
-                  onChange={(e) =>
-                    needsCompReason ? setPaymentReason(e.target.value) : setPaymentNotes(e.target.value)
-                  }
-                  required={needsCompReason}
-                  className="w-full oura-input px-3 py-2"
-                  rows={2}
-                  placeholder={
-                    needsCompReason
-                      ? "Required: why this payment is complimentary"
-                      : "Optional note"
-                  }
-                />
-                {needsCompReason ? (
-                  <div className="text-xs opacity-70">
-                    Complimentary payments require a reason for audit history.
-                  </div>
-                ) : null}
-              </div>
-
-              {!needsCompReason ? (
-                <input type="hidden" name="complimentary_reason" value="" />
-              ) : (
-                <input type="hidden" name="payment_notes" value={paymentNotes} />
-              )}
-            </div>
-          ) : (
-            <div>
-              <input type="hidden" name="payment_notes" value="" />
-              <input type="hidden" name="complimentary_reason" value="" />
-            </div>
-          )}
-
-          <div className="text-xs opacity-70">
-            Amount will be recorded as{" "}
-            <span className="font-medium">
-              {paymentMethod === "complimentary" && recordPayment === "yes"
-                ? "$0.00 (complimentary)"
-                : money(discountedAmount)}
-            </span>
-            {recordPayment === "yes" && paymentMethod !== "complimentary" && discountNumber > 0 ? (
-              <span> ({discountNumber}% off)</span>
-            ) : null}
-            .
-          </div>
-        </div>
-      ) : null}
-
-      {recordPayment === "yes" && !isPaid ? (
-        <div className="rounded border p-2 text-xs opacity-70">
-          This is a free plan. Payment entry is optional unless you want to track a complimentary reason.
-        </div>
-      ) : null}
-
-      {!isPaid ? (
-        <div className="oura-card p-3 space-y-3">
-          <div className="font-medium">Payment record (optional)</div>
-          <div className="text-sm opacity-70">If needed for audit, you can still record this as complimentary.</div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Record payment?</label>
-              <select
-                name="record_payment"
-                value={recordPayment}
-                onChange={(e) => setRecordPayment(e.target.value as any)}
-                className="w-full oura-input px-3 py-2"
-              >
-                <option value="no">No</option>
-                <option value="yes">Yes</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Method</label>
-              <select
-                name="payment_method"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value as any)}
-                className="w-full oura-input px-3 py-2"
-                disabled={recordPayment !== "yes"}
-              >
-                <option value="complimentary">Complimentary</option>
-                <option value="other">Other</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank transfer</option>
-              </select>
-            </div>
-          </div>
-
-          {recordPayment === "yes" ? (
-            <div className="space-y-1">
-              <label className="text-sm font-medium">Complimentary reason *</label>
-              <textarea
-                name="complimentary_reason"
-                value={paymentReason}
-                onChange={(e) => setPaymentReason(e.target.value)}
-                required
-                className="w-full oura-input px-3 py-2"
-                rows={2}
-                placeholder="Required for complimentary entry"
-              />
-            </div>
-          ) : null}
-          <input type="hidden" name="payment_notes" value={paymentNotes} />
-          <input type="hidden" name="payment_discount_percent" value="0" />
-        </div>
-      ) : null}
-
-      <button type="submit" className="w-full rounded border px-3 py-2 hover:bg-white/5">
-        Save plan
-      </button>
+      {period && (
+        <p role="status" className="rounded border p-3 text-sm">
+          Access {period.start} through {period.end}, until 10 pm Jamaica time.
+          Free Rewards membership and other passes remain unchanged.
+        </p>
+      )}
+      <div>
+        <label htmlFor="staff-method">Payment method</label>
+        <select
+          id="staff-method"
+          name="payment_method"
+          value={method}
+          onChange={(e) => setMethod(e.target.value)}
+          className="oura-input mt-2 w-full p-3"
+        >
+          <option value="cash">Cash</option>
+          <option value="card">Card</option>
+          <option value="bank_transfer">Bank transfer</option>
+          <option value="complimentary">Complimentary</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="staff-amount">Amount collected (USD)</label>
+        <input
+          id="staff-amount"
+          name="amount"
+          type="number"
+          min={0}
+          max={selected?.price}
+          step="0.01"
+          required
+          value={method === "complimentary" ? "0" : amount}
+          onChange={(e) => setAmount(e.target.value)}
+          readOnly={method === "complimentary"}
+          className="oura-input mt-2 w-full p-3"
+        />
+      </div>
+      <div>
+        <label htmlFor="staff-notes">
+          Notes / discount or complimentary reason
+        </label>
+        <textarea
+          id="staff-notes"
+          name="payment_notes"
+          required={
+            method === "complimentary" ||
+            Number(amount) < Number(selected?.price)
+          }
+          maxLength={1000}
+          rows={2}
+          className="oura-input mt-2 w-full p-3"
+        />
+      </div>
+      <p className="text-sm opacity-80">
+        Confirm the guest has accepted the facility waiver through the approved
+        front desk process before granting access.
+      </p>
+      <Submit />
     </form>
   );
 }

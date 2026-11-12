@@ -1,5 +1,7 @@
 const STAFF_PREFIXES = [
   "/dashboard",
+  "/account",
+  "/applications",
   "/members",
   "/payments",
   "/checkins",
@@ -14,13 +16,16 @@ export function safeReturnTo(raw: string | null | undefined) {
   // must be a relative path
   if (!rt.startsWith("/")) return "";
   // prevent protocol-relative or weird stuff
-  if (rt.startsWith("//")) return "";
+  if (rt.startsWith("//") || /[\u0000-\u001f\\]/.test(rt)) return "";
+  const pathname = rt.split(/[?#]/, 1)[0];
 
-  const isStaff =
-    STAFF_PREFIXES.some((p) => rt === p || rt.startsWith(p + "/"));
-  const isMember = rt === "/member" || rt.startsWith("/member/");
+  const isStaff = STAFF_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(p + "/"),
+  );
+  const isMember = pathname === "/member" || pathname.startsWith("/member/");
+  const isRecovery = pathname === "/auth/update-password";
 
-  return (isStaff || isMember) ? rt : "";
+  return isStaff || isMember || isRecovery ? rt : "";
 }
 
 export function withParam(path: string, key: string, value: string) {

@@ -1,280 +1,119 @@
 import Link from "next/link";
-import { BackButton } from "@/components/ui/back-button";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { TIERS, byCode } from "@/lib/plans/tiers";
+import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
+import type { AccessPlan } from "@/lib/access/rules";
 
 export const dynamic = "force-dynamic";
-
-function isMissingBenefitsTable(error: any) {
-  const code = String(error?.code ?? "");
-  const message = String(error?.message ?? "");
-  return code === "PGRST205" || /membership_plan_benefits/i.test(message);
-}
-
-function benefitValueOrIncluded(raw: any) {
-  const v = String(raw ?? "").trim();
-  return v ? v : "Included";
-}
-
-export default async function MemberBenefitsPage() {
-  const supabase = await createClient();
-  const admin = createAdminClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/auth/login");
-
-  const { data: member } = await supabase
-    .from("members")
-    .select("id, full_name")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (!member) redirect("/join");
-
-  const { data: membership } = await admin
-    .from("memberships")
-    .select(
-      "id, membership_plans(id, code, name, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)"
-    )
-    .eq("member_id", member.id)
-    .order("start_date", { ascending: false })
-    .maybeSingle();
-
-  const planRaw: any = (membership as any)?.membership_plans;
-  const plan: any = Array.isArray(planRaw) ? planRaw[0] : planRaw;
-  const current = byCode(plan?.code);
-
-  function pct(n: any) {
-    const v = Number(n ?? 0);
-    const p = Math.round(v * 100);
-    return `${p}% off`;
-  }
-
-  const currentDiscounts =
-    plan && typeof plan === "object"
-      ? [
-          { label: "Restaurant & Bar", value: pct((plan as any).discount_food) },
-          { label: "Spa services", value: pct((plan as any).discount_spa) },
-          { label: "Gift shop", value: pct((plan as any).discount_giftshop) },
-          { label: "Watersports", value: pct((plan as any).discount_watersports) },
-          { label: "Complimentary high-speed Wi-Fi", value: "Included" },
-        ]
-      : current.discounts;
-
-  const currentPlanId = String(plan?.id ?? "");
-  const { data: currentExtraBenefits, error: currentBenefitsErr } = currentPlanId
-    ? await supabase
+const outlets = [
+  { label: "Restaurant & bar", key: "discount_food" },
+  { label: "Spa", key: "discount_spa" },
+  { label: "Gift shop", key: "discount_giftshop" },
+  { label: "Watersports", key: "discount_watersports" },
+] as const;
+export default async function BenefitsPage() {
+  const { member, admin } = await requireMember();
+  const [access, catalogue] = await Promise.all([
+    loadAccess(member.id, member.is_active),
+    loadCatalogue(),
+  ]);
+  const free = catalogue.find((p) => p.code === "rewards_free");
+  const eligible = [free, ...access.current.map((p) => p.plan_snapshot)].filter(
+    Boolean,
+  ) as AccessPlan[];
+  const ids = free ? [free.id] : [];
+  const { data: currentExtras, error } = ids.length
+    ? await admin
         .from("membership_plan_benefits")
-        .select("id, label, value, sort_order")
-        .eq("plan_id", currentPlanId)
+        .select("id, label, value")
+        .in("plan_id", ids)
         .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true })
-    : { data: [] as any[] };
-  const safeCurrentExtraBenefits = currentBenefitsErr && isMissingBenefitsTable(currentBenefitsErr)
-    ? []
-    : (currentExtraBenefits ?? []);
-
-  // Load plan discounts for Compare tiers from DB (keeps UI copy but makes discounts source-of-truth)
-  const tierCodes = TIERS.map((t) => t.code);
-  const { data: planRows } = await supabase
-    .from("membership_plans")
-    .select("id, code, discount_food, discount_watersports, discount_giftshop, discount_spa, grants_access")
-    .in("code", tierCodes);
-
-  const planByCode = new Map<string, any>();
-  (planRows ?? []).forEach((r: any) => planByCode.set(String(r.code), r));
-
-  const tierPlanIds = (planRows ?? []).map((r: any) => String(r.id)).filter(Boolean);
-  const { data: tierBenefitRows, error: tierBenefitsErr } = tierPlanIds.length
-    ? await supabase
-        .from("membership_plan_benefits")
-        .select("id, plan_id, label, value, sort_order")
-        .in("plan_id", tierPlanIds)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("created_at", { ascending: true })
-    : { data: [] as any[] };
-  const safeTierBenefitRows = tierBenefitsErr && isMissingBenefitsTable(tierBenefitsErr)
-    ? []
-    : (tierBenefitRows ?? []);
-
-  const tierBenefitsByPlanId = new Map<string, Array<{ label: string; value: string }>>();
-  safeTierBenefitRows.forEach((r: any) => {
-    const pid = String(r.plan_id);
-    const arr = tierBenefitsByPlanId.get(pid) ?? [];
-    arr.push({ label: String(r.label), value: String(r.value) });
-    tierBenefitsByPlanId.set(pid, arr);
-  });
-
-  function tierDiscountsFromPlanRow(row: any, fallback: any[]) {
-    if (!row) return fallback;
-    return [
-      { label: "Restaurant & Bar", value: pct(row.discount_food) },
-      { label: "Spa services", value: pct(row.discount_spa) },
-      { label: "Gift shop", value: pct(row.discount_giftshop) },
-      { label: "Watersports", value: pct(row.discount_watersports) },
-      { label: "Complimentary high-speed Wi-Fi", value: "Included" },
-    ];
-  }
-
-  const compareTiers = TIERS.map((t) => {
-    const row = planByCode.get(t.code);
-    return {
-      ...t,
-      // keep your existing labels/badges/access copy; just source discounts from DB if available
-      discounts: tierDiscountsFromPlanRow(row, t.discounts),
-      extraBenefits: tierBenefitsByPlanId.get(String(row?.id ?? "")) ?? [],
-    };
-  });
-
+        .order("sort_order")
+    : { data: [], error: null };
+  const extras = [
+    ...(currentExtras ?? []),
+    ...access.current.flatMap((p) =>
+      (p.plan_snapshot.benefits ?? []).map((b, i) => ({
+        ...b,
+        id: `${p.id}-${i}`,
+      })),
+    ),
+  ];
   return (
-    <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold">Benefits</h1>
-          <p className="text-sm opacity-70">What your membership includes</p>
-          <p className="mt-1 text-sm">
-            <span className="opacity-70">Your plan:</span>{" "}
-            <span className="font-medium">{plan?.name ?? current.name}</span>{" "}
-            <span className="opacity-70">({current.priceLabel})</span>
-          </p>
-        </div>
-
-        <BackButton fallbackHref="/member" />
-      </div><div className="oura-card p-3">
-        <div className="font-medium">Discounts</div>
-        <p className="mt-1 text-sm opacity-70">
-          Discounts may vary by event/promotions. Staff will confirm at checkout.
+    <div className="space-y-5">
+      <h1 className="text-xl font-semibold">My benefits</h1>
+      <Link
+        href="/member/activity"
+        className="inline-block py-2 underline text-sm"
+      >
+        View recorded benefit activity
+      </Link>
+      <p className="text-sm opacity-80">
+        Your Rewards benefits continue between visits. Any enhanced pass
+        discounts apply only during its valid period. Discounts do not add
+        together.
+      </p>
+      {!member.is_active ? (
+        <p role="alert" className="oura-alert-warning">
+          Please ask the front desk to verify your membership before using
+          benefits.
         </p>
-
-        <div className="mt-3 divide-y divide-white/10">
-          {currentDiscounts.map((d) => (
-            <div key={d.label} className="flex items-center justify-between p-2 text-sm">
-              <div className="opacity-80">{d.label}</div>
-              <div className="font-medium">{d.value}</div>
-            </div>
-          ))}
-        </div>
-
-        {safeCurrentExtraBenefits.length > 0 ? (
-          <div className="mt-4 rounded border p-3">
-            <div className="text-sm font-medium">Extra benefits for your plan</div>
-            <div className="mt-2 divide-y divide-white/10">
-              {safeCurrentExtraBenefits.map((b: any) => (
-                <div key={b.id} className="flex items-center justify-between p-2 text-sm">
-                  <div className="opacity-80">{b.label}</div>
-                  <div className="font-medium">{benefitValueOrIncluded(b.value)}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {current.notes?.length ? (
-          <div className="mt-3 oura-surface-muted p-3 text-sm">
-            <div className="font-medium">Notes</div>
-            <ul className="mt-1 list-disc pl-5 opacity-80">
-              {current.notes.map((n) => (
-                <li key={n}>{n}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="oura-card p-3">
-        <div className="font-medium">Facility access</div>
-        {current.access.length === 0 ? (
-          <p className="mt-2 text-sm opacity-70">
-            Your current plan doesn’t include facility access. Upgrade to unlock gym, pool, towels, lockers, and more.
-          </p>
-        ) : (
-          <div className="mt-3 divide-y divide-white/10">
-            {current.access.map((a) => (
-              <div key={a} className="flex items-center justify-between p-2 text-sm">
-                <div className="opacity-80">{a}</div>
+      ) : (
+        <>
+          <section className="oura-card divide-y divide-white/10 px-4">
+            {outlets.map((o) => (
+              <div key={o.key} className="flex justify-between gap-3 py-4">
+                <span>{o.label}</span>
+                <strong>
+                  {Math.round(
+                    Math.max(0, ...eligible.map((p) => Number(p[o.key] ?? 0))) *
+                      100,
+                  )}
+                  % off
+                </strong>
               </div>
             ))}
+          </section>
+          {extras?.length ? (
+            <section className="space-y-2">
+              <h2 className="font-semibold">Additional perks</h2>
+              {extras.map((b) => (
+                <div key={b.id} className="rounded border p-3 text-sm">
+                  {b.label} · {b.value || "Included"}
+                </div>
+              ))}
+            </section>
+          ) : null}
+          {error && (
+            <p role="status" className="text-sm">
+              Additional perks could not be loaded. Please check with the front
+              desk.
+            </p>
+          )}
+          <div className="rounded border p-4 text-sm">
+            <h2 className="font-semibold">How to use a benefit</h2>
+            <p className="mt-2">
+              Show your membership card to staff before the bill is prepared.
+              Confirm any outlet-specific exclusions or event restrictions
+              before ordering. Ask the front desk to resolve a benefit
+              discrepancy.
+            </p>
+            <Link
+              href="/member/card"
+              className="mt-3 inline-block rounded border px-3 py-3"
+            >
+              Show my card
+            </Link>
           </div>
-        )}
-
-        <div className="mt-3 flex gap-2">
-          <Link
-            href="/member/settings?returnTo=/member/benefits"
-            className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
-          >
-            Change plan
-          </Link>
-          <Link
-            href="/member/card?returnTo=/member/benefits"
-            className="rounded border px-3 py-2 text-sm hover:oura-surface-muted"
-          >
-            View card
-          </Link>
-        </div>
-      </div>
-
-      <div className="oura-card p-3">
-        <div className="font-medium">Compare tiers</div>
-        <p className="mt-1 text-sm opacity-70">
-          Quick view of what changes when you upgrade.
+        </>
+      )}
+      <div className="text-sm">
+        <h2 className="font-semibold">Gym & resort facilities</h2>
+        <p className="mt-2 opacity-80">
+          Facility access is separate from Rewards membership. Your card shows
+          access valid now.
         </p>
-
-        <div className="mt-3 divide-y divide-white/10">
-          {compareTiers.map((t) => {
-            const isCurrent = t.code === current.code;
-            return (
-              <div
-                key={t.code}
-                className={[
-                  "rounded border p-3",
-                  isCurrent ? "oura-surface-muted" : "opacity-90",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="font-medium">
-                      {t.name}{" "}
-                      {t.badge ? (
-                        <span className="ml-2 text-xs opacity-70">• {t.badge}</span>
-                      ) : null}
-                    </div>
-                    <div className="text-sm opacity-70">{t.priceLabel}</div>
-                  </div>
-                  {isCurrent ? (
-                    <div className="text-xs font-medium opacity-70">Current</div>
-                  ) : null}
-                </div>
-
-                <div className="mt-2 text-sm opacity-80">
-                  <span className="opacity-70">Top discounts:</span>{" "}
-                  {t.discounts.slice(0, 2).map((d) => d.value).join(" • ")}
-                  {t.access.length ? (
-                    <span className="ml-2 opacity-70">• Facility access</span>
-                  ) : (
-                    <span className="ml-2 opacity-70">• No access</span>
-                  )}
-                </div>
-
-                {t.extraBenefits?.length ? (
-                  <div className="mt-2 text-xs opacity-80">
-                    <span className="opacity-70">Extra perks:</span>{" "}
-                    {t.extraBenefits
-                      .slice(0, 2)
-                      .map((b: any) => `${b.label}: ${benefitValueOrIncluded(b.value)}`)
-                      .join(" • ")}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        <Link href="/member/access" className="inline-block py-3 underline">
+          View or purchase access
+        </Link>
       </div>
     </div>
   );

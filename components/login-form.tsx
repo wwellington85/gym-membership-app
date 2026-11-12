@@ -4,12 +4,19 @@ import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { safeReturnTo } from "@/lib/auth/return-to";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 function isValidEmail(v: string) {
   const s = v.trim();
@@ -20,31 +27,18 @@ export function LoginForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
-  const initialEmail = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const v = new URLSearchParams(window.location.search).get("email");
-    return v ? String(v) : "";
-  }, []);
-
+  const searchParams = useSearchParams();
+  const initialEmail = searchParams.get("email") || "";
+  const staffLogin = searchParams.get("staff") === "1";
   const [identifier, setIdentifier] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const sentType = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("sent") || "";
-  }, []);
-
-  const [showSent, setShowSent] = useState(() => sentType !== "");
-
-  // Avoid useSearchParams() here to prevent Suspense CSR bailout issues.
-  const returnToRaw = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const v = new URLSearchParams(window.location.search).get("returnTo");
-    return v ? String(v) : "";
-  }, []);
+  const sentType = searchParams.get("sent") || "";
+  const showSent = sentType !== "";
+  const returnToRaw = searchParams.get("returnTo") || "";
 
   const returnTo = useMemo(() => safeReturnTo(returnToRaw), [returnToRaw]);
 
@@ -66,37 +60,19 @@ export function LoginForm({
         setError("Enter a valid email address to receive a login link.");
       }
     },
-    [identifier]
+    [identifier],
   );
 
-  const errMsg = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const v = new URLSearchParams(window.location.search).get("err");
-    return v ? String(v) : "";
-  }, []);
+  const errMsg = searchParams.get("err") || "";
 
   const sentMsg = useMemo(() => {
     if (!sentType) return "";
-    if (sentType === "1") return "Password reset email sent. Please check your inbox.";
-    if (sentType === "magic") return "Login link sent. Please check your email (and spam/junk).";
+    if (sentType === "1")
+      return "Password reset email sent. Please check your inbox.";
+    if (sentType === "magic")
+      return "Login link sent. Please check your email (and spam/junk).";
     return "";
   }, [sentType]);
-
-  useEffect(() => {
-    if (!showSent) return;
-
-    const t = window.setTimeout(() => {
-      setShowSent(false);
-
-      // Remove sent=... from URL so refresh doesn't show the banner again
-      const url = new URL(window.location.href);
-      url.searchParams.delete("sent");
-      const qs = url.searchParams.toString();
-      window.history.replaceState({}, "", url.pathname + (qs ? `?${qs}` : ""));
-    }, 3500);
-
-    return () => window.clearTimeout(t);
-  }, [showSent]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,9 +93,13 @@ export function LoginForm({
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ identifier: rawIdentifier }),
-        }).then((r) => r.json()).catch(() => ({ email: null }));
+        })
+          .then((r) => r.json())
+          .catch(() => ({ email: null }));
 
-        loginEmail = String(resolved?.email ?? "").trim().toLowerCase();
+        loginEmail = String(resolved?.email ?? "")
+          .trim()
+          .toLowerCase();
         if (!loginEmail) {
           throw new Error("Invalid username/email or password.");
         }
@@ -131,12 +111,15 @@ export function LoginForm({
       });
       if (signInError) throw signInError;
 
-      const { data: sessionRes, error: sessionErr } = await supabase.auth.getSession();
+      const { data: sessionRes, error: sessionErr } =
+        await supabase.auth.getSession();
       if (sessionErr) throw sessionErr;
 
       const sess = sessionRes?.session;
       if (!sess?.access_token || !sess?.refresh_token) {
-        throw new Error("Login succeeded but session was missing. Please try again.");
+        throw new Error(
+          "Login succeeded but session was missing. Please try again.",
+        );
       }
 
       const syncRes = await fetch("/auth/sync", {
@@ -158,7 +141,7 @@ export function LoginForm({
       window.location.assign(
         returnTo
           ? `/auth/post-login?returnTo=${encodeURIComponent(returnTo)}`
-          : "/auth/post-login"
+          : "/auth/post-login",
       );
     } catch (err: any) {
       setError(err?.message || "Login failed");
@@ -175,18 +158,27 @@ export function LoginForm({
             Travellers Club
           </div>
           <CardTitle className="text-2xl">Login</CardTitle>
-          <CardDescription>Login with username or email and password</CardDescription>
+          <CardDescription>
+            {staffLogin
+              ? "Employee sign in with username or email"
+              : "Sign in to your free Rewards membership"}
+          </CardDescription>
         </CardHeader>
 
         <CardContent>
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor="email">Username or email</Label>
+                <Label htmlFor="email">
+                  {staffLogin ? "Username or email" : "Email"}
+                </Label>
                 <Input
                   id="email"
                   type="text"
-                  placeholder="Username or email"
+                  placeholder={
+                    staffLogin ? "Username or email" : "you@example.com"
+                  }
+                  autoComplete="username"
                   required
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
@@ -207,6 +199,7 @@ export function LoginForm({
                 <div className="relative">
                   <Input
                     id="password"
+                    autoComplete="current-password"
                     type={showPassword ? "text" : "password"}
                     required
                     value={password}
@@ -217,9 +210,15 @@ export function LoginForm({
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 opacity-80 hover:opacity-100"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
                   </button>
                 </div>
 
@@ -238,12 +237,16 @@ export function LoginForm({
                     </span>
                   )}
                   {!emailOk ? (
-                    <span className="ml-2 text-xs opacity-60">Enter your email first</span>
+                    <span className="ml-2 text-xs opacity-60">
+                      Enter your email first
+                    </span>
                   ) : null}
                 </div>
               </div>
 
-              {showSent && sentMsg && <p className="text-sm text-green-600">{sentMsg}</p>}
+              {showSent && sentMsg && (
+                <p className="text-sm text-green-600">{sentMsg}</p>
+              )}
               {errMsg && <p className="text-sm text-red-500">{errMsg}</p>}
               {error && <p className="text-sm text-red-500">{error}</p>}
 
@@ -253,7 +256,7 @@ export function LoginForm({
             </div>
 
             <div className="mt-4 text-center text-sm">
-              Don&apos;t have an account?{" "}
+              New to Travellers Rewards?{" "}
               <Link href="/join" className="underline underline-offset-4">
                 Join Travellers Club
               </Link>

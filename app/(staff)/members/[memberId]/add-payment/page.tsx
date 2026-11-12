@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireStaff } from "@/lib/auth/staff";
 import { titleCaseName } from "@/lib/format/name";
 import { PaymentSubmitButton } from "./PaymentSubmitButton";
 
@@ -12,7 +12,7 @@ export default async function AddPaymentPage({
 }) {
   const { memberId } = await params;
 
-  const supabase = await createClient();
+  const { admin: supabase } = await requireStaff(["admin", "front_desk"]);
 
   const { data: member } = await supabase
     .from("members")
@@ -25,7 +25,9 @@ export default async function AddPaymentPage({
   // IMPORTANT: include membership id
   const { data: membership, error: membershipError } = await supabase
     .from("memberships")
-    .select("id, paid_through_date, membership_plans(name, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)")
+    .select(
+      "id, paid_through_date, membership_plans(name, price, plan_type, grants_access, discount_food, discount_watersports, discount_giftshop, discount_spa)",
+    )
     .eq("member_id", memberId)
     .maybeSingle();
 
@@ -35,10 +37,10 @@ export default async function AddPaymentPage({
   async function addPayment(formData: FormData) {
     "use server";
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { admin: supabase, user } = await requireStaff([
+      "admin",
+      "front_desk",
+    ]);
 
     // Re-fetch membership in server action so we have it reliably on submit
     const { data: mship, error: mshipErr } = await supabase
@@ -48,16 +50,20 @@ export default async function AddPaymentPage({
       .maybeSingle();
 
     if (mshipErr || !mship?.id) {
-      throw new Error("No membership found for this member. Create a membership first.");
+      throw new Error(
+        "No membership found for this member. Create a membership first.",
+      );
     }
 
     const amount = Number(formData.get("amount") || 0);
     const paid_on = String(formData.get("paid_on") || "").trim();
-    const payment_method = String(formData.get("payment_method") || "").trim() || null;
+    const payment_method =
+      String(formData.get("payment_method") || "").trim() || null;
     const notes = String(formData.get("notes") || "").trim() || null;
 
     if (!paid_on) throw new Error("Missing paid_on");
-    if (!Number.isFinite(amount) || amount <= 0) throw new Error("Invalid amount");
+    if (!Number.isFinite(amount) || amount <= 0)
+      throw new Error("Invalid amount");
 
     // Guard against accidental double-submit (same member/amount/day within 2 minutes).
     const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
@@ -79,6 +85,8 @@ export default async function AddPaymentPage({
       membership_id: mship.id,
       member_id: memberId,
       amount,
+      currency: "USD",
+      status: "paid",
       paid_on,
       payment_method,
       notes,
@@ -87,7 +95,8 @@ export default async function AddPaymentPage({
 
     if (error) throw new Error(`Payment insert failed: ${error.message}`);
 
-    // Keep memberships.last_payment_date reliable for member profile summaries.
+    // A standalone receipt does not grant or renew a pass.
+    // Keep the legacy last-payment summary accurate.
     const { error: memUpdateErr } = await supabase
       .from("memberships")
       .update({ last_payment_date: paid_on } as any)
@@ -105,6 +114,7 @@ export default async function AddPaymentPage({
       <div>
         <h1 className="text-xl font-semibold">Add Payment</h1>
         <p className="text-sm opacity-70">
+          Records money already collected; does not grant or renew access.{" "}
           {titleCaseName(member.full_name)} • {member.phone}
         </p>
       </div>
@@ -119,7 +129,9 @@ export default async function AddPaymentPage({
           Paid-through: {membership?.paid_through_date ?? "—"}
         </div>
         {membershipError ? (
-          <div className="mt-2 text-xs opacity-70">Membership load error: {membershipError.message}</div>
+          <div className="mt-2 text-xs opacity-70">
+            Membership load error: {membershipError.message}
+          </div>
         ) : null}
         {!membership ? (
           <div className="mt-2 text-xs opacity-70">
@@ -131,7 +143,12 @@ export default async function AddPaymentPage({
       <form action={addPayment} className="space-y-3">
         <div className="space-y-1">
           <label className="text-sm font-medium">Paid on *</label>
-          <input name="paid_on" type="date" required className="w-full oura-input px-3 py-2" />
+          <input
+            name="paid_on"
+            type="date"
+            required
+            className="w-full oura-input px-3 py-2"
+          />
         </div>
 
         <div className="space-y-1">
@@ -160,7 +177,11 @@ export default async function AddPaymentPage({
 
         <div className="space-y-1">
           <label className="text-sm font-medium">Notes</label>
-          <textarea name="notes" className="w-full oura-input px-3 py-2" rows={3} />
+          <textarea
+            name="notes"
+            className="w-full oura-input px-3 py-2"
+            rows={3}
+          />
         </div>
 
         <PaymentSubmitButton />
