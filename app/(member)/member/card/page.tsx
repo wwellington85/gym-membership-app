@@ -18,7 +18,7 @@ export default async function MemberCard() {
         </p>
       </header>
       <MembershipCard
-        memberId={member.id}
+        membershipNumber={member.member_number}
         name={member.full_name}
         active={member.is_active}
         product={access.best?.plan_snapshot.name}

@@ -114,3 +114,16 @@ export function memberIdFromNumber(raw: string) {
   if (!/^[a-f0-9]{32}$/i.test(value)) return null;
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`.toLowerCase();
 }
+
+// Stored independently of UUIDs. Accept grouped input only when all 12 digits
+// are present; a displayed suffix is never a lookup credential.
+export function normalizeMemberNumber(value: unknown): string | null {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const digits = String(value).trim().replace(/[\s-]/g, "");
+  return /^[1-9][0-9]{11}$/.test(digits) ? digits : null;
+}
+
+export function formatMemberNumber(value: unknown): string | null {
+  const digits = normalizeMemberNumber(value);
+  return digits ? digits.match(/.{4}/g)!.join(" ") : null;
+}

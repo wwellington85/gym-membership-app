@@ -4,7 +4,11 @@ import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
 import { loadAccess, loadCatalogue } from "@/lib/access/server";
-import { memberIdFromNumber, memberNumber } from "@/lib/access/rules";
+import {
+  memberIdFromNumber,
+  normalizeMemberNumber,
+  formatMemberNumber,
+} from "@/lib/access/rules";
 import { verifyQrToken } from "@/lib/qr/token";
 import { QrScanner } from "@/components/checkins/qr-scanner";
 
@@ -23,9 +27,22 @@ export default async function ScanPage({
   const sp = await searchParams;
   async function lookup(data: FormData) {
     "use server";
-    await requireStaff();
+    const { admin: lookupAdmin } = await requireStaff();
     const code = String(data.get("code") || "").trim();
     let id = memberIdFromNumber(code.replace(/^member:/, ""));
+    const number = normalizeMemberNumber(code);
+    if (!id && number) {
+      const { data: match, error } = await lookupAdmin
+        .from("members")
+        .select("id")
+        .eq("member_number", number)
+        .maybeSingle();
+      if (error)
+        redirect(
+          "/checkins/scan?err=Member%20lookup%20is%20temporarily%20unavailable.%20Please%20try%20again.",
+        );
+      id = match?.id || null;
+    }
     if (!id) {
       const token = code.replace(/^qr:/, "");
       const secret = process.env.QR_TOKEN_SECRET;
@@ -69,7 +86,7 @@ export default async function ScanPage({
   const { data: member } = id
     ? await admin
         .from("members")
-        .select("id, full_name, is_active")
+        .select("id, member_number, full_name, is_active")
         .eq("id", id)
         .maybeSingle()
     : { data: null };
@@ -101,7 +118,7 @@ export default async function ScanPage({
       <QrScanner lookup={lookup} />
       <form action={lookup} className="space-y-2">
         <label htmlFor="member-code" className="text-sm">
-          Membership number or QR value
+          12-digit membership number or QR value
         </label>
         <input
           id="member-code"
@@ -124,7 +141,8 @@ export default async function ScanPage({
         <section className="oura-card space-y-4 p-4">
           <h2 className="text-xl font-semibold">{member.full_name}</h2>
           <p className="break-all font-mono text-xs">
-            {memberNumber(member.id)}
+            {formatMemberNumber(member.member_number) ||
+              "Membership number unavailable"}
           </p>
           <p>
             {member.is_active

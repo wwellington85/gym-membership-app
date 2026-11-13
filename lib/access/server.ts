@@ -18,7 +18,7 @@ export async function requireMember() {
   const admin = createAdminClient();
   const { data: member, error } = await admin
     .from("members")
-    .select("id, full_name, email, phone, is_active")
+    .select("id, member_number, full_name, email, phone, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
   if (error)

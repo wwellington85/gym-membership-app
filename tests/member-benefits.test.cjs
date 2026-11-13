@@ -151,10 +151,12 @@ test("Home renders the current pass benefits instead of the free catalogue rates
     "@/lib/access/rules": rules,
     "@/lib/format/name": { firstName: () => "Example" },
   }).default;
-  const html = require("react-dom/server")
-    .renderToStaticMarkup(await Home())
-    .replace(/<[^>]+>/g, "")
-    .replace(/\s+/g, " ");
+  const markup = require("react-dom/server").renderToStaticMarkup(await Home());
+  assert.match(markup, /Membership summary/);
+  assert.match(markup, /Show my card/);
+  assert.match(markup, /href="\/member\/card"/);
+  assert.doesNotMatch(markup, /Digital membership card|club-membership-card/);
+  const html = markup.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
   assert.match(html, /20% off/);
   assert.match(html, /15% off/);
   assert.doesNotMatch(html, /10% off/);

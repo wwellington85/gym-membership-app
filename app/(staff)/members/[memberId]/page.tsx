@@ -3,7 +3,11 @@ import { randomUUID } from "crypto";
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
 import { loadAccess, loadCatalogue } from "@/lib/access/server";
-import { memberNumber, facilities, passIsActive } from "@/lib/access/rules";
+import {
+  formatMemberNumber,
+  facilities,
+  passIsActive,
+} from "@/lib/access/rules";
 import { jamaicaTodayYmd } from "@/lib/membership/status";
 import { ChangePlanForm } from "./ChangePlanForm";
 import {
@@ -25,7 +29,7 @@ export default async function MemberProfile({
   if (staff.role === "security") redirect(`/checkins/scan?member=${memberId}`);
   const { data: member, error } = await admin
     .from("members")
-    .select("id, full_name, phone, email, is_active")
+    .select("id, member_number, full_name, phone, email, is_active")
     .eq("id", memberId)
     .maybeSingle();
   if (error || !member) notFound();
@@ -73,7 +77,8 @@ export default async function MemberProfile({
             : "Membership inactive — benefits and access blocked"}
         </p>
         <p className="mt-2 break-all font-mono text-xs">
-          {memberNumber(member.id)}
+          {formatMemberNumber(member.member_number) ||
+            "Membership number unavailable"}
         </p>
       </div>
       {(sp.err || sp.member_error) && (
