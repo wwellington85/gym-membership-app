@@ -61,6 +61,9 @@ test("digital card preserves the full lookup number and current membership, with
     }),
   );
   assert.match(html, /TC-00000000000040008000000000000001/);
+  assert.match(html, /<summary[^>]*>TC · …00000001/);
+  assert.match(html, /show full membership number/);
+  assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
   assert.match(html, /Club Monthly/);
   assert.match(html, /11 Dec 2026/);
   assert.match(html, /href="\/member\/card"/);
