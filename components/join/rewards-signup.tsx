@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
+import { signupErrorMessage } from "@/lib/auth/signup-error";
 import { createClient } from "@/lib/supabase/client";
 
 export function RewardsSignup() {
@@ -28,10 +29,8 @@ export function RewardsSignup() {
       if (result.session)
         window.location.assign("/auth/post-login?returnTo=/member");
       else setSent(true);
-    } catch {
-      setError(
-        "We could not complete signup. Try again, or sign in if you already have an account.",
-      );
+    } catch (error) {
+      setError(signupErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -94,8 +93,12 @@ export function RewardsSignup() {
           aria-describedby="join-password-hint"
           className="oura-input mt-2 w-full p-3"
         />
-        <p id="join-password-hint" className="mt-2 text-sm text-muted-foreground">
-          At least 8 characters.
+        <p
+          id="join-password-hint"
+          className="mt-2 text-sm text-muted-foreground"
+        >
+          Use at least 8 characters and a unique password. Common or compromised
+          passwords are not accepted.
         </p>
       </div>
       <p className="text-sm text-muted-foreground">
