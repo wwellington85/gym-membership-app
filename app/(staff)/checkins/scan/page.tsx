@@ -1,3 +1,4 @@
+import { effectiveBenefits } from "@/lib/access/benefits";
 import Link from "next/link";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
@@ -75,10 +76,11 @@ export default async function ScanPage({
   const access = member ? await loadAccess(member.id, member.is_active) : null;
   const catalogue = member ? await loadCatalogue() : [];
   const free = catalogue.find((p) => p.code === "rewards_free");
-  const eligible = [
+  const benefits = effectiveBenefits(
     free,
-    ...(access?.current.map((p) => p.plan_snapshot) ?? []),
-  ].filter(Boolean);
+    access?.passes ?? [],
+    member?.is_active ?? false,
+  );
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Verify member</h1>
@@ -146,25 +148,10 @@ export default async function ScanPage({
           {member.is_active && (
             <div className="space-y-2">
               <h3 className="font-semibold">Discounts valid now</h3>
-              {(
-                [
-                  ["Restaurant & bar", "discount_food"],
-                  ["Spa", "discount_spa"],
-                  ["Gift shop", "discount_giftshop"],
-                  ["Watersports", "discount_watersports"],
-                ] as const
-              ).map(([label, key]) => (
-                <p className="flex justify-between text-sm" key={key}>
-                  <span>{label}</span>
-                  <strong>
-                    {Math.round(
-                      Math.max(
-                        0,
-                        ...eligible.map((p) => Number(p?.[key] ?? 0)),
-                      ) * 100,
-                    )}
-                    %
-                  </strong>
+              {benefits.map((benefit) => (
+                <p className="flex justify-between text-sm" key={benefit.key}>
+                  <span>{benefit.label}</span>
+                  <strong>{benefit.percent}%</strong>
                 </p>
               ))}
               <p className="text-sm opacity-80">

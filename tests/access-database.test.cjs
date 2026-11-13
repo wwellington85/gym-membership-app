@@ -383,3 +383,21 @@ test("legacy payment constraint reproduces the failure; compatibility fix grants
     assert.equal((await db.query(grant, args)).rows[0].id, passId);
   } finally { await db.close(); }
 });
+
+test("ranking RPCs return correct all-time/monthly counts and are server-only", async () => {
+  const db=await fixture();
+  try {
+    await db.exec(readFileSync("supabase/migrations/20261112223000_member_leaderboard_access.sql","utf8"));
+    await db.query(`INSERT INTO checkins(member_id,checked_in_at) VALUES ($1,now()),($1,now()-interval '1 minute'),($1,now()-interval '3 months'),($2,now())`,[id(1),id(2)]);
+    const first=(await db.query(`SELECT * FROM member_leaderboard_summary($1,'all')`,[id(1)])).rows[0];
+    assert.equal(first.my_rank,1);
+    assert.equal(first.my_checkins,3);
+    const second=(await db.query(`SELECT * FROM member_leaderboard_summary($1,'all')`,[id(2)])).rows[0];
+    assert.equal(second.my_rank,2);
+    assert.equal(second.next_gap,2);
+    const monthly=(await db.query(`SELECT * FROM member_leaderboard_summary($1,'month')`,[id(1)])).rows[0];
+    assert.equal(monthly.my_checkins,2);
+    for (const role of ['anon','authenticated']) assert.equal((await db.query(`SELECT has_function_privilege($1,'public.member_leaderboard_summary(uuid,text)','EXECUTE') AS allowed`,[role])).rows[0].allowed,false);
+    assert.equal((await db.query(`SELECT has_function_privilege('service_role','public.member_leaderboard_summary(uuid,text)','EXECUTE') AS allowed`)).rows[0].allowed,true);
+  } finally { await db.close(); }
+});
