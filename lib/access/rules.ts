@@ -116,11 +116,13 @@ export function memberIdFromNumber(raw: string) {
 }
 
 // Stored independently of UUIDs. Accept grouped input only when all 12 digits
-// are present; a displayed suffix is never a lookup credential.
+// are present; 12-digit references remain accepted during the transition.
+// Never coerce unsafe JavaScript numbers: the database returns 16 digits as text.
 export function normalizeMemberNumber(value: unknown): string | null {
   if (typeof value !== "string" && typeof value !== "number") return null;
+  if (typeof value === "number" && !Number.isSafeInteger(value)) return null;
   const digits = String(value).trim().replace(/[\s-]/g, "");
-  return /^[1-9][0-9]{11}$/.test(digits) ? digits : null;
+  return /^[1-9](?:[0-9]{11}|[0-9]{15})$/.test(digits) ? digits : null;
 }
 
 export function formatMemberNumber(value: unknown): string | null {

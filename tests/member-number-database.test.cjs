@@ -126,6 +126,9 @@ test("number formatter preserves all digits and rejects suffixes or UUIDs as new
     "@/lib/membership/status": status,
   });
   assert.equal(rules.formatMemberNumber(482719368052), "4827 1936 8052");
+  assert.equal(rules.formatMemberNumber("4827193680520041"), "4827 1936 8052 0041");
+  assert.equal(rules.formatMemberNumber("9999999999999999"), "9999 9999 9999 9999");
+  assert.equal(rules.normalizeMemberNumber(9007199254740992), null);
   assert.equal(rules.normalizeMemberNumber("4827 1936 8052"), "482719368052");
   assert.equal(rules.normalizeMemberNumber("4827-1936-8052"), "482719368052");
   for (const value of [
@@ -137,4 +140,87 @@ test("number formatter preserves all digits and rejects suffixes or UUIDs as new
     "0000 0000 0001",
   ])
     assert.equal(rules.normalizeMemberNumber(value), null);
+});
+
+test("16-digit extension preserves UUIDs, maps old numbers once, and keeps exact text above JS precision", async () => {
+  const db = await fixture();
+  try {
+    await db.exec(migration);
+    const before = (
+      await db.query("SELECT id,member_number FROM members ORDER BY id")
+    ).rows;
+    const extend = readFileSync(
+      "supabase/migrations/20261113020000_sixteen_digit_member_numbers.sql",
+      "utf8",
+    );
+    await db.exec(extend);
+    const after = (
+      await db.query("SELECT id,member_number FROM members ORDER BY id")
+    ).rows;
+    for (let i = 0; i < before.length; i++) {
+      assert.equal(after[i].id, before[i].id);
+      assert.equal(
+        after[i].member_number,
+        String(before[i].member_number) + "0041",
+      );
+      assert.equal(typeof after[i].member_number, "string");
+    }
+    await db.exec(extend);
+    assert.deepEqual(
+      (await db.query("SELECT id,member_number FROM members ORDER BY id")).rows,
+      after,
+    );
+    const grouped = after[0].member_number.match(/.{4}/g).join(" ");
+    for (const q of [
+      grouped,
+      after[0].member_number,
+      String(before[0].member_number),
+      after[0].id,
+      `TC-${after[0].id.replaceAll("-", "")}`,
+    ]) {
+      assert.equal(
+        (
+          await db.query(
+            "SELECT id FROM search_club_members($1,'all_records',0,25)",
+            [q],
+          )
+        ).rows[0]?.id,
+        after[0].id,
+      );
+    }
+    const next = (
+      await db.query(
+        "INSERT INTO members(full_name) VALUES('New') RETURNING member_number",
+      )
+    ).rows[0].member_number;
+    assert.match(next, /^[1-9]\d{15}$/);
+    await assert.rejects(
+      db.query(
+        "UPDATE members SET member_number='4827193680520041' WHERE id=$1",
+        [after[0].id],
+      ),
+      /permanent/,
+    );
+    await assert.rejects(
+      db.query(
+        "INSERT INTO members(full_name,member_number) VALUES('Chosen','4827193680520041')",
+      ),
+      /assigned automatically/,
+    );
+    await db.exec(
+      "SELECT setval('club_member_number_16_seq',9999999999999999,false)",
+    );
+    const high = (
+      await db.query(
+        "INSERT INTO members(full_name) VALUES('Exact text') RETURNING member_number",
+      )
+    ).rows[0].member_number;
+    assert.equal(high, "9999999999999999");
+    await assert.rejects(
+      db.query("INSERT INTO members(full_name) VALUES('Exhausted')"),
+      /maximum value/,
+    );
+  } finally {
+    await db.close();
+  }
 });

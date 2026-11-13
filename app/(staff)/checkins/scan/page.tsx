@@ -32,11 +32,14 @@ export default async function ScanPage({
     let id = memberIdFromNumber(code.replace(/^member:/, ""));
     const number = normalizeMemberNumber(code);
     if (!id && number) {
-      const { data: match, error } = await lookupAdmin
-        .from("members")
-        .select("id")
-        .eq("member_number", number)
-        .maybeSingle();
+      const lookupQuery = lookupAdmin.from("members").select("id");
+      const { data: match, error } = await (
+        number.length === 12
+          ? lookupQuery.or(
+              `member_number.eq.${number},member_number.eq.${number}0041`,
+            )
+          : lookupQuery.eq("member_number", number)
+      ).maybeSingle();
       if (error)
         redirect(
           "/checkins/scan?err=Member%20lookup%20is%20temporarily%20unavailable.%20Please%20try%20again.",
@@ -118,7 +121,7 @@ export default async function ScanPage({
       <QrScanner lookup={lookup} />
       <form action={lookup} className="space-y-2">
         <label htmlFor="member-code" className="text-sm">
-          12-digit membership number or QR value
+          Membership number or QR value
         </label>
         <input
           id="member-code"
