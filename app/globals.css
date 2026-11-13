@@ -418,23 +418,12 @@ textarea.oura-input {
   color: #d4dfe7;
   overflow-wrap: anywhere;
 }
-.club-card-reference summary {
-  min-height: 32px;
-  width: fit-content;
-  padding-block: 7px;
-  border-radius: 4px;
-}
-.club-card-reference summary:hover {
-  color: #fff;
-}
-.club-card-reference-full {
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #ffffff33;
-  color: #d4dfe7;
-}
-.club-card-reference-full .club-card-number {
-  user-select: all;
+.club-card-digits {
+  color: #e1e8ed;
+  font-size: clamp(19px, 5vw, 25px);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
 }
 .club-card-footer {
   display: flex;

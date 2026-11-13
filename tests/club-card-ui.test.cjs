@@ -49,30 +49,26 @@ const { MembershipCard } = load(
   shared,
 );
 
-test("digital card preserves the full lookup number and current membership, with no invented QR", () => {
+test("digital card displays the assigned 12-digit number in three groups, with no invented QR", () => {
   const html = renderToStaticMarkup(
     React.createElement(MembershipCard, {
-      memberId: "00000000-0000-4000-8000-000000000001",
+      membershipNumber: 482719368052,
       name: "Example Member With A Long Name",
       product: "Club Monthly",
       validThrough: "2026-12-11",
       active: true,
-      showCardLink: true,
     }),
   );
-  assert.match(html, /TC-00000000000040008000000000000001/);
-  assert.match(html, /<summary[^>]*>TC · …00000001/);
-  assert.match(html, /show full membership number/);
-  assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+  assert.match(html, /4827 1936 8052/);
+  assert.doesNotMatch(html, /TC-|<details|<summary/);
   assert.match(html, /Club Monthly/);
   assert.match(html, /11 Dec 2026/);
-  assert.match(html, /href="\/member\/card"/);
   assert.doesNotMatch(html, /<img/);
 });
 test("inactive card shows verification required rather than active entitlements", () => {
   const html = renderToStaticMarkup(
     React.createElement(MembershipCard, {
-      memberId: "self",
+      membershipNumber: 482719368052,
       name: "Example",
       active: false,
     }),

@@ -1,26 +1,21 @@
-import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
-import { memberNumber } from "@/lib/access/rules";
+import { formatMemberNumber } from "@/lib/access/rules";
 import { membershipDate } from "@/lib/format/date";
 
 type Props = {
-  memberId: string;
+  membershipNumber?: string | number | null;
   name: string;
   product?: string;
   validThrough?: string;
   active: boolean;
-  showCardLink?: boolean;
 };
 export function MembershipCard({
-  memberId,
+  membershipNumber,
   name,
   product,
   validThrough,
   active,
-  showCardLink = false,
 }: Props) {
-  const number = memberNumber(memberId);
-  const reference = number.length > 15 ? `TC · …${number.slice(-8)}` : number;
+  const number = formatMemberNumber(membershipNumber);
   return (
     <section
       className="club-membership-card"
@@ -34,18 +29,15 @@ export function MembershipCard({
       </div>
       <div className="space-y-2">
         <h2 className="club-card-name">{name}</h2>
-        <details className="club-card-reference">
-          <summary className="club-card-number">
-            {reference}
-            <span className="sr-only"> — show full membership number</span>
-          </summary>
-          <div className="club-card-reference-full">
-            <p className="text-xs">Full membership number</p>
-            <p className="club-card-number mt-1" aria-label="Membership number">
-              {number}
-            </p>
-          </div>
-        </details>
+        {number ? (
+          <p className="club-card-digits" aria-label="Membership number">
+            {number}
+          </p>
+        ) : (
+          <p className="club-card-number">
+            Membership number temporarily unavailable
+          </p>
+        )}
       </div>
       <div className="club-card-footer">
         <div>
@@ -60,11 +52,6 @@ export function MembershipCard({
               : "Please speak with the front desk"}
           </p>
         </div>
-        {showCardLink && (
-          <Link href="/member/card" className="club-card-cta">
-            Show card <ArrowUpRight size={16} aria-hidden="true" />
-          </Link>
-        )}
       </div>
     </section>
   );

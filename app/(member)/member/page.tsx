@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Dumbbell } from "lucide-react";
+import { ArrowRight, CreditCard, Dumbbell } from "lucide-react";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
 import { firstName } from "@/lib/format/name";
+import { facilities } from "@/lib/access/rules";
 import { effectiveBenefits } from "@/lib/access/benefits";
 import { membershipDate } from "@/lib/format/date";
-import { MembershipCard } from "@/components/member/membership-card";
 
 export const dynamic = "force-dynamic";
 export default async function MemberHome() {
@@ -32,14 +32,36 @@ export default async function MemberHome() {
           access need verification.
         </p>
       )}
-      <MembershipCard
-        memberId={member.id}
-        name={member.full_name}
-        active={member.is_active}
-        product={access.best?.plan_snapshot.name}
-        validThrough={access.best?.paid_through_date}
-        showCardLink
-      />
+      <section
+        className="oura-card space-y-4 p-4"
+        aria-label="Membership summary"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="club-eyebrow">Your membership</p>
+            <h2 className="mt-2 text-lg font-semibold">
+              {access.best?.plan_snapshot.name || "Rewards membership"}
+            </h2>
+          </div>
+          <span
+            className={
+              member.is_active ? "club-status" : "text-sm text-muted-foreground"
+            }
+          >
+            {member.is_active ? "Active" : "Needs assistance"}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {member.is_active
+            ? access.best
+              ? `Facility access until ${membershipDate(access.best.paid_through_date)}, 10 pm Jamaica time.`
+              : "Your free Rewards membership is active. Facility access is separate."
+            : "Please speak with the front desk to verify your membership."}
+        </p>
+        <Link href="/member/card" className="club-button">
+          <CreditCard size={18} aria-hidden="true" /> Show my card
+        </Link>
+      </section>
       {member.is_active && (
         <section>
           <div className="flex items-center justify-between gap-3">
@@ -74,7 +96,7 @@ export default async function MemberHome() {
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           {access.best
-            ? `${access.best.plan_snapshot.name} · Until ${membershipDate(access.best.paid_through_date)}, 10 pm Jamaica time.`
+            ? facilities(access.best.plan_snapshot).join(" · ")
             : "Explore gym-only and resort passes, alongside your free Rewards membership."}
         </p>
         <div className="mt-3 flex flex-wrap gap-3">
