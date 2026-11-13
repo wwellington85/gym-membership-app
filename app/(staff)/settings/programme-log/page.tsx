@@ -18,7 +18,7 @@ export default async function ProgrammeLog({
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Programme audit</h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Access grants/revocations, recorded benefit uses, member status, and
         programme changes since migration. Automated/service changes may have no
         employee actor.

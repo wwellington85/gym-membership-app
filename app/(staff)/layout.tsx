@@ -4,7 +4,7 @@ import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { StaffTopbar } from "@/components/nav/staff-topbar";
 import { HistoryTracker } from "@/components/ui/history-tracker";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
-import Link from "next/link";
+import { StaffSidebar } from "@/components/nav/staff-sidebar";
 
 export default async function StaffLayout({
   children,
@@ -39,39 +39,12 @@ export default async function StaffLayout({
 
   return (
     <>
-      <aside
-        className="staff-sidebar fixed bottom-0 left-0 top-[60px] z-30 hidden w-52 space-y-2 border-r border-white/10 bg-[rgb(8,10,20)] p-4 md:block"
-        aria-label="Employee navigation"
-      >
-        {[
-          ["/dashboard", "Overview"],
-          ["/members", "Members"],
-          ["/checkins/scan", "Verify member"],
-          ["/checkins", "Gym visits"],
-          ...(!isSecurity
-            ? [
-                ["/applications", "Requests"],
-                ["/payments", "Payments"],
-              ]
-            : []),
-          ...(staffProfile.role === "admin"
-            ? [["/more", "Programme & admin"]]
-            : []),
-          ["/account", "My staff account"],
-        ].map(([href, label]) => (
-          <Link
-            key={href}
-            href={href}
-            className="block rounded px-3 py-3 text-sm hover:bg-white/10"
-          >
-            {label}
-          </Link>
-        ))}
-      </aside>
+      <StaffSidebar role={staffProfile.role} />
       <main
         id="main-content"
+        tabIndex={-1}
         className={[
-          "w-full md:pl-52 h-svh overflow-y-auto overscroll-y-contain pt-[calc(env(safe-area-inset-top)+60px)] pb-28",
+          "club-staff-main w-full md:pl-56 h-svh overflow-y-auto overscroll-y-contain pt-[calc(env(safe-area-inset-top)+72px)] pb-32",
         ].join(" ")}
       >
         <HistoryTracker />

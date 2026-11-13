@@ -353,14 +353,14 @@ export default async function StaffManagementPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Staff Management</h1>
-        <p className="text-sm opacity-70">Create staff logins, invite by email when available, and manage access</p>
+        <p className="text-sm text-muted-foreground">Create staff logins, invite by email when available, and manage access</p>
       </div>
 
       <FlashBanners />
 
             <div className="oura-card p-3">
         <div className="font-medium">Create Staff Account</div>
-        <div className="text-sm opacity-70">If email is provided, we send an invite link. If not, we create an immediate username + temporary password login.</div>
+        <div className="text-sm text-muted-foreground">If email is provided, we send an invite link. If not, we create an immediate username + temporary password login.</div>
 
         <form action={createStaffAccount} className="mt-3 space-y-2">
           <input type="hidden" name="returnTo" value={returnTo} />
@@ -383,7 +383,7 @@ export default async function StaffManagementPage({
             placeholder="temporary password (required if no email)"
             className="w-full rounded border px-3 py-2"
           />
-          <div className="text-xs opacity-70">
+          <div className="text-xs text-muted-foreground">
             No email: temporary password required (8+ chars). Email provided: password can be left blank.
           </div>
           <select name="role" className="w-full rounded border px-3 py-2" defaultValue="front_desk">
@@ -441,7 +441,7 @@ export default async function StaffManagementPage({
       <div className="oura-card p-3">
         <div className="flex items-center justify-between">
           <div className="font-medium">Staff List</div>
-          <div className="text-xs opacity-70">{staff?.length ?? 0}</div>
+          <div className="text-xs text-muted-foreground">{staff?.length ?? 0}</div>
         </div>
 
         {/* Active filter chips */}
@@ -453,7 +453,7 @@ export default async function StaffManagementPage({
                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
                 title="Remove search"
               >
-                Search: <span className="font-medium">{q}</span> <span className="opacity-60">✕</span>
+                Search: <span className="font-medium">{q}</span> <span className="text-muted-foreground">✕</span>
               </a>
             ) : null}
 
@@ -463,7 +463,7 @@ export default async function StaffManagementPage({
                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
                 title="Remove role filter"
               >
-                Role: <span className="font-medium">{roleLabel(roleFilter)}</span> <span className="opacity-60">✕</span>
+                Role: <span className="font-medium">{roleLabel(roleFilter)}</span> <span className="text-muted-foreground">✕</span>
               </a>
             ) : null}
 
@@ -473,7 +473,7 @@ export default async function StaffManagementPage({
                 className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
                 title="Remove status filter"
               >
-                Status: <span className="font-medium">{activeFilter}</span> <span className="opacity-60">✕</span>
+                Status: <span className="font-medium">{activeFilter}</span> <span className="text-muted-foreground">✕</span>
               </a>
             ) : null}
 
@@ -484,7 +484,7 @@ export default async function StaffManagementPage({
                 title="Reset sort"
               >
                 Sort: <span className="font-medium">{sortLabel(sort)}</span>{" "}
-                <span className="opacity-60">✕</span>
+                <span className="text-muted-foreground">✕</span>
               </a>
             ) : null}
 
@@ -493,7 +493,7 @@ export default async function StaffManagementPage({
               className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs hover:bg-gray-50"
               title="Clear all"
             >
-              Clear all <span className="opacity-60">✕</span>
+              Clear all <span className="text-muted-foreground">✕</span>
             </a>
           </div>
         ) : null}
@@ -501,12 +501,12 @@ export default async function StaffManagementPage({
         {error ? (
           <div className="mt-3 text-sm">
             Could not load staff.
-            <div className="mt-1 text-xs opacity-70">{error.message}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{error.message}</div>
           </div>
         ) : null}
 
         {!error && (!staff || staff.length === 0) ? (
-          <div className="mt-3 text-sm opacity-70">No staff found.</div>
+          <div className="mt-3 text-sm text-muted-foreground">No staff found.</div>
         ) : null}
 
         <div className="mt-3 space-y-2">
@@ -517,9 +517,9 @@ export default async function StaffManagementPage({
               <div key={s.user_id} className="oura-card p-3">
                 <div>
                   <div className="text-sm font-medium">{s.username ?? s.email ?? "(no username)"}</div>
-                  <div className="text-xs opacity-70">Email: {isSyntheticStaffEmail(s.email) ? "Not set" : (s.email ?? "Not set")}</div>
-                  <div className="text-xs opacity-70">Role: {roleLabel(s.role)}</div>
-                  <div className="text-xs opacity-70">Status: {active ? "Active" : "Inactive"}</div>
+                  <div className="text-xs text-muted-foreground">Email: {isSyntheticStaffEmail(s.email) ? "Not set" : (s.email ?? "Not set")}</div>
+                  <div className="text-xs text-muted-foreground">Role: {roleLabel(s.role)}</div>
+                  <div className="text-xs text-muted-foreground">Status: {active ? "Active" : "Inactive"}</div>
                 </div>
 
                 <div className="mt-3 grid gap-2">

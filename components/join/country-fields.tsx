@@ -32,7 +32,7 @@ export function CountryFields({ initialCountry = "Jamaica", initialOtherCountry 
             </option>
           ))}
         </select>
-        <p className="text-xs opacity-60">Helps us tailor benefits and contact preferences.</p>
+        <p className="text-xs text-muted-foreground">Helps us tailor benefits and contact preferences.</p>
       </div>
 
       {country === "Other" ? (
@@ -45,7 +45,7 @@ export function CountryFields({ initialCountry = "Jamaica", initialOtherCountry 
             autoComplete="country-name"
             defaultValue={initialOtherCountry}
           />
-          <p className="text-xs opacity-60">Only shown when “Other” is selected.</p>
+          <p className="text-xs text-muted-foreground">Only shown when “Other” is selected.</p>
         </div>
       ) : (
         // keep the field present but empty so server action can always read it safely

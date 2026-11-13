@@ -51,7 +51,7 @@ export default async function AccountPage({
   }
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold">My account</h1>
+      <h1 className="text-xl font-semibold">Your account.</h1>
       {sp.saved && (
         <p role="status" className="oura-alert-success">
           Your details were saved.
@@ -92,7 +92,7 @@ export default async function AccountPage({
             className="oura-input mt-2 w-full p-3"
           />
         </div>
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted-foreground">
           Sign-in email: {member.email}. Contact the front desk if you need to
           change it.
         </p>
@@ -111,7 +111,7 @@ export default async function AccountPage({
       </div>
       <section id="starting-screen" className="oura-card space-y-3 p-4">
         <h2 className="font-semibold">Starting screen</h2>
-        <p id="starting-screen-help" className="text-sm opacity-80">
+        <p id="starting-screen-help" className="text-sm text-muted-foreground">
           Choose where the app opens when you sign in or launch it. Links to a
           specific screen still take you there.
         </p>
@@ -132,7 +132,7 @@ export default async function AccountPage({
             <option value="home">Home — Rewards and hotel benefits</option>
             <option value="gym">Gym — visits, progress, and access</option>
           </select>
-          <p id="starting-screen-auto" className="text-sm opacity-80">
+          <p id="starting-screen-auto" className="text-sm text-muted-foreground">
             Automatic opens Gym while gym-specific access or a Club Monthly
             membership is active, whether paid or complimentary. Otherwise it
             opens Home. Resort day and weekly passes keep Home as the default.
@@ -147,7 +147,7 @@ export default async function AccountPage({
         {error ? (
           <p role="alert">We could not load purchases. Please try again.</p>
         ) : !payments?.length ? (
-          <p className="text-sm opacity-80">No purchases yet.</p>
+          <p className="text-sm text-muted-foreground">No purchases yet.</p>
         ) : (
           payments.map((p) => (
             <div key={p.id} className="rounded border p-3 text-sm">
@@ -168,7 +168,7 @@ export default async function AccountPage({
                   {p.access_start_date} — {p.access_end_date}
                 </p>
               )}
-              <p className="mt-2 break-all text-xs opacity-80">
+              <p className="mt-2 break-all text-xs text-muted-foreground">
                 Reference: {p.id}
               </p>
               {p.provider === "fygaro" && (

@@ -120,8 +120,8 @@ export function PlanPicker({
             "oura-card p-4 text-left w-full relative",
             "transition-[transform,box-shadow,border-color,opacity] duration-150",
             isCurrent
-              ? "opacity-90 cursor-default border-[rgba(255,255,255,0.10)]"
-              : "cursor-pointer opacity-90 border-[rgba(255,255,255,0.12)]",
+              ? "text-foreground cursor-default border-[rgba(255,255,255,0.10)]"
+              : "cursor-pointer text-foreground border-[rgba(255,255,255,0.12)]",
             isSelected
               ? "opacity-100 ring-2 ring-[rgba(255,255,255,0.38)] shadow-[0_22px_80px_rgba(0,0,0,0.62)] border-[rgba(255,255,255,0.24)] border-l-4 border-l-[rgba(255,255,255,0.75)]"
               : ""
@@ -153,7 +153,7 @@ export function PlanPicker({
                     <div className="text-sm font-semibold">{p.name}</div>
 
                     {isCurrent ? (
-                      <span className="rounded-full border px-2 py-0.5 text-[11px] opacity-80">
+                      <span className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground">
                         Current
                       </span>
                     ) : null}
@@ -165,7 +165,7 @@ export function PlanPicker({
                     ) : null}
                   </div>
 
-                  <div className="mt-0.5 text-xs opacity-70">{p.subtitle}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">{p.subtitle}</div>
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
@@ -189,7 +189,7 @@ export function PlanPicker({
               </div>
 
               {/* subtle dividers instead of bullets */}
-              <div className="relative mt-3 divide-y divide-white/10 text-xs">
+              <div className="relative mt-3 divide-y divide-border text-xs">
                 {p.highlights.map((h) => (
                   <div key={h} className="py-2 opacity-85">
                     {h}
@@ -198,7 +198,7 @@ export function PlanPicker({
               </div>
 
               {isCurrent ? (
-                <div className="relative mt-3 text-xs opacity-60">This is your current plan.</div>
+                <div className="relative mt-3 text-xs text-muted-foreground">This is your current plan.</div>
               ) : null}
             </CardTag>
           );
@@ -218,13 +218,13 @@ export function PlanPicker({
           {submitLabel}
         </button>
       ) : (
-        <div className="text-xs opacity-70">
+        <div className="text-xs text-muted-foreground">
           Select a plan, then press <span className="font-semibold">Continue</span>.
         </div>
       )}
 
       {showSubmit && isSameAsCurrent ? (
-        <div className="text-xs opacity-70">Select a different plan to continue.</div>
+        <div className="text-xs text-muted-foreground">Select a different plan to continue.</div>
       ) : null}
     </div>
   );

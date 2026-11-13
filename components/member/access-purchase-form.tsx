@@ -13,7 +13,7 @@ function Submit() {
   return (
     <button
       disabled={pending}
-      className="w-full rounded border bg-indigo-500/30 px-4 py-3 font-medium disabled:opacity-50"
+      className="w-full rounded border bg-primary text-primary-foreground px-4 py-3 font-medium disabled:opacity-50"
     >
       {pending ? "Preparing checkout…" : "Continue to secure payment"}
     </button>

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default function Page() {
   return (
-    <div className="mx-auto w-full max-w-md px-4 py-8">
+    <div className="w-full py-2">
       <Suspense fallback={<div className="rounded border p-3 text-sm">Loading…</div>}>
         <LoginForm />
       </Suspense>

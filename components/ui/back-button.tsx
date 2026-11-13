@@ -24,7 +24,7 @@ export function BackButton({
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm hover:oura-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 ${className}`}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm hover:oura-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${className}`}
     >
       <ArrowLeft className="h-5 w-5" strokeWidth={2.4} aria-hidden="true" />
       {label}

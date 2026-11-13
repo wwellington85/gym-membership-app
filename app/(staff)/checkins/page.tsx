@@ -35,7 +35,7 @@ export default async function CheckinsPage({
           Verify / record visit
         </Link>
       </div>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Verified gym activity. A member lookup or discount check does not create
         a visit.
       </p>
@@ -65,7 +65,7 @@ export default async function CheckinsPage({
             className="block rounded border p-3"
           >
             <h2 className="font-medium">{r.members?.full_name || "Member"}</h2>
-            <p className="mt-2 text-sm opacity-80">
+            <p className="mt-2 text-sm text-muted-foreground">
               {new Date(r.checked_in_at).toLocaleString("en-US", {
                 timeZone: "America/Jamaica",
               })}{" "}

@@ -113,7 +113,7 @@ export default async function AddPaymentPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Add Payment</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted-foreground">
           Records money already collected; does not grant or renew access.{" "}
           {titleCaseName(member.full_name)} • {member.phone}
         </p>
@@ -121,20 +121,20 @@ export default async function AddPaymentPage({
 
       <div className="rounded border p-3 text-sm">
         <div className="font-medium">Current Membership</div>
-        <div className="mt-1 opacity-80">
+        <div className="mt-1 text-muted-foreground">
           {currentPlan?.name ?? "—"}
           {currentPlan?.price != null ? ` • $${currentPlan.price}` : ""}
         </div>
-        <div className="mt-1 text-xs opacity-70">
+        <div className="mt-1 text-xs text-muted-foreground">
           Paid-through: {membership?.paid_through_date ?? "—"}
         </div>
         {membershipError ? (
-          <div className="mt-2 text-xs opacity-70">
+          <div className="mt-2 text-xs text-muted-foreground">
             Membership load error: {membershipError.message}
           </div>
         ) : null}
         {!membership ? (
-          <div className="mt-2 text-xs opacity-70">
+          <div className="mt-2 text-xs text-muted-foreground">
             No membership row found for this member yet.
           </div>
         ) : null}

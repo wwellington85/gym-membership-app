@@ -57,7 +57,7 @@ export default async function ApplicationDetailPage({
         <h1 className="text-xl font-semibold">Application</h1>
         <div className="rounded border p-3 text-sm">
           Could not load application.
-          <div className="mt-1 text-xs opacity-70">{error?.message}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{error?.message}</div>
         </div>
         <Link className="underline underline-offset-2" href={backTo}>
           Back to Applications
@@ -115,7 +115,7 @@ export default async function ApplicationDetailPage({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Application</h1>
-          <p className="text-sm opacity-70">Status: {app.status}</p>
+          <p className="text-sm text-muted-foreground">Status: {app.status}</p>
         </div>
         <Link
           className="rounded border px-3 py-2 text-sm hover:bg-gray-50"
@@ -129,7 +129,7 @@ export default async function ApplicationDetailPage({
 
       <div className="rounded border p-4 space-y-2">
         <div className="font-medium">{app.full_name}</div>
-        <div className="text-sm opacity-70">
+        <div className="text-sm text-muted-foreground">
           {app.email || "(no email)"}
           {app.phone ? ` • ${app.phone}` : ""}
         </div>
@@ -149,22 +149,22 @@ export default async function ApplicationDetailPage({
         {app.notes ? (
           <div className="rounded border p-3 text-sm">
             <div className="font-medium">Notes</div>
-            <div className="mt-1 opacity-70 whitespace-pre-wrap">
+            <div className="mt-1 text-muted-foreground whitespace-pre-wrap">
               {app.notes}
             </div>
           </div>
         ) : null}
 
         {app.waiver_accepted ? (
-          <div className="text-xs opacity-60">
+          <div className="text-xs text-muted-foreground">
             Waiver accepted
             {app.waiver_accepted_at ? `: ${app.waiver_accepted_at}` : ""}.
           </div>
         ) : (
-          <div className="text-xs opacity-60">Waiver not recorded.</div>
+          <div className="text-xs text-muted-foreground">Waiver not recorded.</div>
         )}
 
-        <div className="text-xs opacity-60">Submitted: {app.created_at}</div>
+        <div className="text-xs text-muted-foreground">Submitted: {app.created_at}</div>
       </div>
 
       <div className="rounded border p-4 space-y-2">
@@ -211,7 +211,7 @@ export default async function ApplicationDetailPage({
           </form>
         </div>
 
-        <div className="text-xs opacity-60">
+        <div className="text-xs text-muted-foreground">
           Conversion creates a Member + Membership after payment.
         </div>
 

@@ -24,7 +24,7 @@ export function SetStaffPasswordForm({ userId, returnTo, username }: {
   return (
     <details className="rounded border p-3">
       <summary className="cursor-pointer text-sm font-medium">Set password</summary>
-      <p className="mt-2 text-xs opacity-70">
+      <p className="mt-2 text-xs text-muted-foreground">
         Set a new password for {username} and share it with them directly. They can sign in immediately using their username. No email is sent.
       </p>
       <form action={setStaffPassword} className="mt-3 space-y-2">
@@ -52,7 +52,7 @@ export function SetStaffPasswordForm({ userId, returnTo, username }: {
             className="mt-1 w-full rounded border px-3 py-2"
           />
         </label>
-        <p className="text-xs opacity-70">Minimum 8 characters.</p>
+        <p className="text-xs text-muted-foreground">Minimum 8 characters.</p>
         <SubmitButton />
       </form>
     </details>

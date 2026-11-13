@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { loadCatalogue, loadAccess, requireMember } from "@/lib/access/server";
@@ -27,12 +26,6 @@ export default async function UpgradePage({
     passes.find((p) => p.plan_id === plan.id && p.status === "active") ?? null;
   return (
     <div className="space-y-4">
-      <Link
-        href="/member/access"
-        className="inline-block py-2 text-sm underline"
-      >
-        Back to access
-      </Link>
       <h1 className="text-xl font-semibold">
         {sp.intent === "renew" ? "Renew access" : "Confirm access"}
       </h1>
@@ -49,7 +42,7 @@ export default async function UpgradePage({
             <h2 className="font-semibold">{plan.name}</h2>
             <p className="text-sm">{facilities(plan).join(" · ")}</p>
             {plan.code === "gym_day" && (
-              <p className="text-sm opacity-80">
+              <p className="text-sm text-muted-foreground">
                 Gym only. Pool, beach chairs/towels, showers, lockers and lounge
                 are not included.
               </p>

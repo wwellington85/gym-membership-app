@@ -94,12 +94,12 @@ export function RewardsSignup() {
           aria-describedby="join-password-hint"
           className="oura-input mt-2 w-full p-3"
         />
-        <p id="join-password-hint" className="mt-2 text-sm opacity-80">
+        <p id="join-password-hint" className="mt-2 text-sm text-muted-foreground">
           At least 8 characters. You can also use an email login link when
           returning.
         </p>
       </div>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Free membership provides a digital card and published Rewards benefits.
         Gym and resort access are optional purchases, with their own dates and
         facility waiver.
@@ -111,7 +111,7 @@ export function RewardsSignup() {
       )}
       <button
         disabled={busy}
-        className="w-full rounded border bg-indigo-500/25 px-4 py-3 font-medium disabled:opacity-50"
+        className="w-full rounded border bg-primary text-primary-foreground px-4 py-3 font-medium disabled:opacity-50"
       >
         {busy ? "Creating account…" : "Join Rewards free"}
       </button>

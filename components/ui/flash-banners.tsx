@@ -45,19 +45,19 @@ export function FlashBanners() {
   return (
     <div className="space-y-2">
       {showSaved ? (
-        <div className="text-sm font-medium text-emerald-200">
+        <div className="text-sm font-medium text-emerald-800">
           Saved.
         </div>
       ) : null}
 
       {showSent ? (
-        <div className="text-sm font-medium text-emerald-200">
+        <div className="text-sm font-medium text-emerald-800">
           Password reset email sent.
         </div>
       ) : null}
 
       {showErr && err ? (
-        <div className="text-sm font-medium text-red-200">
+        <div className="text-sm font-medium text-red-800">
           Error: {err}
         </div>
       ) : null}

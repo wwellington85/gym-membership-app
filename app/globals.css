@@ -2,618 +2,623 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------- Design Tokens ---------- */
+/* Club card: one light palette for the member app and employee workspace. */
 :root {
+  color-scheme: light;
   --bg: 255 255 255;
-  --fg: 10 10 10;
-  --muted: 120 120 120;
-  --card: 255 255 255;
-  --border: 228 228 231;
-  --ring: 59 130 246;
-
-  --accent-1: 99 102 241;   /* indigo */
-  --accent-2: 16 185 129;   /* emerald */
-  --accent-3: 236 72 153;   /* pink */
+  --fg: 31 41 48;
+  --background: 0 0% 100%;
+  --foreground: 205 22% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 205 22% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 205 22% 15%;
+  --primary: 205 55% 21%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 207 25% 95%;
+  --secondary-foreground: 205 40% 24%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 207 12% 39%;
+  --accent: 207 30% 94%;
+  --accent-foreground: 205 55% 21%;
+  --destructive: 0 68% 38%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 210 17% 87%;
+  --input: 210 16% 55%;
+  --ring: 205 55% 33%;
+  --radius: 1rem;
+}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body {
+    height: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  button,
+  a {
+    touch-action: manipulation;
+  }
+  :focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  input,
+  select,
+  textarea {
+    max-inline-size: 100%;
+  }
 }
 
-.dark {
-  --bg: 8 8 10;
-  --fg: 244 244 245;
-  --muted: 161 161 170;
-  --card: 12 12 16;
-  --border: 39 39 42;
-  --ring: 99 102 241;
-}
-
-html, body { height: 100%; }
-body {
-  background: rgb(var(--bg));
-  color: rgb(var(--fg));
-}
-
-/* ---------- Aurora Background ---------- */
+/* Compatibility names let every existing route share the new component system. */
 .oura-bg {
-  position: relative;
-  overflow-x: hidden;
-  overflow-y: visible;
-  background: rgb(var(--bg));
-}
-.oura-bg > * { position: relative; z-index: 1; }
-
-.oura-bg::before,
-.oura-bg::after {
-  content: "";
-  position: absolute;
-  inset: -40%;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(closest-side, rgb(var(--accent-1) / 0.22), transparent 65%),
-    radial-gradient(closest-side, rgb(var(--accent-2) / 0.16), transparent 60%),
-    radial-gradient(closest-side, rgb(var(--accent-3) / 0.12), transparent 62%);
-  filter: blur(48px);
-}
-.oura-bg::before { transform: translate(-10%, -10%); }
-.oura-bg::after  { transform: translate(10%, 10%); opacity: 0.85; }
-
-/* ---------- Outer App Shell ---------- */
-.oura-shell{
-  position: relative;
-  overflow: hidden;
-  border-radius: 32px;
-
-  /* outer frame: subtle glass, not a hard rectangle */
-  background: rgba(10,10,14,0.16);
-  border: 1px solid rgba(255,255,255,0.08);
-
-  box-shadow:
-    0 24px 90px rgba(0,0,0,0.65),
-    inset 0 1px 0 rgba(255,255,255,0.08);
-
-  backdrop-filter: blur(26px) saturate(140%);
-  -webkit-backdrop-filter: blur(26px) saturate(140%);
-}
-
-/* ---------- True Dark Glass Card ---------- */
-.oura-card{
-  position: relative;
-  overflow: hidden;
-  border-radius: 28px;
-
-  /* inner cards: dark glass (less gray) */
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.012), rgba(255,255,255,0.003)),
-    rgba(0,0,0,0.34);
-
-  border: 1px solid rgba(255,255,255,0.08);
-
-  box-shadow:
-    0 18px 70px rgba(0,0,0,0.60),
-    inset 0 1px 0 rgba(255,255,255,0.012);
-
-  backdrop-filter: blur(28px) saturate(170%);
-  -webkit-backdrop-filter: blur(28px) saturate(170%);
-}
-
-/* specular highlight (no texture/noise) */
-.oura-card::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-
-  /* specular highlight only (no texture/noise) */
-  background:
-    radial-gradient(900px 320px at 18% 0%,
-      rgba(255,255,255,0.09),
-      transparent 62%
-    ),
-    radial-gradient(700px 260px at 85% 12%,
-      rgba(255,255,255,0.035),
-      transparent 66%
-    );
-  opacity: 0.95;
-}
-
-/* rim light stroke */
-.oura-card::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  pointer-events:none;
-
-  /* subtle rim light (single stroke) */
-  padding: 1px;
-  background: linear-gradient(
-    180deg,
-    rgba(255,255,255,0.14),
-    rgba(255,255,255,0.02)
-  );
-
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-
-  opacity: 0.20;
-}
-
-/* ---------- Bottom Tab Bar ---------- */
-.oura-tabbar{
-  background: rgba(10, 10, 14, 0.30);
-  border-top: 1px solid rgba(255,255,255,0.14);
-  backdrop-filter: blur(22px) saturate(140%);
-  -webkit-backdrop-filter: blur(22px) saturate(140%);
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.45);
-}
-.oura-tab { color: rgba(210,210,215,0.82); }
-.oura-tab:hover { color: rgba(235,235,240,0.94); }
-.oura-tab:active {
-  transform: translateY(1px);
-  background: rgba(255,255,255,0.08);
-}
-.oura-tab-active{
+  background: #fff;
   color: rgb(var(--fg));
-  text-shadow: 0 0 18px rgb(var(--accent-1) / 0.22);
 }
-
-/* Subtle "pressed" feedback for bordered controls without drastic visual change */
-button,
-a.rounded.border {
-  transition: background-color 120ms ease, transform 80ms ease, box-shadow 120ms ease, opacity 120ms ease;
-}
-
-button:active,
-a.rounded.border:active {
-  transform: translateY(1px);
-  background: rgba(255,255,255,0.08);
-}
-
-/* Focus + dark hover fix */
-:focus-visible { outline: 2px solid rgb(var(--ring) / 0.45); outline-offset: 2px; }
-html.dark .hover\:bg-gray-50:hover { background: rgba(255,255,255,0.08) !important; }
-
-/* Inner surfaces used inside cards (inputs/sections) */
-.oura-surface{
-  background: rgba(0,0,0,0.20);
-  border: 1px solid rgba(255,255,255,0.035);
-  border-radius: 18px;
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
-}
-
-/* ============================
-   AURORA RESTORE + GLASS TUNE
-   (final overrides)
-   ============================ */
-
-/* Ensure page stays dark-purple, not flat black */
-html.dark .oura-bg{
-  background: rgb(var(--bg)) !important;
-}
-
-/* Outer shell: darker frame, but still transparent so aurora shows */
-html.dark .oura-shell{
-  position: relative;
-
-
-  border-radius: 32px !important;
-
-  /* key: TRANSPARENT dark, not opaque black */
-  background: rgba(10,10,14,0.48) !important;
-
-  border: 1px solid rgba(255,255,255,0.08) !important;
-
-  box-shadow:
-    0 28px 110px rgba(0,0,0,0.44),
-    inset 0 1px 0 rgba(255,255,255,0.05) !important;
-
-  backdrop-filter: blur(28px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
-}
-
-/* Cards: darker glass, but translucent (kills the gray paint look) */
-/* ============================
-   WET GLASS (TINTED) – v2
-   append-only override
-   ============================ */
-
-/* Keep the aurora (avoid flat black) */
-html.dark .oura-bg{
-  background:
-    radial-gradient(1200px 700px at 20% 0%, rgba(99,102,241,0.16), transparent 58%),
-    radial-gradient(900px 600px at 80% 20%, rgba(16,185,129,0.08), transparent 62%),
-    radial-gradient(1100px 900px at 50% 120%, rgba(236,72,153,0.06), transparent 55%),
-    rgb(6 6 10) !important;
-}
-
-/* Outer shell: darker frame but still translucent */
-html.dark .oura-shell{
-  background: rgba(10,10,14,0.20) !important;
-  border: 1px solid rgba(255,255,255,0.09) !important;
-  box-shadow:
-    0 28px 110px rgba(0,0,0,0.55),
-    inset 0 1px 0 rgba(255,255,255,0.06) !important;
-  backdrop-filter: blur(30px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(30px) saturate(160%) !important;
-}
-
-/* Cards: tinted glass (less gray, more premium) */
-/* ============================
-   FINAL AURORA BOOST (INDIGO)
-   ============================ */
-html.dark .oura-bg::before,
-html.dark .oura-bg::after{
-  background:
-    radial-gradient(closest-side, rgb(var(--accent-1) / 0.34), transparent 66%),
-    radial-gradient(closest-side, rgb(var(--accent-2) / 0.18), transparent 60%),
-    radial-gradient(closest-side, rgb(var(--accent-3) / 0.16), transparent 62%) !important;
-  filter: blur(54px) saturate(140%) !important;
-  opacity: 0.95 !important;
-}
-
-
-/* ============================
-   BACKGROUND RESTORE (deep indigo base)
-   Keeps aurora, but returns the darker indigo look
-   ============================ */
-html.dark .oura-bg{
-  /* deep indigo -> near-black base + subtle vignette */
-  background:
-    radial-gradient(1200px 900px at 20% 0%, rgba(99,102,241,0.16), transparent 60%),
-    radial-gradient(900px 700px at 85% 10%, rgba(236,72,153,0.06), transparent 65%),
-    radial-gradient(1000px 800px at 60% 120%, rgba(16,185,129,0.06), transparent 60%),
-    linear-gradient(180deg, rgba(0,0,0,0.62), rgba(0,0,0,0.86)),
-    rgb(5 6 14) !important;
-}
-
-/* dial back the aurora blobs so the base reads darker indigo */
-html.dark .oura-bg::before{ opacity: 0.55 !important; }
-html.dark .oura-bg::after{  opacity: 0.45 !important; }
-
-
-/* ============================
-   CARD TINT: indigo dark glass
-   ============================ */
-html.dark .oura-card{
-  /* dark glass base + subtle indigo tint layer */
-  background:
-    radial-gradient(900px 420px at 20% 0%, rgba(99,102,241,0.12), transparent 60%),
-    linear-gradient(180deg,
-      rgba(255,255,255,0.05) 0%,
-      rgba(255,255,255,0.015) 45%,
-      rgba(255,255,255,0.00) 100%
-    ),
-    rgba(0,0,0,0.42) !important;
-
-  border: 1px solid rgba(255,255,255,0.075) !important;
-
-  box-shadow:
-    0 22px 90px rgba(0,0,0,0.60),
-    inset 0 1px 0 rgba(255,255,255,0.05),
-    inset 0 0 0 1px rgba(99,102,241,0.05) !important;
-
-  backdrop-filter: blur(28px) saturate(175%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(175%) !important;
-}
-
-/* wet shine (keep it) */
-html.dark .oura-card::before{
-  background:
-    radial-gradient(520px 160px at 22% 0%, rgba(255,255,255,0.24), transparent 56%),
-    radial-gradient(420px 150px at 88% 10%, rgba(255,255,255,0.10), transparent 60%),
-    radial-gradient(900px 520px at 60% 120%, rgba(99,102,241,0.08), transparent 60%) !important;
-
-  opacity: 0.80 !important;
-  mix-blend-mode: screen;
-}
-
-/* rim: slightly “cool” */
-html.dark .oura-card::after{
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.01)),
-    linear-gradient(90deg, rgba(99,102,241,0.10), rgba(0,0,0,0)) !important;
-
-  opacity: 0.32 !important;
-}
-
-
-
-/* Reserve space for fixed bottom tab bar */
-.pb-tabbar {
-  padding-bottom: calc(108px + env(safe-area-inset-bottom));
-}
-
-/* Subtle fade so content behind the glass nav is still readable */
-.oura-tabbar::before {
-  content: "";
-  position: absolute;
-  left: 0; right: 0;
-  top: -24px;
-  height: 24px;
-  background: linear-gradient(to top, rgba(0,0,0,0.35), rgba(0,0,0,0));
-  pointer-events: none;
-}
-
-/* =========================================
-   FIX: keep bottom tabbars truly FIXED
-   (avoid transformed containing blocks)
-   ========================================= */
-html, body {
-  transform: none !important;
-}
-
-.oura-bg,
 .oura-shell {
-  transform: none !important;
+  border: 1px solid hsl(var(--border));
+  border-radius: 20px;
+  background: #fff;
 }
-/* ============================
-   TABBAR: never override fixed
-   ============================ */
-.oura-tabbar {
+.oura-card {
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  background: #fff;
+  color: rgb(var(--fg));
+  box-shadow: 0 2px 6px #17384d04;
+}
+.oura-surface,
+.oura-surface-muted {
+  background: hsl(var(--muted));
+  color: rgb(var(--fg));
+}
+.oura-surface {
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+}
+.oura-input {
+  min-height: 44px;
+  border: 1px solid hsl(var(--input));
+  border-radius: 10px;
+  background: #fff;
+  color: rgb(var(--fg));
+  font-size: 16px;
+}
+.oura-input::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 1;
+}
+.oura-input:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.oura-input:disabled {
+  background: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+.oura-input:-webkit-autofill {
+  -webkit-text-fill-color: rgb(var(--fg));
+  box-shadow: 0 0 0 1000px #fff inset;
+}
+select.oura-input {
+  padding-right: 2rem;
+}
+textarea.oura-input {
+  min-height: 88px;
+}
+.oura-button,
+.club-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 11px 18px;
+  border: 1px solid hsl(var(--primary));
+  border-radius: 10px;
+  background: hsl(var(--primary));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.club-button:hover,
+.oura-button:hover {
+  background: #214b65;
+}
+.club-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 10px;
+  background: #fff;
+  color: hsl(var(--primary));
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+.club-button-secondary:hover {
+  background: hsl(var(--accent));
+}
+.club-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: hsl(var(--primary));
+  font-size: 14px;
+  font-weight: 600;
+}
+.club-eyebrow {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+.club-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #23624e;
+  background: #eef6f1;
+  padding: 5px 9px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.club-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.club-status-warning {
+  color: #7b4f10;
+  background: #fff5df;
+}
+.club-rule-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.club-rule-row:last-child {
+  border-bottom: 0;
+}
+.club-rule-row > :last-child {
+  flex-shrink: 0;
 }
 
-/* =========================================
-   FIXED POSITION SAFETY (desktop + mobile)
-   ========================================= */
-html, body, .oura-bg, .oura-shell {
-  transform: none !important;
-  filter: none !important;
-  perspective: none !important;
-  contain: none !important;
+.oura-alert,
+.oura-alert-success,
+.oura-alert-warning,
+.oura-alert-danger {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.oura-alert-success {
+  background: #edf7f0;
+  border-color: #a6cdb3;
+  color: #205139;
+}
+.oura-alert-warning {
+  background: #fff8e8;
+  border-color: #e6c986;
+  color: #79500c;
+}
+.oura-alert-danger {
+  background: #fff1f1;
+  border-color: #e6b0b0;
+  color: #922d2d;
+}
+.oura-alert-title {
+  font-weight: 600;
+}
+.oura-alert-body {
+  margin-top: 4px;
+}
+.oura-alert-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-decoration: underline;
 }
 
-/* ============================
-   Bottom tabbars must be FIXED
-   (do NOT apply to StaffTopbar)
-   ============================ */
-.oura-bottom-tabbar {
-  position: fixed !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
+.club-member-main {
+  height: 100svh;
+  width: 100%;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  padding: max(20px, env(safe-area-inset-top)) 20px
+    calc(128px + env(safe-area-inset-bottom));
+}
+.club-member-header,
+.club-member-content {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+}
+.club-member-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.club-wordmark {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: hsl(var(--primary));
+}
+.club-member-header p {
+  margin-top: 5px;
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.club-member-header-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: hsl(var(--secondary));
+  color: hsl(var(--primary));
+}
+.club-member-content h1 {
+  font-size: clamp(25px, 6vw, 30px);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.035em;
+}
+.club-member-content h2 {
+  letter-spacing: -0.015em;
+}
+.pb-tabbar {
+  padding-bottom: 0;
+}
+.club-member-nav,
+.club-staff-nav {
+  position: fixed;
+  z-index: 40;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin-inline: auto;
+  padding: 7px 4px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 28px #17384d12;
+}
+.club-nav-items {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 2px;
+}
+.club-nav-item {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 3px;
+  border-radius: 17px;
+  color: #5c6770;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 500;
+}
+.club-nav-item svg {
+  width: 21px;
+  height: 21px;
+  stroke-width: 1.7;
+}
+.club-nav-item[aria-current="page"] {
+  color: hsl(var(--primary));
+  background: hsl(var(--secondary));
+  font-weight: 600;
+}
+.club-nav-item:hover {
+  background: hsl(var(--muted));
 }
 
-/* =========================================
-   APP SCROLL LOCK
-   - Prevent page scrolling outside the app frame
-   - Scroll only inside #app-root
-   ========================================= */
-html, body {
-  height: 100%;
-  overflow: hidden;
-  overscroll-behavior: none;
+.club-membership-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 210px;
+  padding: 23px;
+  border: 1px solid #29485d;
+  border-radius: 18px;
+  background: linear-gradient(125deg, #1d4058, #152b3b);
+  color: #fff;
+  box-shadow: 0 14px 24px #17384d20;
+}
+.club-membership-card .club-eyebrow {
+  color: #d4dfe7;
+}
+.club-card-brand {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.club-card-product {
+  max-width: 48%;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #e1e8ed;
+}
+.club-card-name {
+  font-size: clamp(20px, 5vw, 26px);
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.club-card-number {
+  font-size: 10px;
+  font-family: var(--font-sans), sans-serif;
+  letter-spacing: 0.035em;
+  color: #d4dfe7;
+  overflow-wrap: anywhere;
+}
+.club-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 12px;
+}
+.club-card-cta {
+  color: #fff;
+  background: #ffffff12;
+  border: 1px solid #ffffff55;
+  border-radius: 8px;
+  padding: 9px 12px;
+  min-height: 44px;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+.club-card-cta:hover {
+  background: #ffffff24;
+}
+.club-qr-panel {
+  background: #fff;
+  border: 1px solid hsl(var(--border));
+  border-radius: 16px;
+  padding: 18px;
+}
+.club-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-block: 1px solid hsl(var(--border));
+  padding: 17px 0;
+}
+.club-metric {
+  min-width: 0;
+  padding: 0 12px;
+  border-right: 1px solid hsl(var(--border));
+}
+.club-metric:first-child {
+  padding-left: 0;
+}
+.club-metric:last-child {
+  border-right: 0;
+}
+.club-metric dt {
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.club-metric dd {
+  margin-top: 5px;
+  font-size: clamp(26px, 7vw, 34px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
 }
 
-#app-root.app-root {
+.oura-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  border-bottom: 1px solid hsl(var(--border));
+  background: #fff;
+  color: rgb(var(--fg));
+}
+.staff-sidebar {
+  position: fixed;
+  background: #fff;
+  border-right: 1px solid hsl(var(--border));
+}
+.staff-sidebar a:hover {
+  background: hsl(var(--secondary));
+  color: hsl(var(--primary));
+}
+.club-staff-main {
+  background: #f5f7fa;
+}
+.club-auth-main {
   height: 100svh;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 108px); /* space for bottom tabs */
+  overscroll-behavior-y: contain;
+  padding: max(28px, env(safe-area-inset-top)) 20px 32px;
+  background: #f7f9fb;
 }
-
-/* =========================================
-   HARD LOCK: prevent any document scrolling (Chrome)
-   ========================================= */
-html, body {
-  height: 100%;
-  overflow: hidden !important;
-  margin: 0;
-}
-
-body {
-  position: fixed;
-  inset: 0;
+.club-auth-frame {
   width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+.club-auth-brand {
+  display: block;
+  margin-bottom: 28px;
+  color: hsl(var(--primary));
+}
+.club-auth-brand p {
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  margin-top: 6px;
 }
 
-/* Desktop: prevent scrolling outside the app viewport */
-html, body {
-  height: 100%;
-  overflow: hidden;
-}
-
-#app-root {
-  height: 100%;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-
-/* =========================================
-   OURA INPUTS (final): indigo wet-glass, not gray
-   ========================================= */
-html.dark input.oura-input,
-html.dark textarea.oura-input,
-html.dark select.oura-input{
-  background:
-    radial-gradient(520px 180px at 18% 0%, rgb(var(--accent-1) / 0.30), transparent 62%),
-    radial-gradient(420px 160px at 88% 10%, rgb(var(--accent-2) / 0.18), transparent 65%),
-    linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.012)) !important;
-  background-color: rgba(8,8,14,0.48) !important;
-
-  border: 1px solid rgba(255,255,255,0.14) !important;
-  border-radius: 12px;
-
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.08),
-    0 10px 30px rgba(0,0,0,0.42) !important;
-
-  color: rgb(var(--fg)) !important;
-  backdrop-filter: blur(14px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(14px) saturate(160%) !important;
-}
-
-html.dark input.oura-input::placeholder,
-html.dark textarea.oura-input::placeholder{
-  color: rgba(210,210,215,0.55) !important;
-}
-
-html.dark input.oura-input:-webkit-autofill,
-html.dark textarea.oura-input:-webkit-autofill,
-html.dark select.oura-input:-webkit-autofill{
-  -webkit-text-fill-color: rgb(var(--fg)) !important;
-  transition: background-color 9999s ease-in-out 0s;
-  box-shadow: 0 0 0px 1000px rgba(8,8,14,0.58) inset !important;
-  border: 1px solid rgba(255,255,255,0.14) !important;
-}
-
-/* Montserrat numerals (used for dashboard metric bubbles) */
-.poppins-numerals {
-  font-family: var(--font-poppins), var(--font-sans), system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
-}
-
-
-/* Bubble numbers font */
-.font-bubble { font-family: var(--font-bubble); }
-
-/* iOS date controls can exceed narrow card bounds unless inline-size is constrained */
 input.join-date-input[type="date"] {
   width: 100%;
   max-width: 100%;
   min-inline-size: 0;
-}
-
-/* Oura-style alerts */
-.oura-alert {
-  @apply rounded border p-3 text-sm;
-}
-
-.oura-alert-success {
-  @apply oura-alert border-emerald-200 bg-emerald-50 text-emerald-900;
-  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
-}
-
-.oura-alert-success .oura-alert-title {
-  @apply text-sm font-medium;
-}
-
-.oura-alert-success .oura-alert-body {
-  @apply mt-1 text-sm text-emerald-800/80;
-  @apply dark:text-white/70;
-}
-
-.oura-alert-success .oura-alert-actions a {
-  @apply rounded border bg-white px-3 py-1.5 text-xs hover:bg-gray-50;
-  @apply dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 dark:text-white;
-}
-
-.oura-alert-warning {
-  @apply oura-alert border-amber-200 bg-amber-50 text-amber-900;
-  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
-}
-
-.oura-alert-danger {
-  @apply oura-alert border-red-200 bg-red-50 text-red-900;
-  @apply dark:border-white/10 dark:bg-white/5 dark:text-white;
-}
-
-/* ============================
-   Mobile Consistency Fixes
-   ============================ */
-
-/* Keep bottom tabs readable on all phones, including browsers with weak backdrop support */
-.oura-bottom-tabbar {
-  background-color: rgba(7, 9, 18, 0.92) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .oura-bottom-tabbar {
-    background-color: rgba(7, 9, 18, 0.72) !important;
-    backdrop-filter: blur(18px) saturate(145%) !important;
-    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
-  }
-}
-
-.oura-bottom-tabbar::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -26px;
-  height: 26px;
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(7, 9, 18, 0.55), rgba(7, 9, 18, 0));
-}
-
-/* Top bar should be flush to screen top and opaque enough to hide scrolled content */
-.oura-topbar {
-  background-color: rgba(8, 10, 20, 0.94) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .oura-topbar {
-    background-color: rgba(8, 10, 20, 0.78) !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
-    backdrop-filter: blur(16px) saturate(140%) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
-  }
-}
-
-/* iOS date control can overrun narrow cards; hard clamp the inline size */
-input.join-date-input[type="date"] {
-  inline-size: 100% !important;
-  max-inline-size: 100% !important;
-  min-inline-size: 0 !important;
-  box-sizing: border-box;
-  overflow: hidden;
   -webkit-appearance: none;
   appearance: none;
-  padding-right: 2.5rem;
 }
-
 input.join-date-input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
 }
-
-input.join-date-input[type="date"]::-webkit-calendar-picker-indicator {
-  margin-left: auto;
+.poppins-numerals {
+  font-family: var(--font-sans), sans-serif;
+  font-variant-numeric: tabular-nums;
 }
-
-/* Shared feedback must remain readable against both light and dark surfaces. */
-.oura-alert-danger { @apply border-red-300 bg-red-50 text-red-950 dark:border-red-300/40 dark:bg-red-950/70 dark:text-red-100; }
-.oura-alert-warning { @apply border-amber-300 bg-amber-50 text-amber-950 dark:border-amber-300/40 dark:bg-amber-950/70 dark:text-amber-100; }
-.oura-alert-success { @apply border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-300/40 dark:bg-emerald-950/70 dark:text-emerald-100; }
-
-/* Root aurora stacking rules must not unfix the desktop staff navigation. */
-.staff-sidebar { position: fixed !important; z-index: 30 !important; }
-
-/* Keep the skip link out of visual layout, including under aurora child rules. */
+.font-bubble {
+  font-family: var(--font-sans), sans-serif;
+  font-variant-numeric: tabular-nums;
+}
 .skip-link {
-  position: absolute !important;
+  position: absolute;
   width: 1px;
   height: 1px;
   padding: 0;
   margin: -1px;
   overflow: hidden;
-  clip: rect(0, 0, 0, 0);
   clip-path: inset(50%);
   white-space: nowrap;
-  border: 0;
 }
 .skip-link:focus {
-  position: fixed !important;
-  top: max(12px, env(safe-area-inset-top));
-  left: 12px;
-  z-index: 10000;
+  position: fixed;
   width: auto;
   height: auto;
+  top: max(12px, env(safe-area-inset-top));
+  left: 12px;
   margin: 0;
   padding: 12px 16px;
-  overflow: visible;
-  clip: auto;
   clip-path: none;
+  z-index: 100;
   border-radius: 8px;
-  background: white;
-  color: black;
-  outline: 3px solid #818cf8;
+  background: hsl(var(--primary));
+  color: #fff;
+}
+@media (min-width: 768px) {
+  .club-staff-nav {
+    display: none;
+  }
+  .club-member-main {
+    padding-top: 32px;
+  }
+}
+@media (max-width: 359px) {
+  .club-member-main {
+    padding-inline: 16px;
+  }
+  .club-membership-card {
+    padding: 18px;
+  }
+  .club-nav-item {
+    font-size: 10px;
+  }
+  .club-metric {
+    padding-inline: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: hsl(var(--primary));
+}
+
+/* Existing inline forms share the same control geometry as new screens. */
+button[class~="border"],
+a[class~="rounded"][class~="border"] {
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.club-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+}
+.club-sidebar-link[aria-current="page"] {
+  color: hsl(var(--primary));
+  background: hsl(var(--secondary));
+  font-weight: 600;
 }

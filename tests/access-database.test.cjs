@@ -5,7 +5,11 @@ const { PGlite } = require("@electric-sql/pglite");
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 async function fixture(applyCompatibility = true) {
   const db = new PGlite();
+  // Keep real migration functions under test, but freeze their SQL clock at
+  // daytime in the isolated database so day-pass tests do not expire at 10 pm.
   await db.exec(`
+    CREATE OR REPLACE FUNCTION pg_catalog.now() RETURNS timestamptz
+      LANGUAGE sql STABLE AS $$ SELECT timestamptz '2026-11-12 15:00:00+00' $$;
     CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
     CREATE SCHEMA auth; CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql AS $$ SELECT null::uuid $$;
     CREATE TABLE public.members(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),user_id uuid,full_name text,phone text,email text,is_active boolean DEFAULT true,created_at timestamptz DEFAULT now());

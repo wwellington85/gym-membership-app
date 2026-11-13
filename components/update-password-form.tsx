@@ -116,7 +116,7 @@ export function UpdatePasswordForm() {
     return (
       <div className="rounded-lg border p-4">
         <h2 className="text-base font-semibold">Link expired or already used</h2>
-        <p className="mt-2 text-sm opacity-80">
+        <p className="mt-2 text-sm text-muted-foreground">
           For security, password links can only be used once and may expire. Please request a new invite or use
           “Forgot password” if your account already exists.
         </p>
@@ -139,7 +139,7 @@ export function UpdatePasswordForm() {
   return (
     <form onSubmit={onSubmit} className="rounded-lg border p-4">
       <h2 className="text-base font-semibold">Set your password</h2>
-      <p className="mt-1 text-sm opacity-70">Choose a new password to finish setting up your account.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Choose a new password to finish setting up your account.</p>
 
       <label className="mt-4 block text-sm">
         New password
@@ -170,7 +170,7 @@ export function UpdatePasswordForm() {
       <button
         type="submit"
         disabled={loading}
-        className="mt-4 w-full rounded bg-black px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+        className="mt-4 w-full rounded bg-primary px-3 py-2 text-sm font-medium text-primary-foreground disabled:opacity-60"
       >
         {loading ? "Saving…" : "Save password"}
       </button>

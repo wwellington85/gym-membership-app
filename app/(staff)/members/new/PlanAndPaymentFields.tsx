@@ -108,7 +108,7 @@ export function PlanAndPaymentFields({ plans }: { plans: PlanRow[] }) {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
-                <div className="text-xs opacity-70">
+                <div className="text-xs text-muted-foreground">
                   Defaults to the plan price. You can override if needed.
                 </div>
               </div>

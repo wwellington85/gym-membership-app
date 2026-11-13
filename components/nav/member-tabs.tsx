@@ -1,53 +1,38 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { House, Dumbbell, CreditCard, Gift, UserRound } from "lucide-react";
 import { memberTab } from "@/lib/member/navigation";
-
 const tabs = [
-  { href: "/member", label: "Home" },
-  { href: "/member/gym", label: "Gym" },
-  { href: "/member/card", label: "Card" },
-  { href: "/member/benefits", label: "Benefits" },
-  { href: "/member/settings", label: "Account" },
+  { href: "/member", label: "Home", icon: House },
+  { href: "/member/gym", label: "Gym", icon: Dumbbell },
+  { href: "/member/card", label: "Card", icon: CreditCard },
+  { href: "/member/benefits", label: "Benefits", icon: Gift },
+  { href: "/member/settings", label: "Account", icon: UserRound },
 ];
-
 export function MemberTabs() {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-
   useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
-  if (typeof document === "undefined") return null;
-
-  const nav = (
-    <nav
-      aria-label="Member navigation"
-      className="fixed bottom-0 left-0 right-0 z-[9999] border-t oura-tabbar oura-bottom-tabbar"
-    >
-      <div className="mx-auto flex max-w-md items-center justify-between gap-1 px-2 pt-3 pb-[calc(env(safe-area-inset-bottom)+10px)]">
-        {tabs.map((t) => {
-          const active = memberTab(pathname) === t.href;
-
-          return (
-            <Link
-              key={t.href}
-              aria-current={active ? "page" : undefined}
-              href={t.href}
-              prefetch
-              className={`flex-1 px-1 py-2 text-center whitespace-nowrap text-[13px] leading-none ${
-                active ? "font-semibold oura-tab-active" : "oura-tab"
-              }`}
-            >
-              {t.label}
-            </Link>
-          );
-        })}
+  if (!mounted || typeof document === "undefined") return null;
+  return createPortal(
+    <nav aria-label="Member navigation" className="club-member-nav">
+      <div className="club-nav-items">
+        {tabs.map(({ href, label, icon: Icon }) => (
+          <Link
+            key={href}
+            href={href}
+            aria-current={memberTab(pathname) === href ? "page" : undefined}
+            className="club-nav-item"
+          >
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
+          </Link>
+        ))}
       </div>
-    </nav>
+    </nav>,
+    document.body,
   );
-
-  return createPortal(nav, document.body);
 }

@@ -10,7 +10,7 @@ function Avatar({ row }: { row: LeaderboardRow }) {
   return (
     <div
       className={[
-        "relative h-11 w-11 shrink-0 rounded-full border flex items-center justify-center text-sm font-semibold shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_8px_24px_rgba(0,0,0,0.28)]",
+        "relative h-11 w-11 shrink-0 rounded-full border flex items-center justify-center text-sm font-semibold shadow-none",
         row.avatar.bgClass,
         row.avatar.borderClass,
         row.avatar.textClass,
@@ -73,21 +73,21 @@ export default async function MemberLeaderboardPage(props: {
       <div className="oura-card p-3">
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="rounded border oura-surface-muted p-3">
-            <div className="opacity-70">Your rank</div>
+            <div className="text-muted-foreground">Your rank</div>
             <div className="text-lg font-semibold">
               {snapshot.myRank ? `#${snapshot.myRank}` : "Unranked"}
             </div>
-            <div className="text-xs opacity-70">of {snapshot.totalRanked} members</div>
+            <div className="text-xs text-muted-foreground">of {snapshot.totalRanked} members</div>
           </div>
 
           <div className="rounded border oura-surface-muted p-3 text-right">
-            <div className="opacity-70">{period === "month" ? "This month" : "All-time"}</div>
+            <div className="text-muted-foreground">{period === "month" ? "This month" : "All-time"}</div>
             <div className="text-lg font-semibold">{snapshot.myCheckins}</div>
-            <div className="text-xs opacity-70">check-ins</div>
+            <div className="text-xs text-muted-foreground">check-ins</div>
           </div>
         </div>
 
-        <div className="mt-2 text-xs opacity-75">
+        <div className="mt-2 text-xs text-muted-foreground">
           {snapshot.nextGap && snapshot.myRank
             ? `${encouragement} ${snapshot.nextGap} more check-in${snapshot.nextGap === 1 ? "" : "s"} to catch the next rank.`
             : encouragement}
@@ -98,7 +98,7 @@ export default async function MemberLeaderboardPage(props: {
             href={`/member/leaderboard?period=all&view=${view}`}
             className={[
               "rounded px-3 py-1.5",
-              period === "all" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+              period === "all" ? "oura-surface-muted font-medium" : "text-muted-foreground hover:opacity-100",
             ].join(" ")}
           >
             All-time
@@ -107,7 +107,7 @@ export default async function MemberLeaderboardPage(props: {
             href={`/member/leaderboard?period=month&view=${view}`}
             className={[
               "rounded px-3 py-1.5",
-              period === "month" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+              period === "month" ? "oura-surface-muted font-medium" : "text-muted-foreground hover:opacity-100",
             ].join(" ")}
           >
             Monthly
@@ -119,7 +119,7 @@ export default async function MemberLeaderboardPage(props: {
             href={`/member/leaderboard?period=${period}&view=near`}
             className={[
               "rounded px-3 py-1.5",
-              view === "near" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+              view === "near" ? "oura-surface-muted font-medium" : "text-muted-foreground hover:opacity-100",
             ].join(" ")}
           >
             Near me
@@ -128,7 +128,7 @@ export default async function MemberLeaderboardPage(props: {
             href={`/member/leaderboard?period=${period}&view=top`}
             className={[
               "rounded px-3 py-1.5",
-              view === "top" ? "oura-surface-muted font-medium" : "opacity-80 hover:opacity-100",
+              view === "top" ? "oura-surface-muted font-medium" : "text-muted-foreground hover:opacity-100",
             ].join(" ")}
           >
             Top 25
@@ -143,14 +143,14 @@ export default async function MemberLeaderboardPage(props: {
                 className={[
                   "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium",
                   badge.tone === "amber"
-                    ? "border-amber-300/50 bg-amber-400/10 text-amber-100"
+                    ? "border-amber-300/50 bg-amber-400/10 text-amber-900"
                     : badge.tone === "teal"
-                    ? "border-teal-300/50 bg-teal-400/10 text-teal-100"
+                    ? "border-teal-300/50 bg-teal-400/10 text-teal-900"
                     : badge.tone === "rose"
-                    ? "border-rose-300/50 bg-rose-400/10 text-rose-100"
+                    ? "border-rose-300/50 bg-rose-400/10 text-rose-900"
                     : badge.tone === "violet"
-                    ? "border-violet-300/50 bg-violet-400/10 text-violet-100"
-                    : "border-sky-300/50 bg-sky-400/10 text-sky-100",
+                    ? "border-violet-300/50 bg-violet-400/10 text-violet-900"
+                    : "border-sky-300/50 bg-sky-400/10 text-sky-900",
                 ].join(" ")}
               >
                 {badge.label}
@@ -163,11 +163,11 @@ export default async function MemberLeaderboardPage(props: {
       <div className="oura-card p-3">
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-medium">{view === "top" ? "Top members" : "Your position"}</h2>
-          <span className="text-xs opacity-70">Other members shown as Anonymous</span>
+          <span className="text-xs text-muted-foreground">Other members shown as Anonymous</span>
         </div>
 
         {rows.length === 0 ? (
-          <div className="mt-3 text-sm opacity-70">No check-ins yet this month.</div>
+          <div className="mt-3 text-sm text-muted-foreground">No check-ins yet this month.</div>
         ) : (
           <div className="mt-3 space-y-2">
             {rows.map((row) => (
@@ -175,12 +175,12 @@ export default async function MemberLeaderboardPage(props: {
                 key={row.member_id}
                 className={[
                   "rounded border p-3",
-                  row.isCurrentMember ? "border-cyan-300/50 oura-surface-muted" : "border-white/20",
+                  row.isCurrentMember ? "border-primary/30 oura-surface-muted" : "border-border",
                 ].join(" ")}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="min-w-[3.5rem] rounded border border-white/20 px-2 py-1 text-center text-xs font-semibold text-white/90">
+                    <div className="min-w-[3.5rem] rounded border border-border px-2 py-1 text-center text-xs font-semibold text-foreground">
                       #{row.rank}
                     </div>
                     <Avatar row={row} />
@@ -188,13 +188,13 @@ export default async function MemberLeaderboardPage(props: {
                       <div className="text-sm font-medium">
                         {row.isCurrentMember ? "You" : row.alias}
                       </div>
-                      <div className="text-xs opacity-70">{row.isCurrentMember ? "Your account" : "Anonymous member"}</div>
+                      <div className="text-xs text-muted-foreground">{row.isCurrentMember ? "Your account" : "Anonymous member"}</div>
                     </div>
                   </div>
 
                   <div className="text-right">
                     <div className="text-base font-semibold tabular-nums">{row.checkins}</div>
-                    <div className="text-xs opacity-70">{period === "month" ? "this month" : "all-time"}</div>
+                    <div className="text-xs text-muted-foreground">{period === "month" ? "this month" : "all-time"}</div>
                   </div>
                 </div>
               </div>

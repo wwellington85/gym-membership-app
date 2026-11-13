@@ -48,7 +48,7 @@ export default async function MemberCheckinsInfoPage() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Check-ins</h1>
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted-foreground">
             Verified visits recorded by staff. Most check-ins earn points automatically.
           </p>
         </div>
@@ -56,30 +56,30 @@ export default async function MemberCheckinsInfoPage() {
 
       <div className="grid grid-cols-2 gap-3">
         <div className="oura-card p-3">
-          <div className="text-sm opacity-70">Recent history</div>
+          <div className="text-sm text-muted-foreground">Recent history</div>
           <div className="mt-1 text-2xl font-semibold">{totalCheckins}</div>
-          <div className="text-xs opacity-70">latest 50 check-ins</div>
+          <div className="text-xs text-muted-foreground">latest 50 check-ins</div>
         </div>
         <div className="oura-card p-3">
-          <div className="text-sm opacity-70">Points from these visits</div>
+          <div className="text-sm text-muted-foreground">Points from these visits</div>
           <div className="mt-1 text-2xl font-semibold">{totalPoints}</div>
-          <div className="text-xs opacity-70">based on recorded visit points</div>
+          <div className="text-xs text-muted-foreground">based on recorded visit points</div>
         </div>
       </div>
 
       <div className="oura-card p-3">
         <div className="font-medium">Check-in history</div>
         {rows?.length ? (
-          <div className="mt-3 divide-y divide-white/10">
+          <div className="mt-3 divide-y divide-border">
             {rows.map((row: any) => (
               <div key={row.id} className="flex items-center justify-between gap-3 py-3 text-sm">
-                <div className="opacity-90">{fmtJamaicaDateTime(row.checked_in_at)}</div>
-                <div className="font-medium text-indigo-200">+{Number(row.points_earned ?? 0)} pts</div>
+                <div className="text-foreground">{fmtJamaicaDateTime(row.checked_in_at)}</div>
+                <div className="font-medium text-primary">+{Number(row.points_earned ?? 0)} pts</div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="mt-2 text-sm opacity-70">No check-ins recorded yet.</div>
+          <div className="mt-2 text-sm text-muted-foreground">No check-ins recorded yet.</div>
         )}
       </div>
     </div>

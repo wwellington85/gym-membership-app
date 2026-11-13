@@ -14,7 +14,7 @@ function parseHashParams(hash: string) {
     access_token: params.get("access_token"),
     refresh_token: params.get("refresh_token"),
     expires_in: params.get("expires_in"),
-    token_type: (params.get("token_type") || params.get("type")),
+    token_type: params.get("token_type") || params.get("type"),
     error: params.get("error"),
     error_description: params.get("error_description"),
   };
@@ -23,12 +23,12 @@ function parseHashParams(hash: string) {
 export default function InviteHandlerPage() {
   const router = useRouter();
 
-
   useEffect(() => {
     const run = async () => {
       const supabase = createClient();
 
-      const returnToRaw = new URLSearchParams(window.location.search).get("returnTo") || "";
+      const returnToRaw =
+        new URLSearchParams(window.location.search).get("returnTo") || "";
       const returnTo = safeReturnTo(returnToRaw) || "";
 
       const url = new URL(window.location.href);
@@ -39,12 +39,8 @@ export default function InviteHandlerPage() {
         return;
       }
 
-      const {
-        access_token,
-        refresh_token,
-        error,
-        error_description,
-      } = parseHashParams(window.location.hash);
+      const { access_token, refresh_token, error, error_description } =
+        parseHashParams(window.location.hash);
 
       if (error) {
         const msg = error_description || error;
@@ -59,22 +55,30 @@ export default function InviteHandlerPage() {
           refresh_token,
         });
         if (setErr) {
-          router.replace(`${LOGIN_PATH}?err=${encodeURIComponent(setErr.message)}`);
+          router.replace(
+            `${LOGIN_PATH}?err=${encodeURIComponent(setErr.message)}`,
+          );
           return;
         }
-        router.replace(returnTo ? `/auth/update-password?returnTo=${encodeURIComponent(returnTo)}` : "/auth/update-password");
+        router.replace(
+          returnTo
+            ? `/auth/update-password?returnTo=${encodeURIComponent(returnTo)}`
+            : "/auth/update-password",
+        );
         return;
       }
 
       // If there are no hash tokens, the server route.ts should have handled ?code=
-      router.replace(`${LOGIN_PATH}?err=${encodeURIComponent("Invalid invite link")}`);
+      router.replace(
+        `${LOGIN_PATH}?err=${encodeURIComponent("Invalid invite link")}`,
+      );
     };
 
     run();
   }, [router]);
 
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6">
+    <div className="flex w-full items-center justify-center py-2">
       <div className="w-full max-w-sm rounded border p-4">
         <p className="text-sm">Preparing your account…</p>
       </div>

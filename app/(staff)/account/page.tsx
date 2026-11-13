@@ -52,7 +52,7 @@ export default async function AccountPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Account</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted-foreground">
           {user.email} • role: {staffProfile.role}
         </p>
       </div>
@@ -71,7 +71,7 @@ export default async function AccountPage({
 
       <div className="oura-card p-3">
         <div className="font-medium">Change password</div>
-        <div className="text-sm opacity-70">Minimum 8 characters</div>
+        <div className="text-sm text-muted-foreground">Minimum 8 characters</div>
 
         <form action={changePassword} className="mt-3 space-y-2">
           <input

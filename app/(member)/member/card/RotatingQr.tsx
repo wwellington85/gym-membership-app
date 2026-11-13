@@ -85,7 +85,7 @@ export function RotatingQr({ size = 240 }: { size?: number }) {
         </p>
       )}
       {valid && (
-        <p className="text-xs opacity-80">
+        <p className="text-xs text-muted-foreground">
           Updates automatically · Valid for{" "}
           {Math.max(0, Math.ceil(qr.exp - now / 1000))} seconds
         </p>
