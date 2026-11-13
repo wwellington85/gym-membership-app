@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RewardsSignup } from "@/components/join/rewards-signup";
 
+import { GoogleSignIn } from "@/components/google-sign-in";
+import { googleSignInEnabled } from "@/lib/auth/google";
+
 export default async function JoinPage() {
   const {
     data: { user },
@@ -13,6 +16,7 @@ export default async function JoinPage() {
       <p className="text-muted-foreground">
         Join free for your digital membership card and hotel benefits.
       </p>
+      {googleSignInEnabled() && <GoogleSignIn />}
       <RewardsSignup />
     </div>
   );

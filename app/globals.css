@@ -270,7 +270,7 @@ textarea.oura-input {
   width: 100%;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  padding: max(20px, env(safe-area-inset-top)) 20px
+  padding: calc(24px + env(safe-area-inset-top)) 20px
     calc(128px + env(safe-area-inset-bottom));
 }
 .club-member-header,
@@ -328,7 +328,7 @@ textarea.oura-input {
   z-index: 40;
   left: 12px;
   right: 12px;
-  bottom: calc(12px + env(safe-area-inset-bottom));
+  bottom: max(8px, calc(env(safe-area-inset-bottom) - 8px));
   max-width: 480px;
   margin-inline: auto;
   padding: 7px 4px;

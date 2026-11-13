@@ -18,6 +18,8 @@ import { useCallback, useMemo, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
+import { GoogleSignIn } from "@/components/google-sign-in";
+
 function isValidEmail(v: string) {
   const s = v.trim();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
@@ -25,8 +27,9 @@ function isValidEmail(v: string) {
 
 export function LoginForm({
   className,
+  googleEnabled = false,
   ...props
-}: React.ComponentPropsWithoutRef<"div">) {
+}: React.ComponentPropsWithoutRef<"div"> & { googleEnabled?: boolean }) {
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get("email") || "";
   const staffLogin = searchParams.get("staff") === "1";
@@ -165,6 +168,7 @@ export function LoginForm({
         </CardHeader>
 
         <CardContent>
+          {googleEnabled && !staffLogin && <GoogleSignIn returnTo={returnTo} />}
           <form onSubmit={handleLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
