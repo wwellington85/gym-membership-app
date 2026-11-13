@@ -19,6 +19,8 @@ export function MembershipCard({
   active,
   showCardLink = false,
 }: Props) {
+  const number = memberNumber(memberId);
+  const reference = number.length > 15 ? `TC · …${number.slice(-8)}` : number;
   return (
     <section
       className="club-membership-card"
@@ -32,9 +34,18 @@ export function MembershipCard({
       </div>
       <div className="space-y-2">
         <h2 className="club-card-name">{name}</h2>
-        <p className="club-card-number" aria-label="Membership number">
-          {memberNumber(memberId)}
-        </p>
+        <details className="club-card-reference">
+          <summary className="club-card-number">
+            {reference}
+            <span className="sr-only"> — show full membership number</span>
+          </summary>
+          <div className="club-card-reference-full">
+            <p className="text-xs">Full membership number</p>
+            <p className="club-card-number mt-1" aria-label="Membership number">
+              {number}
+            </p>
+          </div>
+        </details>
       </div>
       <div className="club-card-footer">
         <div>

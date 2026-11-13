@@ -418,6 +418,24 @@ textarea.oura-input {
   color: #d4dfe7;
   overflow-wrap: anywhere;
 }
+.club-card-reference summary {
+  min-height: 32px;
+  width: fit-content;
+  padding-block: 7px;
+  border-radius: 4px;
+}
+.club-card-reference summary:hover {
+  color: #fff;
+}
+.club-card-reference-full {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #ffffff33;
+  color: #d4dfe7;
+}
+.club-card-reference-full .club-card-number {
+  user-select: all;
+}
 .club-card-footer {
   display: flex;
   justify-content: space-between;
@@ -602,16 +620,6 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
   }
   .club-auth-main {
     padding-top: calc(28px + env(safe-area-inset-top));
-  }
-  /* iOS full-screen mode uses light system icons above the web content. */
-  body::before {
-    content: "";
-    position: fixed;
-    z-index: 60;
-    inset: 0 0 auto;
-    height: env(safe-area-inset-top);
-    background: #1d3f56;
-    pointer-events: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
