@@ -95,14 +95,12 @@ export function RewardsSignup() {
           className="oura-input mt-2 w-full p-3"
         />
         <p id="join-password-hint" className="mt-2 text-sm text-muted-foreground">
-          At least 8 characters. You can also use an email login link when
-          returning.
+          At least 8 characters.
         </p>
       </div>
       <p className="text-sm text-muted-foreground">
-        Free membership provides a digital card and published Rewards benefits.
-        Gym and resort access are optional purchases, with their own dates and
-        facility waiver.
+        Rewards is free. Gym and resort access are optional purchases, with
+        their own dates and facility waiver.
       </p>
       {error && (
         <p role="alert" className="oura-alert-danger">
