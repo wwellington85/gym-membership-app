@@ -63,25 +63,38 @@ export default async function GymPage() {
         <h2 id="gym-progress" className="font-semibold">
           Your progress
         </h2>
-        <div className="grid grid-cols-3 gap-2">
+        <dl className="grid grid-cols-3 gap-2">
           {[
-            ["Verified visits", summary.allTimeCheckins ?? "Unavailable"],
-            ["Day streak", summary.streakDays ?? "Unavailable"],
+            ["Visits", summary.allTimeCheckins ?? "—"],
+            ["Day streak", summary.streakDays ?? "—"],
             [
               "All-time rank",
-              !summary.rankingAvailable
-                ? "Unavailable"
-                : summary.rank
-                  ? `#${summary.rank}`
-                  : "Unranked",
+              summary.rankingAvailable && summary.rank
+                ? `#${summary.rank}`
+                : "—",
             ],
           ].map(([label, value]) => (
-            <div key={label} className="oura-card min-w-0 p-3">
-              <p className="text-xs opacity-80">{label}</p>
-              <p className="mt-2 break-words text-lg font-semibold">{value}</p>
+            <div
+              key={label}
+              className="min-w-0 rounded-xl border border-white/15 bg-white/5 px-3 py-3"
+            >
+              <dt className="text-xs opacity-80">{label}</dt>
+              <dd className="mt-1 text-2xl font-semibold leading-tight tracking-tight tabular-nums">
+                {value}
+              </dd>
             </div>
           ))}
-        </div>
+        </dl>
+        {!summary.rankingAvailable && (
+          <p role="status" className="text-sm opacity-80">
+            Rank is temporarily unavailable. Your recorded visits are unchanged.
+          </p>
+        )}
+        {summary.rankingAvailable && !summary.rank && (
+          <p className="text-sm opacity-80">
+            Your first verified visit will place you in the rankings.
+          </p>
+        )}
         <p className="text-sm opacity-80">
           Progress comes from gym visits verified by staff. Your history stays
           with you when a pass ends.

@@ -1,14 +1,8 @@
 import Link from "next/link";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
-import type { AccessPlan } from "@/lib/access/rules";
+import { effectiveBenefits } from "@/lib/access/benefits";
 
 export const dynamic = "force-dynamic";
-const outlets = [
-  { label: "Restaurant & bar", key: "discount_food" },
-  { label: "Spa", key: "discount_spa" },
-  { label: "Gift shop", key: "discount_giftshop" },
-  { label: "Watersports", key: "discount_watersports" },
-] as const;
 export default async function BenefitsPage() {
   const { member, admin } = await requireMember();
   const [access, catalogue] = await Promise.all([
@@ -16,9 +10,7 @@ export default async function BenefitsPage() {
     loadCatalogue(),
   ]);
   const free = catalogue.find((p) => p.code === "rewards_free");
-  const eligible = [free, ...access.current.map((p) => p.plan_snapshot)].filter(
-    Boolean,
-  ) as AccessPlan[];
+  const benefits = effectiveBenefits(free, access.passes, member.is_active);
   const ids = free ? [free.id] : [];
   const { data: currentExtras, error } = ids.length
     ? await admin
@@ -59,15 +51,14 @@ export default async function BenefitsPage() {
       ) : (
         <>
           <section className="oura-card divide-y divide-white/10 px-4">
-            {outlets.map((o) => (
-              <div key={o.key} className="flex justify-between gap-3 py-4">
-                <span>{o.label}</span>
-                <strong>
-                  {Math.round(
-                    Math.max(0, ...eligible.map((p) => Number(p[o.key] ?? 0))) *
-                      100,
-                  )}
-                  % off
+            {benefits.map((benefit) => (
+              <div
+                key={benefit.key}
+                className="flex justify-between gap-3 py-4"
+              >
+                <span>{benefit.label}</span>
+                <strong className="shrink-0 tabular-nums">
+                  {benefit.percent}% off
                 </strong>
               </div>
             ))}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
 import { firstName } from "@/lib/format/name";
 import { facilities } from "@/lib/access/rules";
+import { effectiveBenefits } from "@/lib/access/benefits";
 
 export const dynamic = "force-dynamic";
 export default async function MemberHome() {
@@ -11,6 +12,7 @@ export default async function MemberHome() {
     loadCatalogue(),
   ]);
   const free = catalogue.find((p) => p.code === "rewards_free");
+  const benefits = effectiveBenefits(free, access.passes, member.is_active);
   return (
     <div className="space-y-5">
       <div>
@@ -37,28 +39,35 @@ export default async function MemberHome() {
           Use your digital membership at participating outlets.
         </span>
       </Link>
-      <section className="oura-card space-y-3 p-4">
-        <h2 className="font-semibold">Your Rewards benefits</h2>
-        {free && (
-          <p className="text-sm">
-            Restaurant & bar {Math.round(Number(free.discount_food ?? 0) * 100)}
-            % · Spa {Math.round(Number(free.discount_spa ?? 0) * 100)}% · Gift
-            shop {Math.round(Number(free.discount_giftshop ?? 0) * 100)}% ·
-            Watersports{" "}
-            {Math.round(Number(free.discount_watersports ?? 0) * 100)}%
+      {member.is_active && (
+        <section className="oura-card space-y-3 p-4">
+          <h2 className="font-semibold">Your benefits now</h2>
+          <dl className="divide-y divide-white/10">
+            {benefits.map((benefit) => (
+              <div
+                key={benefit.key}
+                className="flex items-center justify-between gap-3 py-2 text-sm"
+              >
+                <dt>{benefit.label}</dt>
+                <dd className="shrink-0 font-semibold tabular-nums">
+                  {benefit.percent}% off
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-sm opacity-80">
+            Your highest eligible discount at each outlet, including active pass
+            benefits. Discounts do not add together. Enhanced rates end when
+            their pass expires.
           </p>
-        )}
-        <p className="text-sm opacity-80">
-          Show your card before the bill is prepared. View your eligible
-          discounts and published perks.
-        </p>
-        <Link
-          href="/member/benefits"
-          className="inline-block rounded border px-3 py-3 text-sm"
-        >
-          View my benefits
-        </Link>
-      </section>
+          <Link
+            href="/member/benefits"
+            className="inline-block rounded border px-3 py-3 text-sm"
+          >
+            View benefits & details
+          </Link>
+        </section>
+      )}
       <section className="oura-card space-y-3 p-4">
         <h2 className="font-semibold">Gym & resort access</h2>
         {access.best ? (
