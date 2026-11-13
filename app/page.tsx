@@ -148,6 +148,7 @@ export default async function HomePage() {
         </section>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t pt-5 text-xs text-muted-foreground">
           <p>Travellers Beach Resort · Travellers Club</p>
+          <Link href="/privacy" className="inline-flex min-h-11 items-center underline">Privacy</Link>
           <Link
             href="/auth/login?staff=1"
             className="inline-flex min-h-11 items-center underline"

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { RewardsSignup } from "@/components/join/rewards-signup";
@@ -18,6 +19,13 @@ export default async function JoinPage() {
       </p>
       {googleSignInEnabled() && <GoogleSignIn />}
       <RewardsSignup />
+      <p className="text-sm text-muted-foreground">
+        How we use your information:{" "}
+        <Link href="/privacy" className="underline">
+          Privacy notice
+        </Link>
+        .
+      </p>
     </div>
   );
 }
