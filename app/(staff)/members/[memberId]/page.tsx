@@ -121,7 +121,7 @@ export default async function MemberProfile({
         <h2 className="font-semibold">Access passes</h2>
         {!access.passes.length && (
           <p className="text-sm opacity-80">
-            No paid access. Rewards membership remains separate.
+            No access passes. Rewards membership remains separate.
           </p>
         )}
         {access.passes.map((p) => (
@@ -170,7 +170,7 @@ export default async function MemberProfile({
       </section>
       {member.is_active && (
         <section className="oura-card space-y-3 p-4">
-          <h2 className="font-semibold">Sell or renew access</h2>
+          <h2 className="font-semibold">Grant, sell or renew access</h2>
           <ChangePlanForm
             memberId={member.id}
             plans={catalogue.filter((p) => p.grants_access)}

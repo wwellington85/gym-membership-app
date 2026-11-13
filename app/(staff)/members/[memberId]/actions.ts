@@ -70,7 +70,10 @@ export async function changeMemberPlanAction(formData: FormData) {
     p_staff_id: user.id,
     p_key: key,
   });
-  if (error) fail("Access was not saved. Check the record before retrying.");
+  if (error) {
+    console.error("Staff access grant failed", { code: error.code, message: error.message });
+    fail("Access was not saved. Refresh the record before retrying. If this continues, contact the administrator.");
+  }
   redirect(`/members/${memberId}?saved=1`);
 }
 
