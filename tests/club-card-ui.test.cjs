@@ -49,17 +49,17 @@ const { MembershipCard } = load(
   shared,
 );
 
-test("digital card displays the assigned 12-digit number in three groups, with no invented QR", () => {
+test("digital card displays the assigned 16-digit number in four groups, with no invented QR", () => {
   const html = renderToStaticMarkup(
     React.createElement(MembershipCard, {
-      membershipNumber: 482719368052,
+      membershipNumber: "4827193680520041",
       name: "Example Member With A Long Name",
       product: "Club Monthly",
       validThrough: "2026-12-11",
       active: true,
     }),
   );
-  assert.match(html, /4827 1936 8052/);
+  assert.match(html, /4827 1936 8052 0041/);
   assert.doesNotMatch(html, /TC-|<details|<summary/);
   assert.match(html, /Club Monthly/);
   assert.match(html, /11 Dec 2026/);
@@ -68,7 +68,7 @@ test("digital card displays the assigned 12-digit number in three groups, with n
 test("inactive card shows verification required rather than active entitlements", () => {
   const html = renderToStaticMarkup(
     React.createElement(MembershipCard, {
-      membershipNumber: 482719368052,
+      membershipNumber: "4827193680520041",
       name: "Example",
       active: false,
     }),
