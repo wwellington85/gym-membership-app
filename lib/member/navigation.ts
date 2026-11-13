@@ -18,7 +18,10 @@ export function memberStartPath(
   return active &&
     passes.some(
       (pass) =>
-        accessScope(pass.plan_snapshot) === "gym" && passIsActive(pass, now),
+        passIsActive(pass, now) &&
+        (accessScope(pass.plan_snapshot) === "gym" ||
+          (accessScope(pass.plan_snapshot) === "resort" &&
+            pass.plan_snapshot.code === "club_monthly_95")),
     )
     ? "/member/gym"
     : "/member";

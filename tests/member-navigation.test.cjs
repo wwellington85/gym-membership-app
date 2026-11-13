@@ -344,13 +344,28 @@ test("former gym members can still see their achievements and reach history and 
   const { renderToStaticMarkup } = require("react-dom/server");
   const Page = load("app/(member)/member/gym/page.tsx", {
     "react/jsx-runtime": require("react/jsx-runtime"),
-    "next/link": { default: ({ children, ...props }) => React.createElement("a", props, children) },
+    "next/link": {
+      default: ({ children, ...props }) =>
+        React.createElement("a", props, children),
+    },
     "@/lib/access/server": {
-      requireMember: async () => ({ member: { id: "self", full_name: "Test Member", is_active: true }, admin: {} }),
+      requireMember: async () => ({
+        member: { id: "self", full_name: "Test Member", is_active: true },
+        admin: {},
+      }),
       loadAccess: async () => ({ current: [], gym: false }),
     },
-    "@/lib/member/leaderboard": { getMemberGymSummary: async () => ({ rank: 5, rankingAvailable: true, allTimeCheckins: 27, streakDays: 0, badges: [{ label: "25 Check-ins" }], recentVisits: [{ checked_in_at: "2026-10-10T15:00:00Z" }] }) },
-    "@/lib/format/name": { firstName: name => name.split(" ")[0] },
+    "@/lib/member/leaderboard": {
+      getMemberGymSummary: async () => ({
+        rank: 5,
+        rankingAvailable: true,
+        allTimeCheckins: 27,
+        streakDays: 0,
+        badges: [{ label: "25 Check-ins" }],
+        recentVisits: [{ checked_in_at: "2026-10-10T15:00:00Z" }],
+      }),
+    },
+    "@/lib/format/name": { firstName: (name) => name.split(" ")[0] },
   }).default;
   const html = renderToStaticMarkup(await Page());
   assert.match(html, /No gym access active now/);
@@ -364,9 +379,84 @@ test("former gym members can still see their achievements and reach history and 
 test("failed preference saves never show a success message", async () => {
   const save = load("app/(member)/member/settings/actions.ts", {
     "next/navigation": { redirect },
-    "@/lib/access/server": { requireMember: async () => ({ supabase: { auth: { updateUser: async () => ({ error: { message: "offline" } }) } } }) },
+    "@/lib/access/server": {
+      requireMember: async () => ({
+        supabase: {
+          auth: { updateUser: async () => ({ error: { message: "offline" } }) },
+        },
+      }),
+    },
   }).saveStartingScreen;
-  const result = await redirected(() => save(new Map([["starting_screen", "gym"]])));
+  const result = await redirected(() =>
+    save(new Map([["starting_screen", "gym"]])),
+  );
   assert.ok(result.includes("err="));
   assert.ok(!result.includes("preference_saved"));
+});
+
+test("Club Monthly opens Gym despite resort inclusions, and respects a saved Home preference", () => {
+  const monthly = {
+    ...pass,
+    plan_snapshot: {
+      ...pass.plan_snapshot,
+      code: "club_monthly_95",
+      access_scope: "resort",
+    },
+  };
+  for (const method of ["cash", "complimentary"]) {
+    assert.equal(
+      navigation.memberStartPath(
+        "auto",
+        [{ ...monthly, payment_method: method }],
+        true,
+        now,
+      ),
+      "/member/gym",
+    );
+    assert.equal(
+      navigation.memberStartPath(
+        "home",
+        [{ ...monthly, payment_method: method }],
+        true,
+        now,
+      ),
+      "/member",
+    );
+  }
+  const weekly = {
+    ...monthly,
+    plan_snapshot: { ...monthly.plan_snapshot, code: "club_weekly" },
+  };
+  assert.equal(
+    navigation.memberStartPath("auto", [weekly], true, now),
+    "/member",
+  );
+});
+
+test("expired, future, revoked, inactive, and non-access Club Monthly cannot trigger Gym automatically", () => {
+  const monthly = {
+    ...pass,
+    plan_snapshot: {
+      ...pass.plan_snapshot,
+      code: "club_monthly_95",
+      access_scope: "resort",
+    },
+  };
+  for (const candidate of [
+    { ...monthly, paid_through_date: "2026-11-11" },
+    { ...monthly, start_date: "2026-11-13" },
+    { ...monthly, status: "revoked" },
+    {
+      ...monthly,
+      plan_snapshot: { ...monthly.plan_snapshot, grants_access: false },
+    },
+  ])
+    assert.equal(
+      navigation.memberStartPath("auto", [candidate], true, now),
+      "/member",
+    );
+  assert.equal(
+    navigation.memberStartPath("auto", [monthly], false, now),
+    "/member",
+  );
 });
