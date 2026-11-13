@@ -9,6 +9,7 @@ async function main() {
     ["icon-maskable-512", 512],
     ["icon-192", 192],
     ["apple-touch-icon", 180],
+    ["google-brand-logo", 120],
   ]) {
     await sharp(source)
       .resize(size, size)

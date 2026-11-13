@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <title>Travellers Club membership card</title>
-  <rect width="1024" height="1024" fill="#1d3f56"/>
-  <g fill="none" stroke="#fff" stroke-width="38" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="230" y="306" width="564" height="412" rx="56"/>
-    <path d="M230 418h564"/>
-    <path d="M316 516h124m-62 0v108m262-94c-18-19-38-23-58-23-41 0-69 26-69 61s28 62 69 62c20 0 40-7 58-24"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><title>Travellers Club</title><rect width="1024" height="1024" fill="#1d3f56"/><defs><mask maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024" id="t-cut"><rect width="1024" height="1024" fill="white"/><path d="M793 380a200 200 0 1 0 0 282" fill="none" stroke="black" stroke-width="100" stroke-linecap="round"/></mask><mask maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024" id="c-cut"><rect width="1024" height="1024" fill="white"/><path d="M190 245h510v112H500v422H388V357H190z" fill="black"/></mask></defs><path d="M190 245h510v112H500v422H388V357H190z" fill="#fff" mask="url(#t-cut)"/><path d="M793 380a200 200 0 1 0 0 282" fill="none" stroke="#dccb96" stroke-width="100" stroke-linecap="round" mask="url(#c-cut)"/></svg>
