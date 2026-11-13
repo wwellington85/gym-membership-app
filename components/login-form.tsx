@@ -265,6 +265,11 @@ export function LoginForm({
               </Link>
             </div>
           </form>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            <Link href="/privacy" className="underline">
+              Privacy notice
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>
