@@ -80,7 +80,7 @@ export default async function ApplicationsPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Access requests</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted-foreground">
           Review existing access requests. Free Rewards signup is immediate
           after account verification.
         </p>
@@ -96,7 +96,7 @@ export default async function ApplicationsPage({
               key={t.key}
               href={href}
               className={`rounded-full border px-3 py-1 text-xs ${
-                active ? "font-semibold" : "opacity-70 hover:bg-gray-50"
+                active ? "font-semibold" : "text-muted-foreground hover:bg-gray-50"
               }`}
             >
               {t.label}
@@ -122,12 +122,12 @@ export default async function ApplicationsPage({
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load applications.
-          <div className="mt-1 text-xs opacity-70">{error.message}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{error.message}</div>
         </div>
       ) : null}
 
       {!error && (!apps || apps.length === 0) ? (
-        <div className="rounded border p-3 text-sm opacity-70">
+        <div className="rounded border p-3 text-sm text-muted-foreground">
           No applications found{q ? " for that search" : ""}.
         </div>
       ) : null}
@@ -142,11 +142,11 @@ export default async function ApplicationsPage({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="font-medium">{a.full_name}</div>
-                <div className="text-sm opacity-70">
+                <div className="text-sm text-muted-foreground">
                   {a.email || "(no email)"}
                   {a.phone ? ` • ${a.phone}` : ""}
                 </div>
-                <div className="text-xs opacity-60">
+                <div className="text-xs text-muted-foreground">
                   Plan: {a.requested_plan_code}
                   {a.requested_start_date
                     ? ` • Start: ${a.requested_start_date}`

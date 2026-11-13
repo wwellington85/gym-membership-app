@@ -128,7 +128,7 @@ export default async function FygaroCheckoutPage(props: {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Secure checkout</h1>
-          <div className="text-sm opacity-70">
+          <div className="text-sm text-muted-foreground">
             Amount: ${Number(payment.amount || 0).toFixed(2)}{" "}
             {payment.currency || "USD"}
           </div>
@@ -142,7 +142,7 @@ export default async function FygaroCheckoutPage(props: {
         </Link>
       </div>
       <div className="oura-card p-4 space-y-3">
-        <div className="text-sm opacity-70">
+        <div className="text-sm text-muted-foreground">
           You’ll be taken to our secure payment page to complete checkout.
         </div>
 
@@ -153,12 +153,12 @@ export default async function FygaroCheckoutPage(props: {
           Continue to secure payment
         </a>
 
-        <div className="text-xs opacity-70">
+        <div className="text-xs text-muted-foreground">
           After payment, you’ll return here automatically.
         </div>
       </div>
 
-      <div className="text-xs opacity-70">
+      <div className="text-xs text-muted-foreground">
         Having trouble? Try opening in your device browser.
       </div>
     </div>

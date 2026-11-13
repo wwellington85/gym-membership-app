@@ -96,11 +96,11 @@ export default function MemberForm({
       {isPaid ? (
         <div className="oura-card p-3 space-y-2">
           <div className="text-sm font-medium">Payment</div>
-          <div className="text-sm opacity-70">Record the payment collected at the desk.</div>
+          <div className="text-sm text-muted-foreground">Record the payment collected at the desk.</div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs opacity-70">Record payment?</label>
+              <label className="text-xs text-muted-foreground">Record payment?</label>
               <select
                 name="collect_payment"
                 className="w-full oura-input px-3 py-2"
@@ -113,7 +113,7 @@ export default function MemberForm({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs opacity-70">Method</label>
+              <label className="text-xs text-muted-foreground">Method</label>
               <select
                 name="payment_method"
                 className="w-full oura-input px-3 py-2"
@@ -130,7 +130,7 @@ export default function MemberForm({
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs opacity-70">Apply discount (%)</label>
+            <label className="text-xs text-muted-foreground">Apply discount (%)</label>
             <input
               name="payment_discount_percent"
               type="number"
@@ -143,14 +143,14 @@ export default function MemberForm({
               disabled={collectPayment !== "yes" || paymentMethod === "comp"}
             />
             {collectPayment !== "yes" ? (
-              <div className="text-xs opacity-70">Turn on “Record payment” to apply a discount.</div>
+              <div className="text-xs text-muted-foreground">Turn on “Record payment” to apply a discount.</div>
             ) : null}
             {collectPayment === "yes" && paymentMethod === "comp" ? (
-              <div className="text-xs opacity-70">Discount is not used for complimentary payments.</div>
+              <div className="text-xs text-muted-foreground">Discount is not used for complimentary payments.</div>
             ) : null}
           </div>
 
-          <div className="text-xs opacity-70">
+          <div className="text-xs text-muted-foreground">
             Amount to record:{" "}
             <span className="font-medium">
               {collectPayment !== "yes"

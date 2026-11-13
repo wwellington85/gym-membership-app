@@ -18,7 +18,7 @@ export default async function AccessPage({
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Gym & resort access</h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Optional passes alongside your free Rewards membership. Staying at the
         hotel? Ask the front desk what your room booking includes before buying.
       </p>
@@ -33,7 +33,7 @@ export default async function AccessPage({
       <section className="space-y-3">
         <h2 className="font-semibold">My passes</h2>
         {access.passes.length === 0 && (
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted-foreground">
             No passes yet. Your free Rewards benefits remain available.
           </p>
         )}
@@ -52,7 +52,7 @@ export default async function AccessPage({
                       : "Ended"}{" "}
               · {p.start_date} — {p.paid_through_date}
             </p>
-            <p className="text-sm opacity-80">
+            <p className="text-sm text-muted-foreground">
               {facilities(p.plan_snapshot).join(" · ")} · Ends at 10 pm Jamaica
               time.
             </p>
@@ -95,12 +95,12 @@ export default async function AccessPage({
                 {facilities(p).join(" · ")}
               </p>
               {p.code === "gym_day" && (
-                <p className="text-sm opacity-80">
+                <p className="text-sm text-muted-foreground">
                   Gym only; other resort facilities are not included. Standard
                   Rewards discounts continue.
                 </p>
               )}
-              <div className="text-sm opacity-80">
+              <div className="text-sm text-muted-foreground">
                 Restaurant & bar{" "}
                 {Math.round(Number(p.discount_food ?? 0) * 100)}% · Spa{" "}
                 {Math.round(Number(p.discount_spa ?? 0) * 100)}% · Gift shop{" "}
@@ -110,7 +110,7 @@ export default async function AccessPage({
               </div>
               {member.is_active && (
                 <Link
-                  className="inline-block rounded border bg-indigo-500/20 px-4 py-3 text-sm"
+                  className="inline-block rounded border bg-secondary px-4 py-3 text-sm"
                   href={`/member/upgrade?plan=${p.code}`}
                 >
                   Choose dates

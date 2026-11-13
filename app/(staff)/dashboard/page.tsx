@@ -32,14 +32,14 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold">Club overview</h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Rewards membership and facility access are separate. Valid access
         includes passes ending soon.
       </p>
       <div className="flex flex-wrap gap-3">
         <Link
           href="/checkins/scan"
-          className="rounded border bg-indigo-500/20 p-3"
+          className="rounded border bg-secondary p-3"
         >
           Verify member
         </Link>
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {metrics.map(([key, label, href]) => (
             <Link key={key} href={href} className="rounded border p-4">
-              <h2 className="text-sm opacity-80">{label}</h2>
+              <h2 className="text-sm text-muted-foreground">{label}</h2>
               <p className="mt-3 text-3xl font-semibold">{data?.[key] ?? 0}</p>
             </Link>
           ))}
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
       )}
       <section className="rounded border p-4 text-sm">
         <h2 className="font-semibold">Programme reporting</h2>
-        <p className="mt-2 opacity-80">
+        <p className="mt-2 text-muted-foreground">
           These are operational counts, not proof of repeat hotel business.
           Benefit-use and booking attribution require a defined programme and
           connected booking/outlet data.

@@ -4,7 +4,7 @@ export default function MorePage() {
   return (
     <div className="p-4">
       <h1 className="text-2xl font-semibold">More</h1>
-      <p className="mt-1 text-sm opacity-70">
+      <p className="mt-1 text-sm text-muted-foreground">
         Programme administration and staff tools.
       </p>
 

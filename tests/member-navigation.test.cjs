@@ -343,6 +343,7 @@ test("former gym members can still see their achievements and reach history and 
   const React = require("react");
   const { renderToStaticMarkup } = require("react-dom/server");
   const Page = load("app/(member)/member/gym/page.tsx", {
+    "@/lib/format/date": load("lib/format/date.ts"),
     "react/jsx-runtime": require("react/jsx-runtime"),
     "next/link": {
       default: ({ children, ...props }) =>

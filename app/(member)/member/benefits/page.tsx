@@ -31,14 +31,14 @@ export default async function BenefitsPage() {
   ];
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-semibold">My benefits</h1>
+      <h1 className="text-xl font-semibold">Your benefits.</h1>
       <Link
         href="/member/activity"
         className="inline-block py-2 underline text-sm"
       >
         View recorded benefit activity
       </Link>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Your Rewards benefits continue between visits. Any enhanced pass
         discounts apply only during its valid period. Discounts do not add
         together.
@@ -50,14 +50,14 @@ export default async function BenefitsPage() {
         </p>
       ) : (
         <>
-          <section className="oura-card divide-y divide-white/10 px-4">
+          <section className="divide-y divide-border">
             {benefits.map((benefit) => (
               <div
                 key={benefit.key}
-                className="flex justify-between gap-3 py-4"
+                className="club-rule-row"
               >
                 <span>{benefit.label}</span>
-                <strong className="shrink-0 tabular-nums">
+                <strong className="shrink-0 text-2xl font-semibold tabular-nums">
                   {benefit.percent}% off
                 </strong>
               </div>
@@ -67,7 +67,7 @@ export default async function BenefitsPage() {
             <section className="space-y-2">
               <h2 className="font-semibold">Additional perks</h2>
               {extras.map((b) => (
-                <div key={b.id} className="rounded border p-3 text-sm">
+                <div key={b.id} className="border-b py-3 text-sm">
                   {b.label} · {b.value || "Included"}
                 </div>
               ))}
@@ -79,7 +79,7 @@ export default async function BenefitsPage() {
               desk.
             </p>
           )}
-          <div className="rounded border p-4 text-sm">
+          <div className="oura-card p-4 text-sm">
             <h2 className="font-semibold">How to use a benefit</h2>
             <p className="mt-2">
               Show your membership card to staff before the bill is prepared.
@@ -89,7 +89,7 @@ export default async function BenefitsPage() {
             </p>
             <Link
               href="/member/card"
-              className="mt-3 inline-block rounded border px-3 py-3"
+              className="club-button mt-3"
             >
               Show my card
             </Link>
@@ -98,7 +98,7 @@ export default async function BenefitsPage() {
       )}
       <div className="text-sm">
         <h2 className="font-semibold">Gym & resort facilities</h2>
-        <p className="mt-2 opacity-80">
+        <p className="mt-2 text-muted-foreground">
           Facility access is separate from Rewards membership. Your card shows
           access valid now.
         </p>

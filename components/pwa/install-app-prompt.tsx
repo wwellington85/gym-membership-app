@@ -182,26 +182,26 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
   }
 
   return (
-    <div className="mb-3 rounded border border-white/20 bg-black/25 p-3 text-sm">
+    <div className="mb-3 rounded border border-border bg-secondary p-3 text-sm">
       <div className="font-semibold">{title}</div>
-      <div className="mt-1 opacity-80">{subtitle}</div>
+      <div className="mt-1 text-muted-foreground">{subtitle}</div>
 
       {canOneTapInstall ? (
-        <div className="mt-2 opacity-80">
+        <div className="mt-2 text-muted-foreground">
           Install for full-screen access and faster launch.
         </div>
       ) : iosLike ? (
-        <div className="mt-2 opacity-80">
+        <div className="mt-2 text-muted-foreground">
           Tap Install to view iPhone steps (Safari required).
         </div>
       ) : (
-        <div className="mt-2 opacity-80">
+        <div className="mt-2 text-muted-foreground">
           Use your browser menu and choose Install app.
         </div>
       )}
 
       {showSteps && !canOneTapInstall ? (
-        <div className="mt-2 rounded border border-white/15 p-2 text-xs opacity-90">
+        <div className="mt-2 rounded border border-border p-2 text-xs text-foreground">
           {iosLike ? (
             <>
               1) Open this site in Safari.
@@ -227,14 +227,14 @@ export function InstallAppPrompt({ audience }: { audience: Audience }) {
         <button
           type="button"
           onClick={handleAlreadyInstalled}
-          className="rounded border px-3 py-1.5 text-sm opacity-80 hover:opacity-100"
+          className="rounded border px-3 py-1.5 text-sm text-muted-foreground hover:opacity-100"
         >
           Already installed
         </button>
         <button
           type="button"
           onClick={handleNotNow}
-          className="rounded border px-3 py-1.5 text-sm opacity-80 hover:opacity-100"
+          className="rounded border px-3 py-1.5 text-sm text-muted-foreground hover:opacity-100"
         >
           Not now
         </button>

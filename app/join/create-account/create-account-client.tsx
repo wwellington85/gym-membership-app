@@ -15,7 +15,7 @@ export default function CreateAccountClient() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Create your account</h1>
-        <p className="text-sm opacity-70">
+        <p className="text-sm text-muted-foreground">
           Set a password to access your Travellers Club profile and membership card.
         </p>
       </div>
@@ -83,7 +83,7 @@ export default function CreateAccountClient() {
         </button>
       </form>
 
-      <div className="text-xs opacity-60">
+      <div className="text-xs text-muted-foreground">
         You’ll be signed in automatically after creating your password.
       </div>
     </div>

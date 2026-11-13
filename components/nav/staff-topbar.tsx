@@ -48,12 +48,12 @@ export function StaffTopbar({ role }: { role: string }) {
             type="button"
             aria-label="Back"
             onClick={onBack}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-accent"
           >
             <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
           </button>
         ) : (
-          <span className="h-9 w-9" aria-hidden="true" />
+          <span className="h-11 w-11" aria-hidden="true" />
         )}
         <div className="flex items-center gap-3 text-sm">
           <Link href="/dashboard" className="hidden py-2 sm:inline">

@@ -97,7 +97,7 @@ export default async function PaymentsPage({
         </p>
       ) : (
         <>
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted-foreground">
             {rows?.[0]?.total ?? 0} matching payments. Recording a payment alone
             does not grant or extend access.
           </p>
@@ -124,7 +124,7 @@ export default async function PaymentsPage({
                       ? "Access activated"
                       : "No access fulfilment attached"}
                 </p>
-                <p className="mt-2 text-sm opacity-80">
+                <p className="mt-2 text-sm text-muted-foreground">
                   {p.payment_method || p.provider || "Unspecified method"} ·{" "}
                   {p.created_at
                     ? new Date(p.created_at).toLocaleString("en-US", {

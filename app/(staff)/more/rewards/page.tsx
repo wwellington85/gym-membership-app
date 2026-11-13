@@ -472,14 +472,14 @@ export default async function RewardsManagerPage({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Programme & Benefits</h1>
-          <p className="mt-2 text-sm opacity-80">
+          <p className="mt-2 text-sm text-muted-foreground">
             Catalogue changes apply to new access purchases. Existing passes
             retain their recorded product terms; revoke a specific pass from the
             member record if necessary. Free Rewards benefits use the current
             programme settings. Scheduled changes run daily at midnight Jamaica
             time when maintenance is configured.
           </p>
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted-foreground">
             Update discounts, points, and custom plan benefits.
           </p>
         </div>
@@ -519,7 +519,7 @@ export default async function RewardsManagerPage({
 
       <div className="oura-card p-4">
         <div className="font-medium">Visit activity points</div>
-        <p className="mt-1 text-sm opacity-70">
+        <p className="mt-1 text-sm text-muted-foreground">
           Points awarded for each check-in.
         </p>
 
@@ -541,12 +541,12 @@ export default async function RewardsManagerPage({
       </div>
 
       <div className="flex items-center gap-2 text-sm">
-        <span className="opacity-70">Benefits view:</span>
+        <span className="text-muted-foreground">Benefits view:</span>
         <Link
           href="/more/rewards?benefit_view=active"
           className={[
             "rounded border px-2 py-1",
-            benefitView === "active" ? "font-medium" : "opacity-80",
+            benefitView === "active" ? "font-medium" : "text-muted-foreground",
           ].join(" ")}
         >
           Active
@@ -555,7 +555,7 @@ export default async function RewardsManagerPage({
           href="/more/rewards?benefit_view=inactive"
           className={[
             "rounded border px-2 py-1",
-            benefitView === "inactive" ? "font-medium" : "opacity-80",
+            benefitView === "inactive" ? "font-medium" : "text-muted-foreground",
           ].join(" ")}
         >
           Inactive
@@ -564,7 +564,7 @@ export default async function RewardsManagerPage({
           href="/more/rewards?benefit_view=all"
           className={[
             "rounded border px-2 py-1",
-            benefitView === "all" ? "font-medium" : "opacity-80",
+            benefitView === "all" ? "font-medium" : "text-muted-foreground",
           ].join(" ")}
         >
           All
@@ -585,12 +585,12 @@ export default async function RewardsManagerPage({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold">{p.name}</h2>
-                  <p className="text-xs opacity-70">
+                  <p className="text-xs text-muted-foreground">
                     Code: {p.code} • Price: ${Number(p.price ?? 0).toFixed(2)} •
                     Duration: {p.duration_days ?? 0} day(s)
                   </p>
                 </div>
-                <span className="rounded border px-2 py-1 text-xs opacity-70">
+                <span className="rounded border px-2 py-1 text-xs text-muted-foreground">
                   {p.is_active ? "Active" : "Inactive"}
                 </span>
               </div>
@@ -599,7 +599,7 @@ export default async function RewardsManagerPage({
                 <input type="hidden" name="plan_id" value={p.id} />
 
                 <label className="space-y-1 text-sm">
-                  <span className="opacity-70">Restaurant (%)</span>
+                  <span className="text-muted-foreground">Restaurant (%)</span>
                   <input
                     name="discount_food"
                     type="number"
@@ -611,7 +611,7 @@ export default async function RewardsManagerPage({
                 </label>
 
                 <label className="space-y-1 text-sm">
-                  <span className="opacity-70">Spa (%)</span>
+                  <span className="text-muted-foreground">Spa (%)</span>
                   <input
                     name="discount_spa"
                     type="number"
@@ -623,7 +623,7 @@ export default async function RewardsManagerPage({
                 </label>
 
                 <label className="space-y-1 text-sm">
-                  <span className="opacity-70">Gift shop (%)</span>
+                  <span className="text-muted-foreground">Gift shop (%)</span>
                   <input
                     name="discount_giftshop"
                     type="number"
@@ -635,7 +635,7 @@ export default async function RewardsManagerPage({
                 </label>
 
                 <label className="space-y-1 text-sm">
-                  <span className="opacity-70">Watersports (%)</span>
+                  <span className="text-muted-foreground">Watersports (%)</span>
                   <input
                     name="discount_watersports"
                     type="number"
@@ -674,7 +674,7 @@ export default async function RewardsManagerPage({
 
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Schedule future change</div>
-                <p className="text-xs opacity-70">
+                <p className="text-xs text-muted-foreground">
                   Set changes now and they apply automatically on the effective
                   date (Jamaica time).
                 </p>
@@ -683,8 +683,8 @@ export default async function RewardsManagerPage({
                   className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-4"
                 >
                   <input type="hidden" name="plan_id" value={p.id} />
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Effective date</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Effective date</span>
                     <input
                       name="effective_on"
                       type="date"
@@ -692,8 +692,8 @@ export default async function RewardsManagerPage({
                       required
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Restaurant (%)</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Restaurant (%)</span>
                     <input
                       name="discount_food"
                       type="number"
@@ -703,8 +703,8 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Spa (%)</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Spa (%)</span>
                     <input
                       name="discount_spa"
                       type="number"
@@ -714,8 +714,8 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Gift shop (%)</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Gift shop (%)</span>
                     <input
                       name="discount_giftshop"
                       type="number"
@@ -725,8 +725,8 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Watersports (%)</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Watersports (%)</span>
                     <input
                       name="discount_watersports"
                       type="number"
@@ -736,8 +736,8 @@ export default async function RewardsManagerPage({
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Facility access</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Facility access</span>
                     <select
                       name="grants_access_mode"
                       className="w-full rounded border px-2 py-2 text-sm"
@@ -748,8 +748,8 @@ export default async function RewardsManagerPage({
                       <option value="no">Set to no</option>
                     </select>
                   </label>
-                  <label className="space-y-1 text-xs opacity-90">
-                    <span className="opacity-70">Join visibility</span>
+                  <label className="space-y-1 text-xs text-foreground">
+                    <span className="text-muted-foreground">Join visibility</span>
                     <select
                       name="visible_on_join_mode"
                       className="w-full rounded border px-2 py-2 text-sm"
@@ -761,8 +761,8 @@ export default async function RewardsManagerPage({
                       <option value="no">Hide from join</option>
                     </select>
                   </label>
-                  <label className="space-y-1 text-xs opacity-90 md:col-span-2">
-                    <span className="opacity-70">Note (optional)</span>
+                  <label className="space-y-1 text-xs text-foreground md:col-span-2">
+                    <span className="text-muted-foreground">Note (optional)</span>
                     <input
                       name="note"
                       className="w-full rounded border px-2 py-2 text-sm"
@@ -779,7 +779,7 @@ export default async function RewardsManagerPage({
 
                 <div className="mt-3 space-y-2">
                   {(scheduledUpdatesByPlan.get(p.id) ?? []).length === 0 ? (
-                    <div className="text-sm opacity-70">
+                    <div className="text-sm text-muted-foreground">
                       No scheduled updates for this plan.
                     </div>
                   ) : (
@@ -796,7 +796,7 @@ export default async function RewardsManagerPage({
                               Effective: {u.effective_on}{" "}
                               {u.applied_at ? "• Applied" : "• Pending"}
                             </div>
-                            <div className="mt-1 text-xs opacity-80">
+                            <div className="mt-1 text-xs text-muted-foreground">
                               {[
                                 u.discount_food !== null
                                   ? `Restaurant ${pctFromDb(u.discount_food)}%`
@@ -825,13 +825,13 @@ export default async function RewardsManagerPage({
                                 .join(" • ") || "No field changes"}
                             </div>
                             {u.note ? (
-                              <div className="mt-1 text-xs opacity-70">
+                              <div className="mt-1 text-xs text-muted-foreground">
                                 Note: {u.note}
                               </div>
                             ) : null}
                           </div>
                           {!u.applied_at ? (
-                            <button className="rounded border border-red-300 px-2 py-1 text-xs hover:bg-red-950/20">
+                            <button className="rounded border border-red-300 px-2 py-1 text-xs hover:bg-red-50">
                               Remove
                             </button>
                           ) : null}
@@ -844,13 +844,13 @@ export default async function RewardsManagerPage({
 
               <div className="mt-4 border-t pt-3">
                 <div className="font-medium">Custom benefits for this plan</div>
-                <p className="text-xs opacity-70">
+                <p className="text-xs text-muted-foreground">
                   These appear on the member Benefits screen.
                 </p>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-muted-foreground">
                   Display order: lower numbers appear first.
                 </p>
-                <p className="text-xs opacity-60">
+                <p className="text-xs text-muted-foreground">
                   Value examples: <span className="font-medium">15% off</span>,{" "}
                   <span className="font-medium">2 free passes</span>, or leave
                   blank for <span className="font-medium">Included</span>.
@@ -861,24 +861,24 @@ export default async function RewardsManagerPage({
                   className="mt-2 grid grid-cols-1 items-end gap-2 md:grid-cols-12"
                 >
                   <input type="hidden" name="plan_id" value={p.id} />
-                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
-                    <span className="opacity-70">Benefit label</span>
+                  <label className="space-y-1 text-xs text-foreground md:col-span-3">
+                    <span className="text-muted-foreground">Benefit label</span>
                     <input
                       name="label"
                       placeholder="e.g., Cabana"
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
-                    <span className="opacity-70">Benefit value (optional)</span>
+                  <label className="space-y-1 text-xs text-foreground md:col-span-3">
+                    <span className="text-muted-foreground">Benefit value (optional)</span>
                     <input
                       name="value"
                       placeholder="e.g., 15% off"
                       className="w-full rounded border px-2 py-2 text-sm"
                     />
                   </label>
-                  <label className="space-y-1 text-xs opacity-90 md:col-span-3">
-                    <span className="opacity-70">Display Order</span>
+                  <label className="space-y-1 text-xs text-foreground md:col-span-3">
+                    <span className="text-muted-foreground">Display Order</span>
                     <input
                       name="sort_order"
                       type="number"
@@ -898,7 +898,7 @@ export default async function RewardsManagerPage({
 
                 <div className="mt-3 space-y-2">
                   {planBenefits.length === 0 ? (
-                    <div className="text-sm opacity-70">
+                    <div className="text-sm text-muted-foreground">
                       No custom benefits yet.
                     </div>
                   ) : (
@@ -920,8 +920,8 @@ export default async function RewardsManagerPage({
                             placeholder="Included (leave blank)"
                             className="rounded border px-2 py-2 text-sm md:col-span-3"
                           />
-                          <label className="space-y-1 text-xs opacity-90 md:col-span-3">
-                            <span className="opacity-70">Display Order</span>
+                          <label className="space-y-1 text-xs text-foreground md:col-span-3">
+                            <span className="text-muted-foreground">Display Order</span>
                             <input
                               name="sort_order"
                               type="number"
@@ -964,7 +964,7 @@ export default async function RewardsManagerPage({
                               />
                               <button
                                 disabled={benefitsFeatureUnavailable}
-                                className="rounded border border-amber-300 px-3 py-2 text-sm hover:bg-amber-950/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded border border-amber-300 px-3 py-2 text-sm hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Mark inactive
                               </button>
@@ -983,7 +983,7 @@ export default async function RewardsManagerPage({
                               />
                               <button
                                 disabled={benefitsFeatureUnavailable}
-                                className="rounded border border-emerald-300 px-3 py-2 text-sm hover:bg-emerald-950/20 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded border border-emerald-300 px-3 py-2 text-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Mark active
                               </button>
@@ -998,7 +998,7 @@ export default async function RewardsManagerPage({
                               />
                               <button
                                 disabled={benefitsFeatureUnavailable}
-                                className="rounded border border-red-300 px-3 py-2 text-sm text-red-200 hover:bg-red-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="rounded border border-red-300 px-3 py-2 text-sm text-red-800 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 Delete permanently
                               </button>

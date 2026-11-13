@@ -9,7 +9,7 @@ export default async function Page({
   const { error = "" } = await searchParams;
   const differentBrowser = /code verifier|pkce|flow state/i.test(error);
   return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
+    <div className="flex w-full items-center justify-center py-2">
       <Card className="w-full max-w-sm">
         <CardHeader><CardTitle className="text-2xl">{differentBrowser ? "Let’s try another sign-in method" : "This sign-in link could not be used"}</CardTitle></CardHeader>
         <CardContent className="space-y-4">

@@ -140,7 +140,7 @@ export default async function ScanPage({
               Pool & resort facilities:{" "}
               <strong>{access.resort ? "Allowed" : "No paid access"}</strong>
             </p>
-            <p className="mt-2 text-sm opacity-80">
+            <p className="mt-2 text-sm text-muted-foreground">
               Room-booking inclusions must be verified separately at the front
               desk.
             </p>
@@ -154,7 +154,7 @@ export default async function ScanPage({
                   <strong>{benefit.percent}%</strong>
                 </p>
               ))}
-              <p className="text-sm opacity-80">
+              <p className="text-sm text-muted-foreground">
                 Verifying or applying a discount does not record a gym visit.
               </p>
             </div>
@@ -194,7 +194,7 @@ export default async function ScanPage({
                     className="oura-input mt-2 w-full p-3"
                   />
                 </div>
-                <p className="text-sm opacity-80">
+                <p className="text-sm text-muted-foreground">
                   Record after applying the verified discount through the
                   outlet’s billing process. This logs use; it does not change a
                   bill or redeem points. A bill can be recorded once per outlet
@@ -209,7 +209,7 @@ export default async function ScanPage({
           {access.gym && (
             <form action={recordVisit}>
               <input type="hidden" name="member_id" value={member.id} />
-              <button className="w-full rounded border bg-indigo-500/20 p-3">
+              <button className="w-full rounded border bg-secondary p-3">
                 Record gym visit
               </button>
             </form>

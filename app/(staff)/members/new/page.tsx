@@ -12,7 +12,7 @@ export default async function NewMemberPage({
   return (
     <div className="max-w-xl space-y-4">
       <h1 className="text-xl font-semibold">Add Rewards member</h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Create the free membership first. Sell optional gym or resort access
         from the member record.
       </p>
@@ -58,7 +58,7 @@ export default async function NewMemberPage({
             className="oura-input mt-2 w-full p-3"
           />
         </div>
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted-foreground">
           An email lets the guest claim their digital membership through a
           verified sign-in link.
         </p>

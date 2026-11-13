@@ -17,7 +17,7 @@ export default async function ActivityPage({
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Benefit activity</h1>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Uses recorded by staff. This is not a billing statement.
       </p>
       {error ? (
@@ -30,7 +30,7 @@ export default async function ActivityPage({
             <p className="capitalize">
               {u.outlet} · {u.discount_percent}% benefit
             </p>
-            <p className="mt-2 text-sm opacity-80">
+            <p className="mt-2 text-sm text-muted-foreground">
               {new Date(u.created_at).toLocaleString("en-US", {
                 timeZone: "America/Jamaica",
               })}

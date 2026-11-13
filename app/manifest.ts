@@ -4,12 +4,13 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Travellers Club",
     short_name: "Travellers Club",
-    description: "Membership, rewards, and facility access for Travellers Beach Resort.",
+    description:
+      "Membership, rewards, and facility access for Travellers Beach Resort.",
     start_url: "/",
     scope: "/",
     display: "standalone",
-    background_color: "#080a16",
-    theme_color: "#080a16",
+    background_color: "#ffffff",
+    theme_color: "#ffffff",
     icons: [
       {
         src: "/icons/icon-192.png",

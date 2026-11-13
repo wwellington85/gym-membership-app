@@ -117,7 +117,20 @@ test("enhanced rates stop at the Jamaica closing time", () => {
 test("Home renders the current pass benefits instead of the free catalogue rates", async () => {
   const React = require("react");
   const activePass = { ...pass, paid_through_date: "2099-12-31" };
+  const shared = {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    "next/link": {
+      default: ({ children, ...props }) =>
+        React.createElement("a", props, children),
+    },
+    "lucide-react": require("lucide-react"),
+    "@/lib/access/rules": rules,
+    "@/lib/format/date": load("lib/format/date.ts"),
+  };
+  const card = load("components/member/membership-card.tsx", shared);
   const Home = load("app/(member)/member/page.tsx", {
+    ...shared,
+    "@/components/member/membership-card": card,
     "react/jsx-runtime": require("react/jsx-runtime"),
     "next/link": {
       default: ({ children, ...props }) =>
@@ -138,7 +151,10 @@ test("Home renders the current pass benefits instead of the free catalogue rates
     "@/lib/access/rules": rules,
     "@/lib/format/name": { firstName: () => "Example" },
   }).default;
-  const html = require("react-dom/server").renderToStaticMarkup(await Home());
+  const html = require("react-dom/server")
+    .renderToStaticMarkup(await Home())
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ");
   assert.match(html, /20% off/);
   assert.match(html, /15% off/);
   assert.doesNotMatch(html, /10% off/);

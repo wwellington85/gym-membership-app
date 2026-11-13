@@ -77,7 +77,7 @@ export function QrScanner({
           {error}
         </p>
       )}
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Scanning identifies a member. It does not record a visit or grant
         access.
       </p>

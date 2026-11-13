@@ -120,7 +120,7 @@ export default async function MemberProfile({
       <section className="space-y-3">
         <h2 className="font-semibold">Access passes</h2>
         {!access.passes.length && (
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted-foreground">
             No access passes. Rewards membership remains separate.
           </p>
         )}
@@ -205,7 +205,7 @@ export default async function MemberProfile({
               className="oura-input mt-2 w-full p-3"
             />
           </div>
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted-foreground">
             Verify the guest’s identity before changing their sign-in email.
           </p>
           <button className="rounded border p-3">Save contact details</button>

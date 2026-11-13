@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { CreditCard } from "lucide-react";
 import { redirect } from "next/navigation";
 import { memberLoginHref } from "@/lib/auth/member-login";
 import { createClient } from "@/lib/supabase/server";
@@ -19,13 +21,22 @@ export default async function MemberGateLayout({
 
   return (
     <>
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="mx-auto w-full max-w-2xl h-svh overflow-y-auto overscroll-y-contain px-4 pt-6 pb-28"
-      >
-        <InstallAppPrompt audience="member" />
-        <div className="sm:oura-shell sm:p-5">
+      <main id="main-content" tabIndex={-1} className="club-member-main">
+        <header className="club-member-header">
+          <Link href="/member">
+            <span className="club-wordmark">Travellers Club</span>
+            <p>Travellers Beach Resort</p>
+          </Link>
+          <Link
+            href="/member/card"
+            className="club-member-header-action"
+            aria-label="Show my membership card"
+          >
+            <CreditCard size={21} aria-hidden="true" />
+          </Link>
+        </header>
+        <div className="club-member-content">
+          <InstallAppPrompt audience="member" />
           <MemberPageBack />
           {children}
         </div>

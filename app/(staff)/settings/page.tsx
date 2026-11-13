@@ -39,7 +39,7 @@ export default async function SettingsPage({
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm opacity-70">Manage app preferences</p>
+        <p className="text-sm text-muted-foreground">Manage app preferences</p>
 
         <form action={logoutAction}>
           <button
@@ -66,7 +66,7 @@ export default async function SettingsPage({
       {role === "admin" ? (
         <div className="oura-card p-3">
           <div className="font-medium">Staff Management</div>
-          <div className="text-sm opacity-70">
+          <div className="text-sm text-muted-foreground">
             Invite staff and assign roles
           </div>
           <Link
@@ -75,7 +75,7 @@ export default async function SettingsPage({
           >
             Open Staff Management
           </Link>
-          <div className="mt-3 text-sm opacity-70">
+          <div className="mt-3 text-sm text-muted-foreground">
             Need to update discounts or package perks?
           </div>
           <Link
@@ -84,7 +84,7 @@ export default async function SettingsPage({
           >
             Open Programme & Benefits
           </Link>
-          <div className="mt-3 text-sm opacity-70">
+          <div className="mt-3 text-sm text-muted-foreground">
             Need to review employee actions over time?
           </div>
           <Link

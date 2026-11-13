@@ -73,7 +73,7 @@ export default function MagicLinkPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-[70vh] max-w-md items-center px-4">
+    <div className="mx-auto flex w-full items-center py-2">
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl">{sentEmail ? "Check your email" : "Sign in by email"}</CardTitle>
@@ -107,7 +107,7 @@ export default function MagicLinkPage() {
               <button type="button" className="text-sm underline disabled:opacity-50" disabled={isLoading || !emailOk} onClick={() => { setSentEmail(email.trim().toLowerCase()); setError(null); }}>I already have a code</button>
             </form>
           )}
-          {error ? <p role="alert" className="text-sm text-red-500">{error}</p> : null}
+          {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
           <div className="text-center text-sm"><Link className="underline underline-offset-4" href={loginHref}>Sign in with a password</Link></div>
         </CardContent>
       </Card>

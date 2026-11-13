@@ -162,7 +162,7 @@ export function ChangePlanForm({
           className="oura-input mt-2 w-full p-3"
         />
       </div>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Confirm the guest has accepted the facility waiver through the approved
         front desk process before granting access.
       </p>

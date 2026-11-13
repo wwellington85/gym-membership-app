@@ -138,7 +138,7 @@ export default async function ProcessRequest({
         </p>
         <p className="mt-2 text-sm">Status: {request.status}</p>
       </div>
-      <p className="text-sm opacity-80">
+      <p className="text-sm text-muted-foreground">
         Use the member record to sell or renew the correct access product. Free
         Rewards signup does not require a pending application.
       </p>

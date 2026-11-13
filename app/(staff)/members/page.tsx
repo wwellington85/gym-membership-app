@@ -91,7 +91,7 @@ export default async function MembersPage({
             key={value}
             href={href({ filter: value, page: "0" })}
             aria-current={value === filter ? "page" : undefined}
-            className={`rounded border px-3 py-3 text-sm ${value === filter ? "bg-indigo-500/20 font-semibold" : ""}`}
+            className={`rounded border px-3 py-3 text-sm ${value === filter ? "bg-secondary font-semibold" : ""}`}
           >
             {label}
           </Link>
@@ -103,7 +103,7 @@ export default async function MembersPage({
         </p>
       ) : (
         <>
-          <p className="text-sm opacity-80">
+          <p className="text-sm text-muted-foreground">
             {total
               ? `${total} matching members`
               : page > 0
@@ -132,7 +132,7 @@ export default async function MembersPage({
                   className="block rounded border p-4"
                 >
                   <h2 className="font-semibold">{m.full_name}</h2>
-                  <p className="mt-2 text-sm opacity-80">
+                  <p className="mt-2 text-sm text-muted-foreground">
                     {staff.role === "security"
                       ? m.phone
                         ? `Phone ending ${m.phone.slice(-4)}`

@@ -312,7 +312,7 @@ export default async function ActivityLogsPage({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold">Activity Logs</h1>
-          <p className="text-sm opacity-70">Track employee actions over time (payments and check-ins).</p>
+          <p className="text-sm text-muted-foreground">Track employee actions over time (payments and check-ins).</p>
         </div>
         <Link href="/settings" className="rounded border px-3 py-2 text-sm hover:oura-surface-muted">
           Back to Settings
@@ -342,7 +342,7 @@ export default async function ActivityLogsPage({
             <Link
               key={item.key}
               href={buildHref(base, { q, type, range }, { type: item.key as ActionType })}
-              className={["rounded border px-2.5 py-1", active ? "font-semibold" : "opacity-80"].join(" ")}
+              className={["rounded border px-2.5 py-1", active ? "font-semibold" : "text-muted-foreground"].join(" ")}
             >
               {item.label}
             </Link>
@@ -363,7 +363,7 @@ export default async function ActivityLogsPage({
             <Link
               key={item.key}
               href={buildHref(base, { q, type, range }, { range: item.key as RangeKey })}
-              className={["rounded border px-2.5 py-1", active ? "font-semibold" : "opacity-80"].join(" ")}
+              className={["rounded border px-2.5 py-1", active ? "font-semibold" : "text-muted-foreground"].join(" ")}
             >
               {item.label}
             </Link>
@@ -374,12 +374,12 @@ export default async function ActivityLogsPage({
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load activity logs.
-          <div className="mt-1 text-xs opacity-70">{error}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{error}</div>
         </div>
       ) : null}
 
       {!error && filtered.length === 0 ? (
-        <div className="rounded border p-3 text-sm opacity-70">No activity found for these filters.</div>
+        <div className="rounded border p-3 text-sm text-muted-foreground">No activity found for these filters.</div>
       ) : null}
 
       <div className="space-y-2">
@@ -403,15 +403,15 @@ export default async function ActivityLogsPage({
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-medium">{e.primary}</div>
-                  {e.secondary ? <div className="text-sm opacity-80">{e.secondary}</div> : null}
-                  <div className="text-xs opacity-70">{fmtJamaicaDateTime(e.happenedAt)}</div>
+                  {e.secondary ? <div className="text-sm text-muted-foreground">{e.secondary}</div> : null}
+                  <div className="text-xs text-muted-foreground">{fmtJamaicaDateTime(e.happenedAt)}</div>
                 </div>
                 <span className="rounded border px-2 py-1 text-[11px] font-semibold tracking-wide">{typeLabel}</span>
               </div>
 
               <div className="mt-2 text-sm">
                 <div>
-                  <span className="opacity-70">Member:</span>{" "}
+                  <span className="text-muted-foreground">Member:</span>{" "}
                   {e.memberId ? (
                     <Link href={`/members/${e.memberId}`} className="underline underline-offset-2">
                       {memberName}
@@ -420,12 +420,12 @@ export default async function ActivityLogsPage({
                     memberName
                   )}
                 </div>
-                {memberMeta ? <div className="text-xs opacity-70">{memberMeta}</div> : null}
+                {memberMeta ? <div className="text-xs text-muted-foreground">{memberMeta}</div> : null}
               </div>
 
           <div className="mt-2 text-sm">
-                <span className="opacity-70">Recorded by:</span> {staffName}
-                <span className="opacity-60"> ({roleLabel(staff?.role)})</span>
+                <span className="text-muted-foreground">Recorded by:</span> {staffName}
+                <span className="text-muted-foreground"> ({roleLabel(staff?.role)})</span>
               </div>
             </div>
           );

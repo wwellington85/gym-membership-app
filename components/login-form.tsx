@@ -154,14 +154,13 @@ export function LoginForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="oura-card">
         <CardHeader>
-          <div className="mb-2 text-center text-[13px] font-semibold tracking-[0.32em] uppercase text-white/80">
-            Travellers Club
-          </div>
-          <CardTitle className="text-2xl">Login</CardTitle>
+          <CardTitle className="text-2xl">
+            {staffLogin ? "Employee sign in" : "Welcome back."}
+          </CardTitle>
           <CardDescription>
             {staffLogin
               ? "Employee sign in with username or email"
-              : "Sign in to your free Rewards membership"}
+              : "Your card, benefits, and visits in one place."}
           </CardDescription>
         </CardHeader>
 
@@ -209,7 +208,7 @@ export function LoginForm({
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 opacity-80 hover:opacity-100"
+                    className="absolute right-1 top-1/2 inline-flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded text-muted-foreground"
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
@@ -222,7 +221,7 @@ export function LoginForm({
                   </button>
                 </div>
 
-                <div className="text-xs opacity-70">
+                <div className="text-xs text-muted-foreground">
                   {emailOk && magicHref ? (
                     <Link
                       href={magicHref}
@@ -237,7 +236,7 @@ export function LoginForm({
                     </span>
                   )}
                   {!emailOk ? (
-                    <span className="ml-2 text-xs opacity-60">
+                    <span className="ml-2 text-xs text-muted-foreground">
                       Enter your email first
                     </span>
                   ) : null}
@@ -245,18 +244,18 @@ export function LoginForm({
               </div>
 
               {showSent && sentMsg && (
-                <p className="text-sm text-green-600">{sentMsg}</p>
+                <p className="text-sm text-emerald-800">{sentMsg}</p>
               )}
-              {errMsg && <p className="text-sm text-red-500">{errMsg}</p>}
-              {error && <p className="text-sm text-red-500">{error}</p>}
+              {errMsg && <p className="text-sm text-destructive">{errMsg}</p>}
+              {error && <p className="text-sm text-destructive">{error}</p>}
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isLoading ? "Signing in…" : "Sign in"}
               </Button>
             </div>
 
             <div className="mt-4 text-center text-sm">
-              New to Travellers Rewards?{" "}
+              New to Travellers?{" "}
               <Link href="/join" className="underline underline-offset-4">
                 Join Travellers Club
               </Link>

@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { Archivo, Poppins } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 const archivo = Archivo({
   subsets: ["latin"],
@@ -9,11 +9,6 @@ const archivo = Archivo({
   variable: "--font-sans",
 });
 
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-bubble",
-});
 const defaultUrl = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : "http://127.0.0.1:3000";
@@ -52,9 +47,16 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "Travellers Club",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -63,24 +65,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={`${archivo.variable} ${poppins.variable}`}
-    >
+    <html lang="en" suppressHydrationWarning className={archivo.variable}>
       <body
         suppressHydrationWarning
         className="min-h-svh oura-bg text-[rgb(var(--fg))] overflow-hidden font-sans"
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
+          forcedTheme="light"
           enableSystem={false}
         >
-          <a
-            href="#main-content"
-            className="skip-link"
-          >
+          <a href="#main-content" className="skip-link">
             Skip to content
           </a>
           <ServiceWorkerRegister />
