@@ -133,9 +133,9 @@ export default async function AccountPage({
             <option value="gym">Gym — visits, progress, and access</option>
           </select>
           <p id="starting-screen-auto" className="text-sm opacity-80">
-            Automatic opens Gym while a gym-specific pass is active, whether
-            paid or complimentary. Otherwise it opens Home. Resort access that
-            includes the gym keeps Home as the default.
+            Automatic opens Gym while gym-specific access or a Club Monthly
+            membership is active, whether paid or complimentary. Otherwise it
+            opens Home. Resort day and weekly passes keep Home as the default.
           </p>
           <button className="rounded border px-4 py-3 text-sm">
             Save starting screen
