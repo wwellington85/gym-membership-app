@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const { PGlite } = require("@electric-sql/pglite");
 const id = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-async function fixture() {
+async function fixture(applyCompatibility = true) {
   const db = new PGlite();
   await db.exec(`
     CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
@@ -24,17 +24,19 @@ async function fixture() {
     INSERT INTO staff_profiles VALUES('${id(30)}','admin',true),('${id(31)}','security',true),('${id(32)}','front_desk',false);
     GRANT INSERT,UPDATE ON public.payments TO authenticated;
   `);
+  await db.exec(readFileSync("tests/fixtures/legacy-payment-schema.sql", "utf8"));
   await db.exec(
     readFileSync(
       "supabase/migrations/20261112140000_loyalty_access_and_payment_fulfilment.sql",
       "utf8",
     ),
   );
+  if (applyCompatibility) await db.exec(readFileSync("supabase/migrations/20261112210000_payment_schema_compatibility.sql", "utf8"));
   return db;
 }
 async function order(db, paymentId = id(40), member = id(1), amount = 25) {
   await db.query(
-    `INSERT INTO payments(id,member_id,membership_id,amount,currency,provider,status,purchased_plan_id,purchase_snapshot,access_start_date,access_end_date) SELECT $1,$2,id,$3,'USD','fygaro','pending',$4,(SELECT to_jsonb(p) FROM membership_plans p WHERE p.id=$4),(now() AT TIME ZONE 'America/Jamaica')::date,(now() AT TIME ZONE 'America/Jamaica')::date FROM memberships WHERE member_id=$2`,
+    `INSERT INTO payments(id,member_id,membership_id,amount,currency,provider,provider_reference,status,purchased_plan_id,purchase_snapshot,access_start_date,access_end_date) SELECT $1,$2,id,$3,'USD','fygaro','checkout-reference','pending',$4,(SELECT to_jsonb(p) FROM membership_plans p WHERE p.id=$4),(now() AT TIME ZONE 'America/Jamaica')::date,(now() AT TIME ZONE 'America/Jamaica')::date FROM memberships WHERE member_id=$2`,
     [paymentId, member, amount, id(11)],
   );
 }
@@ -348,4 +350,36 @@ test("staff grants, revocation, benefit use and schedule application use indepen
   } finally {
     await db.close();
   }
+});
+
+test("legacy payment constraint reproduces the failure; compatibility fix grants one complimentary monthly pass without extending Rewards", async () => {
+  const db = await fixture(false);
+  try {
+    await db.query(`INSERT INTO membership_plans(id,code,name,price,duration_days,plan_type,grants_access,access_scope) VALUES($1,'club_monthly_95','Club Monthly',95,30,'pass',true,'resort')`, [id(12)]);
+    const before = (await db.query('SELECT * FROM memberships WHERE member_id=$1', [id(1)])).rows[0];
+    const args = [id(1), id(12), '2026-11-12', true, 'complimentary', 0, 'Approved complimentary membership', id(30), id(80)];
+    const grant = 'SELECT grant_staff_access($1,$2,$3,$4,$5,$6,$7,$8,$9) AS id';
+    await assert.rejects(db.query(grant, args), /payments_status_check/);
+    assert.equal(Number((await db.query('SELECT count(*) FROM payments')).rows[0].count), 0);
+    assert.equal(Number((await db.query('SELECT count(*) FROM access_passes')).rows[0].count), 0);
+    await db.exec(readFileSync('supabase/migrations/20261112210000_payment_schema_compatibility.sql', 'utf8'));
+    const passId = (await db.query(grant, args)).rows[0].id;
+    assert.equal((await db.query(grant, args)).rows[0].id, passId);
+    const receipt = (await db.query('SELECT * FROM payments')).rows[0];
+    assert.equal(receipt.status, 'paid');
+    assert.equal(Number(receipt.amount), 0);
+    assert.equal(receipt.payment_method, 'complimentary');
+    assert.equal(receipt.method, 'complimentary');
+    assert.deepEqual(receipt.payment_date, receipt.paid_on);
+    const pass = (await db.query('SELECT * FROM access_passes')).rows[0];
+    assert.equal(new Date(pass.start_date).toISOString().slice(0, 10), '2026-11-12');
+    assert.equal(new Date(pass.paid_through_date).toISOString().slice(0, 10), '2026-12-11');
+    assert.equal(pass.payment_id, receipt.id);
+    assert.deepEqual((await db.query('SELECT * FROM memberships WHERE member_id=$1', [id(1)])).rows[0], before);
+    assert.equal(Number((await db.query('SELECT count(*) FROM payments')).rows[0].count), 1);
+    assert.ok(Number((await db.query('SELECT count(*) FROM club_audit_events')).rows[0].count) >= 1);
+    await assert.rejects(db.query(`UPDATE payments SET status='unrecognised' WHERE id=$1`, [receipt.id]), /payments_status_check/);
+    await db.exec(readFileSync('supabase/migrations/20261112210000_payment_schema_compatibility.sql', 'utf8'));
+    assert.equal((await db.query(grant, args)).rows[0].id, passId);
+  } finally { await db.close(); }
 });

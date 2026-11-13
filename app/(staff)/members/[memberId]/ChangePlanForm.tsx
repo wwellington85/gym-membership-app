@@ -6,14 +6,14 @@ import {
   type AccessPlan,
   type AccessPass,
 } from "@/lib/access/rules";
-function Submit() {
+function Submit({ complimentary }: { complimentary: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button
       disabled={pending}
       className="w-full rounded border p-3 disabled:opacity-50"
     >
-      {pending ? "Saving…" : "Confirm access & record payment"}
+      {pending ? "Saving…" : complimentary ? "Grant complimentary access" : "Confirm access & record payment"}
     </button>
   );
 }
@@ -166,7 +166,7 @@ export function ChangePlanForm({
         Confirm the guest has accepted the facility waiver through the approved
         front desk process before granting access.
       </p>
-      <Submit />
+      <Submit complimentary={method === "complimentary"} />
     </form>
   );
 }
