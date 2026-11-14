@@ -5,8 +5,8 @@ The existing gym check-ins were front-gate property visits. Present them as Club
 ## Member experience
 
 - Four tabs: Home, Card, Benefits, Account. Home shows a beach photograph, compact membership summary and card shortcut, actual current pass inclusions, visit/point/rank progress and achievements, effective discounts, and property photographs.
-- Old /member/gym links redirect to /member#club-visits. Existing Gym start preferences open Home. The Card page remains the full digital card and live QR destination.
-- The inline emblem appears early from the root layout during installed Home launches. Its entrance lasts 320ms; the solid white canvas holds for at least 1.1 seconds and waits for Home/hero readiness, then dissolves over Home for 800ms. A five-second escape prevents an indefinite overlay. It runs once per full installed Home document launch, does not replay during in-app navigation, does not capture taps, and is disabled for reduced motion. iOS controls its own initial launch screen.
+- Old /member/gym links redirect to /member#club-visits. Legacy /member/start and /member/dashboard URLs redirect at the proxy before React renders an intro, preventing a second logo appearance during launch. Existing Gym start preferences open Home. The Card page remains the full digital card and live QR destination.
+- The inline emblem appears early from the root layout during installed Home launches. The emblem and title stay steady without a separate entrance animation; the solid white canvas holds for at least 1.1 seconds and waits for Home/hero readiness, then dissolves over Home for 800ms. A five-second escape prevents an indefinite overlay. It runs once per full installed Home document launch, does not replay during in-app navigation, does not capture taps, and is disabled for reduced motion. iOS controls its own initial launch screen.
 - Photographs are optimized WebP exports of the user's beach sunset, restaurant terrace, pool, gym and games lounge photographs. Original files remain untouched. Cabana rentals are separate and booking is deferred; no rental functionality or unsupported inclusions are advertised.
 
 ## Daily check-in

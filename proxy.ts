@@ -63,6 +63,12 @@ function clearAllCookies(req: NextRequest, res: NextResponse) {
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
+  // Resolve the legacy launch URL before React streams an intro that would
+  // immediately restart after its redirect to Home. Home keeps its auth gate.
+  if (pathname === "/member/start" || pathname === "/member/dashboard") {
+    return NextResponse.redirect(new URL("/member", request.url));
+  }
+
   // Preserve a member deep link through the server-rendered login gate.
   // Always overwrite the header, rather than trusting a client-supplied value.
   if (pathname === "/member" || pathname.startsWith("/member/")) {

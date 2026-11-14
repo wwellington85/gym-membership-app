@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 
 export function ClubLaunch() {
   const pathname = usePathname();
-  const eligible = pathname === "/member" || pathname === "/member/start";
+  const eligible = pathname === "/member";
   const [phase, setPhase] = useState<"holding" | "leaving" | "hidden">(
     "holding",
   );
