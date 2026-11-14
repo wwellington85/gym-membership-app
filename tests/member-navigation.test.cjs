@@ -93,10 +93,7 @@ test("legacy display preferences open Home without altering passes", () => {
     navigation.memberStartPath("home", [pass], true, now),
     "/member",
   );
-  assert.equal(
-    navigation.memberStartPath("gym", [], false, now),
-    "/member",
-  );
+  assert.equal(navigation.memberStartPath("gym", [], false, now), "/member");
   assert.equal(navigation.startScreenPreference("https://example.com"), "auto");
   assert.equal(pass.status, "active");
 });
@@ -340,7 +337,9 @@ test("gym summary uses only member-filtered visits and reports unavailable data 
 });
 
 test("old Gym links redirect to Club visits without losing history", async () => {
-  const Page = load("app/(member)/member/gym/page.tsx", {"next/navigation": {redirect}}).default;
+  const Page = load("app/(member)/member/gym/page.tsx", {
+    "next/navigation": { redirect },
+  }).default;
   assert.equal(await redirected(Page), "/member#club-visits");
 });
 
@@ -427,4 +426,20 @@ test("expired, future, revoked, inactive, and non-access Club Monthly cannot tri
     navigation.memberStartPath("auto", [monthly], false, now),
     "/member",
   );
+});
+
+test("legacy launch URLs redirect before React can paint a second intro", async () => {
+  const proxy = load("proxy.ts", {
+    "next/server": {
+      NextResponse: { redirect: (url) => ({ location: String(url) }) },
+    },
+    "@supabase/ssr": {},
+  }).proxy;
+  for (const path of ["/member/start", "/member/dashboard"]) {
+    const response = await proxy({
+      url: `https://club.tbr.travel${path}`,
+      nextUrl: { pathname: path, search: "" },
+    });
+    assert.equal(response.location, "https://club.tbr.travel/member");
+  }
 });
