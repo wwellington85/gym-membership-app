@@ -52,9 +52,8 @@ export default async function MemberCheckinsInfoPage() {
         <div>
           <h1 className="text-xl font-semibold">Your Club visits</h1>
           <p className="text-sm text-muted-foreground">
-            Verified visits recorded by staff. Earn 3 points for one visit per
-            Jamaica calendar day, checked in by staff at the front gate or
-            restaurant.
+            Earn 3 points for a verified visit, once per day. Show your card to
+            staff at the front gate or restaurant.
           </p>
         </div>
       </div>
@@ -70,7 +69,7 @@ export default async function MemberCheckinsInfoPage() {
             <div className="text-sm text-muted-foreground">Recent history</div>
             <div className="mt-1 text-2xl font-semibold">{totalCheckins}</div>
             <div className="text-xs text-muted-foreground">
-              latest 50 check-ins
+              latest 50 visits
             </div>
           </div>
           <div className="oura-card p-3">
@@ -86,7 +85,7 @@ export default async function MemberCheckinsInfoPage() {
       )}
 
       <div className="oura-card p-3">
-        <div className="font-medium">Check-in history</div>
+        <div className="font-medium">Visit history</div>
         {error ? (
           <p className="mt-2 text-sm">We could not load your visits.</p>
         ) : rows?.length ? (
@@ -107,7 +106,8 @@ export default async function MemberCheckinsInfoPage() {
           </div>
         ) : (
           <div className="mt-2 text-sm text-muted-foreground">
-            No check-ins recorded yet.
+            Your first visit starts here. Show your card to staff when you next
+            visit.
           </div>
         )}
       </div>

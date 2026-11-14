@@ -253,7 +253,7 @@ test("upgrade comparison uses live prices and paid plan rates, including current
   );
 });
 
-test("upgrade prompts respect current monthly and weekly passes, with ended, upcoming and revoked passes excluded", () => {
+test("upgrade prompts respect current and scheduled plans; ended and revoked passes do not suppress choices", () => {
   const React = require("react");
   const { UpgradeOptions } = load("components/member/upgrade-options.tsx", {
     "react/jsx-runtime": require("react/jsx-runtime"),
@@ -289,13 +289,13 @@ test("upgrade prompts respect current monthly and weekly passes, with ended, upc
     render([activeMonthly, { ...activeMonthly, plan_snapshot: weekly }]),
     "",
   );
+  assert.equal(render([{ ...activeMonthly, start_date: "2099-01-01" }]), "");
   const weeklyHtml = render([{ ...activeMonthly, plan_snapshot: weekly }]);
   assert.match(weeklyHtml, /plan=club_monthly_95/);
   assert.doesNotMatch(weeklyHtml, /plan=club_weekly|Swipe to compare/);
   for (const p of [
     { ...activeMonthly, status: "revoked" },
     { ...activeMonthly, paid_through_date: "2000-01-02" },
-    { ...activeMonthly, start_date: "2099-01-01" },
   ]) {
     const html = render([p]);
     assert.match(html, /plan=club_weekly/);

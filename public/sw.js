@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-access-extensions-v1";
+const CACHE_NAME = "tbr-static-member-experience-v1";
 
 function isStaticAsset(requestUrl, request) {
   return (

@@ -16,19 +16,30 @@ export default async function ActivityPage({
     .range(page * 25, page * 25 + 24);
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Benefit activity</h1>
+      <h1 className="text-xl font-semibold">Discount history</h1>
       <p className="text-sm text-muted-foreground">
-        Uses recorded by staff. This is not a billing statement.
+        Discounts used during your visits, as recorded by staff.
       </p>
       {error ? (
         <p role="alert">We could not load benefit activity.</p>
       ) : !data?.length ? (
-        <p>No recorded uses on this page.</p>
+        <p>
+          No discounts recorded yet. Your current benefits are shown on the
+          Benefits screen.
+        </p>
       ) : (
         data.map((u) => (
           <div key={u.id} className="rounded border p-3">
             <p className="capitalize">
-              {u.outlet} · {u.discount_percent}% benefit
+              {(
+                {
+                  restaurant: "Restaurant & bar",
+                  spa: "Spa",
+                  giftshop: "Gift shop",
+                  watersports: "Watersports",
+                } as Record<string, string>
+              )[u.outlet] || u.outlet}{" "}
+              · {u.discount_percent}% off
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
               {new Date(u.created_at).toLocaleString("en-US", {

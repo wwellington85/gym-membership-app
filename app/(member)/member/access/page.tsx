@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadCatalogue, loadAccess, requireMember } from "@/lib/access/server";
+import { effectiveBenefits } from "@/lib/access/benefits";
 import { facilities, passIsActive } from "@/lib/access/rules";
 import { addDaysYmd, jamaicaTodayYmd } from "@/lib/membership/status";
 
@@ -59,8 +60,7 @@ export default async function AccessPage({
               · {p.start_date} — {p.paid_through_date}
             </p>
             <p className="text-sm text-muted-foreground">
-              {facilities(p.plan_snapshot).join(" · ")} · Ends at 10 pm Jamaica
-              time.
+              {facilities(p.plan_snapshot).join(" · ")} · Ends at 10 pm.
             </p>
             {extensions?.some((e) => e.pass_id === p.id) && (
               <p className="text-sm text-muted-foreground">
@@ -106,19 +106,16 @@ export default async function AccessPage({
               </p>
               {p.code === "gym_day" && (
                 <p className="text-sm text-muted-foreground">
-                  Gym only; other resort facilities are not included. Outlet
-                  discounts are shown below. Local Rewards requires staff
-                  approval.
+                  Gym access for your chosen date. Any included outlet discounts
+                  are shown below.
                 </p>
               )}
-              <div className="text-sm text-muted-foreground">
-                Restaurant & bar{" "}
-                {Math.round(Number(p.discount_food ?? 0) * 100)}% · Spa{" "}
-                {Math.round(Number(p.discount_spa ?? 0) * 100)}% · Gift shop{" "}
-                {Math.round(Number(p.discount_giftshop ?? 0) * 100)}% ·
-                Watersports{" "}
-                {Math.round(Number(p.discount_watersports ?? 0) * 100)}%
-              </div>
+              <p className="text-sm text-muted-foreground">
+                {effectiveBenefits(p, [], true, new Date(), true)
+                  .filter((b) => b.percent > 0)
+                  .map((b) => `${b.label} ${b.percent}% off`)
+                  .join(" · ")}
+              </p>
               {member.is_active && (
                 <Link
                   className="inline-block rounded border bg-secondary px-4 py-3 text-sm"
