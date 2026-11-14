@@ -53,12 +53,21 @@ export function StaffTopbar({ role }: { role: string }) {
             <ArrowLeft className="h-5 w-5" strokeWidth={2.4} />
           </button>
         ) : (
-          <span className="h-11 w-11" aria-hidden="true" />
+          <Link
+            href="/dashboard"
+            className="py-2 text-sm font-semibold text-primary"
+          >
+            Travellers Club{" "}
+            <span className="ml-2 hidden text-xs font-normal text-muted-foreground sm:inline">
+              {role === "admin"
+                ? "Management"
+                : role === "security"
+                  ? "Gate"
+                  : "Front desk"}
+            </span>
+          </Link>
         )}
         <div className="flex items-center gap-3 text-sm">
-          <Link href="/dashboard" className="hidden py-2 sm:inline">
-            Travellers Club · Staff
-          </Link>
           {role !== "security" && (
             <Link href="/applications" className="py-2">
               Requests

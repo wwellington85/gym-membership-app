@@ -102,7 +102,7 @@ export default async function ScanPage({
     member?.is_active ?? false,
   );
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-club-staff-ready>
       <h1 className="text-xl font-semibold">Verify member</h1>
       {sp.err && (
         <p role="alert" className="oura-alert-danger">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { AppEntry } from "@/components/pwa/app-entry";
 import { ArrowUpRight, CreditCard, Gift, Dumbbell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { loadCatalogue } from "@/lib/access/server";
@@ -10,7 +10,7 @@ export default async function HomePage() {
   const {
     data: { user },
   } = await (await createClient()).auth.getUser();
-  if (user) redirect("/auth/post-login");
+  if (user) return <AppEntry />;
   let plans: Awaited<ReturnType<typeof loadCatalogue>> = [];
   try {
     plans = await loadCatalogue();
@@ -24,6 +24,7 @@ export default async function HomePage() {
       tabIndex={-1}
       className="h-svh overflow-y-auto px-5 pb-10 pt-[max(24px,env(safe-area-inset-top))]"
     >
+      <AppEntry installedOnly />
       <div className="mx-auto max-w-4xl">
         <header className="flex items-center justify-between gap-4 border-b pb-5">
           <div>
@@ -148,7 +149,12 @@ export default async function HomePage() {
         </section>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t pt-5 text-xs text-muted-foreground">
           <p>Travellers Beach Resort · Travellers Club</p>
-          <Link href="/privacy" className="inline-flex min-h-11 items-center underline">Privacy</Link>
+          <Link
+            href="/privacy"
+            className="inline-flex min-h-11 items-center underline"
+          >
+            Privacy
+          </Link>
           <Link
             href="/auth/login?staff=1"
             className="inline-flex min-h-11 items-center underline"
