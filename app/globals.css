@@ -713,7 +713,10 @@ a[class~="rounded"][class~="border"] {
 .club-hotel-photo img { object-fit: cover; }
 /* Hold a solid launch canvas while Home streams in, then dissolve over it. */
 .club-launch { position: fixed; top: 0; left: 0; right: 0; height: 100vh; z-index: 100; display: none; align-items: center; justify-content: center; background: #fff; color: #1d3f56; pointer-events: none; letter-spacing: .18em; font-size: 12px; }
-.club-launch-brand { display: flex; flex-direction: column; align-items: center; gap: 18px; line-height: 20px; animation: club-brand-appear 260ms ease-out both; }
+/* Fixed logo/title tracks prevent first-paint sizing and font swaps from
+   re-centring the brand. Keep startup typography independent of Archivo. */
+.club-launch-brand { display: grid; grid-template-rows: 100px 20px; justify-items: center; align-items: center; gap: 18px; width: min(320px, calc(100% - 32px)); height: 138px; flex: 0 0 auto; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 20px; animation: club-brand-appear 260ms ease-out both; }
+.club-launch-title { display: block; height: 20px; line-height: 20px; white-space: nowrap; text-align: center; }
 .club-launch-emblem { display: block; flex: 0 0 auto; width: 100px; height: 100px; border-radius: 24px; overflow: hidden; }
 .club-launch-leaving { animation: club-launch-exit 800ms cubic-bezier(.22,.61,.36,1) both; }
 @keyframes club-launch-exit { from { opacity: 1; } to { opacity: 0; } }
