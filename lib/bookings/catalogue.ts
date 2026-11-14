@@ -96,6 +96,16 @@ export function cabanaStarts(
       !occupied.some((s) => s.cabana === cabana && s.start_minute === start),
   );
 }
+export function availableCabanaStarts(
+  days: CabanaDay[],
+  occupied: OccupiedSlot[],
+) {
+  return [
+    ...new Set(
+      [1, 2, 3].flatMap((cabana) => cabanaStarts(cabana, days, occupied)),
+    ),
+  ].sort((a, b) => a - b);
+}
 export function futureSlot(
   date: string,
   minute: number,

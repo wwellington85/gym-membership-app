@@ -7,7 +7,7 @@ import {
   loadCabanaAvailability,
 } from "@/lib/bookings/server";
 import { jamaicaTodayYmd, addDaysYmd } from "@/lib/membership/status";
-import { BookingForm } from "@/components/bookings/booking-form";
+import { MemberBooking } from "@/components/bookings/member-booking";
 import { requestExperience } from "./actions";
 export const dynamic = "force-dynamic";
 export default async function Experiences({
@@ -90,37 +90,15 @@ export default async function Experiences({
         <p>Please contact the front desk to arrange a booking.</p>
       ) : (
         <>
-          <form
-            className="flex flex-wrap items-end gap-3"
-            action="/member/experiences"
-          >
-            <input
-              type="hidden"
-              name="kind"
-              value={dinner ? "dinner" : "cabana"}
-            />
-            <label className="flex-1 space-y-2">
-              <span className="block text-sm font-medium">
-                {dinner ? "Dinner date" : "Rental date"}
-              </span>
-              <input
-                name="date"
-                type="date"
-                defaultValue={date}
-                min={today}
-                max={addDaysYmd(today, 365)}
-                required
-                className="oura-input w-full p-3"
-              />
-            </label>
-            <button className="club-button-secondary">Show times</button>
-          </form>
-          <BookingForm
+          <MemberBooking
             key={`${date}:${dinner}`}
             products={products.filter((p) =>
               dinner ? p.code === "starlight" : p.code.startsWith("cabana_"),
             )}
             date={date}
+            today={today}
+            maxDate={addDaysYmd(today, 365)}
+            dinner={dinner}
             {...availability}
             submissionKey={randomUUID()}
             action={requestExperience}

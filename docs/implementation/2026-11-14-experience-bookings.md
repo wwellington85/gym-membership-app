@@ -2,6 +2,10 @@
 
 Guests use the two experience cards on Home, then choose a date, package and time. My bookings is linked from Home, the experience page and Account. Staff use Overview → Cabanas & dinner, or the desktop sidebar. Admins, supervisors and front-desk staff can manage bookings; security cannot.
 
+Date changes refresh availability automatically without scrolling the page. “Show times” is a section jump beside the date label, not a submit button. While a new date loads, booking submission is disabled. Guest cabana times combine availability across all three resources; guests do not choose or see physical cabana numbers in their booking summaries. Staff retain numbered cabanas and reassignment through the schedule.
+
+The service-only `request_member_experience` RPC allocates a compatible cabana under ordered locks across all three resources, using the same lock keys as explicit staff bookings and moves. It fills a compatible established schedule before anchoring an unused cabana. Duplicate submissions replay the original request, including after staff rescheduling; caller-supplied cabana preferences are ignored. Existing bookings and day anchors are unchanged by this migration.
+
 ## Cabana schedule
 
 Three independent cabanas, 7 am–6 pm, four-hour sessions. The first held request establishes a pair of consecutive sessions for that cabana/date. Half-hour starts from 7–10 am and 11 am–2 pm preserve room for both sessions. For example, a 9 am first request creates 9 am–1 pm and 1–5 pm. A 1 pm first request establishes those same two sessions. The anchor persists through cancellations so the published day does not shift. There is no setup gap between sessions in this version.

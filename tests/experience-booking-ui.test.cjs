@@ -27,6 +27,85 @@ function load(path, imports = {}) {
   return exports;
 }
 const rules = load("lib/bookings/catalogue.ts");
+test("guest form pools cabana availability and keeps physical cabana selection on staff forms", () => {
+  const { BookingForm } = load("components/bookings/booking-form.tsx", {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    react: {
+      useState: (initial) => [initial, () => {}],
+      useActionState: () => [{ error: "", values: {} }, () => {}],
+    },
+    "react-dom": { useFormStatus: () => ({ pending: false }) },
+    "@/lib/bookings/catalogue": rules,
+  });
+  const props = {
+    products: [
+      {
+        code: "cabana_classic",
+        name: "Cabana Classic",
+        price: 80,
+        tax_rate: 0,
+        service_rate: 0,
+        inclusions: [],
+      },
+    ],
+    date: "2026-11-15",
+    days: [{ cabana: 1, first_start: 540 }],
+    occupied: [
+      { cabana: 1, start_minute: 540 },
+      { cabana: 1, start_minute: 780 },
+    ],
+    submissionKey: "request",
+    action: async () => {},
+    now: Date.parse("2026-11-14T12:00:00Z"),
+  };
+  const guest = renderToStaticMarkup(BookingForm(props));
+  assert.doesNotMatch(guest, /name="cabana"|Cabana [123]|Try another cabana/);
+  assert.match(guest, /value="540"/);
+  assert.match(guest, /id="booking-times"/);
+  const staff = renderToStaticMarkup(BookingForm({ ...props, staff: true }));
+  assert.match(staff, /name="cabana"/);
+  assert.match(staff, /Cabana 1/);
+  assert.doesNotMatch(staff, /value="540"/);
+});
+test("date changes navigate automatically without scrolling; Show times is only a section link", () => {
+  const calls = [];
+  const { MemberBooking } = load("components/bookings/member-booking.tsx", {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    react: { useTransition: () => [false, (callback) => callback()] },
+    "next/navigation": {
+      useRouter: () => ({ replace: (...args) => calls.push(args) }),
+    },
+    "./booking-form": { BookingForm: () => null },
+  });
+  const element = MemberBooking({
+    today: "2026-11-14",
+    maxDate: "2027-11-14",
+    dinner: false,
+    date: "2026-11-15",
+  });
+  const elements = [];
+  function walk(node) {
+    if (!node || typeof node !== "object") return;
+    elements.push(node);
+    const children = node.props?.children;
+    for (const child of Array.isArray(children) ? children : [children])
+      walk(child);
+  }
+  walk(element);
+  const input = elements.find((e) => e.type === "input");
+  input.props.onChange({
+    currentTarget: { value: "2026-11-16", validity: { valid: true } },
+  });
+  assert.equal(calls[0][0], "/member/experiences?kind=cabana&date=2026-11-16");
+  assert.equal(calls[0][1].scroll, false);
+  const jump = elements.find((e) => e.type === "a");
+  assert.equal(jump.props.href, "#booking-times");
+  assert.equal(jump.props.onClick, undefined);
+  input.props.onChange({
+    currentTarget: { value: "", validity: { valid: false } },
+  });
+  assert.equal(calls.length, 1);
+});
 test("availability offers two viable sessions and hides held inventory across all three cabanas", () => {
   assert.deepEqual(
     Array.from(rules.cabanaStarts(1, [], [])),
@@ -139,5 +218,6 @@ test("guest booking actions derive identity from the session and return errors w
   assert.equal(result.error, "Slot just booked; choose another");
   assert.equal(call.args.p_actor, "signed-in-user");
   assert.equal(call.args.p_member, "own-member");
-  assert.equal(call.args.p_source, "member");
+  assert.equal(call.name, "request_member_experience");
+  assert.equal(call.args.p_source, undefined);
 });
