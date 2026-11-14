@@ -333,9 +333,10 @@ textarea.oura-input {
   margin-inline: auto;
   padding: 7px 4px;
   border: 1px solid hsl(var(--border));
-  border-radius: 24px;
+  border-radius: 999px;
   background: #fff;
-  box-shadow: 0 8px 28px #17384d12;
+  box-shadow: 0 8px 28px #17384d18, inset 0 1px 0 #ffffffcc;
+  color: #46535d;
 }
 .club-nav-items {
   display: flex;
@@ -353,8 +354,8 @@ textarea.oura-input {
   flex-direction: column;
   gap: 5px;
   padding: 5px 3px;
-  border-radius: 17px;
-  color: #5c6770;
+  border-radius: 999px;
+  color: #46535d;
   font-size: 11px;
   line-height: 1.2;
   font-weight: 500;
@@ -615,23 +616,44 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
 }
 @media (display-mode: standalone) and (max-width: 640px) {
   :root {
-    --club-phone-dock-height: calc(64px + max(7px, env(safe-area-inset-bottom)));
+    --club-phone-dock-height: 72px;
+    --club-phone-dock-gap: max(8px, calc(env(safe-area-inset-bottom) - 8px));
   }
   .club-member-nav,
   .club-staff-nav {
-    left: 0;
-    right: 0;
-    top: calc(100vh - var(--club-phone-dock-height));
+    left: 12px;
+    right: 12px;
+    top: calc(100vh - var(--club-phone-dock-height) - var(--club-phone-dock-gap));
     bottom: auto;
     height: var(--club-phone-dock-height);
-    max-width: none;
-    padding-bottom: max(7px, env(safe-area-inset-bottom));
-    border-bottom: 0;
-    border-radius: 22px 22px 0 0;
-    box-shadow: 0 -4px 24px #17384d0d;
+    max-width: 480px;
+    padding: 7px 4px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 999px;
   }
   .club-member-main {
-    padding-bottom: calc(var(--club-phone-dock-height) + 12px);
+    padding-bottom: calc(var(--club-phone-dock-height) + var(--club-phone-dock-gap) + 12px);
+  }
+}
+/* Keep a solid fallback on browsers without backdrop blur. */
+@supports ((backdrop-filter: blur(18px)) or (-webkit-backdrop-filter: blur(18px))) {
+  .club-member-nav,
+  .club-staff-nav {
+    background: rgb(255 255 255 / 78%);
+    border-color: rgb(255 255 255 / 85%);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  .club-nav-item[aria-current="page"] {
+    background: hsl(var(--secondary) / 72%);
+  }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .club-member-nav,
+  .club-staff-nav {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {
