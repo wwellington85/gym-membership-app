@@ -1,77 +1,201 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  ArrowRight,
+  ScanLine,
+  Search,
+  UserPlus,
+  CalendarCheck,
+  Trophy,
+} from "lucide-react";
 import { requireStaff } from "@/lib/auth/staff";
 export const dynamic = "force-dynamic";
 export default async function DashboardPage() {
   const { admin, staff } = await requireStaff();
   if (staff.role === "security") redirect("/checkins/scan");
   const { data, error } = await admin.rpc("club_overview");
-  const metrics = [
-    [
-      "benefit_uses_30d",
-      "Benefit uses (last 30 days)",
-      staff.role === "admin" ? "/settings/programme-log" : "/members",
-    ],
-    [
-      "returning_benefit_members",
-      "Members using benefits on multiple days (30 days)",
-      "/members",
-    ],
-    ["members", "Active Rewards members", "/members"],
-    ["access", "Members with access valid now", "/members?filter=access"],
-    ["rewards_only", "Rewards only", "/members?filter=rewards"],
-    ["visits_today", "Club visits today", "/checkins"],
-    ["pending_requests", "Requests to review", "/applications"],
-    ["pending_payments", "Pending payments", "/payments?status=pending"],
-    [
-      "activation_review",
-      "Paid — activation needs review",
-      "/payments?status=needs_review",
-    ],
-  ];
+  const metric = (key: string) => (error ? "—" : (data?.[key] ?? 0));
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl font-semibold">Club overview</h1>
-      <p className="text-sm text-muted-foreground">
-        Rewards membership and facility access are separate. Valid access
-        includes passes ending soon.
-      </p>
-      <div className="flex flex-wrap gap-3">
-        <Link href="/checkins/scan" className="rounded border bg-secondary p-3">
-          Verify member
-        </Link>
-        <Link href="/members" className="rounded border p-3">
-          Find member
-        </Link>
-        <Link href="/checkins/rankings" className="rounded border p-3">
-          Club rankings
-        </Link>
-        <Link href="/applications" className="rounded border p-3">
-          Review requests
-        </Link>
-      </div>
-      {error ? (
-        <p role="alert">
-          We could not load the overview. Service tools remain available above.
+    <div className="space-y-6" data-club-staff-ready>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="club-eyebrow">
+            {staff.role === "admin" ? "Management" : "Front desk"}
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold">
+            {staff.role === "admin" ? "Club overview" : "Member service"}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Check in a member, verify their access, or help with their
+            membership.
+          </p>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString("en-GB", {
+            timeZone: "America/Jamaica",
+            weekday: "long",
+            day: "numeric",
+            month: "short",
+          })}
         </p>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {metrics.map(([key, label, href]) => (
-            <Link key={key} href={href} className="rounded border p-4">
-              <h2 className="text-sm text-muted-foreground">{label}</h2>
-              <p className="mt-3 text-3xl font-semibold">{data?.[key] ?? 0}</p>
+      </header>
+      <section
+        className="club-staff-service"
+        aria-labelledby="staff-service-heading"
+      >
+        <div>
+          <h2 id="staff-service-heading" className="text-lg font-semibold">
+            Ready for the next member
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Scan their card to check access and record a Club visit.
+          </p>
+          <Link href="/checkins/scan" className="club-button mt-4">
+            <ScanLine size={20} aria-hidden="true" /> Check in / verify member
+          </Link>
+        </div>
+        <form action="/members" className="space-y-2">
+          <label
+            htmlFor="staff-member-search"
+            className="block text-sm font-semibold"
+          >
+            Find a member
+          </label>
+          <p
+            id="staff-member-search-help"
+            className="text-xs text-muted-foreground"
+          >
+            Search by name, email, phone or membership number.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              id="staff-member-search"
+              name="q"
+              type="search"
+              className="oura-input min-w-0 flex-1 px-3 py-2"
+              placeholder="Name or membership number"
+              aria-describedby="staff-member-search-help"
+              required
+            />
+            <button className="club-button-secondary">
+              <Search size={18} aria-hidden="true" /> Search
+            </button>
+          </div>
+        </form>
+      </section>
+      <nav
+        aria-label="Member service shortcuts"
+        className="flex flex-wrap gap-3"
+      >
+        {[
+          ["/members/new", "Register member", UserPlus],
+          ["/checkins", "Visit history", CalendarCheck],
+          ["/checkins/rankings", "Club rankings", Trophy],
+        ].map(([href, label, Icon]) => {
+          const ShortcutIcon = Icon as typeof UserPlus;
+          return (
+            <Link
+              key={String(href)}
+              href={String(href)}
+              className="club-button-secondary"
+            >
+              <ShortcutIcon size={18} aria-hidden="true" />
+              {String(label)}
+            </Link>
+          );
+        })}
+      </nav>
+      {error && (
+        <p role="alert" className="oura-alert-warning">
+          Summary counts are temporarily unavailable. Member service tools
+          remain available above.
+        </p>
+      )}
+      <section className="space-y-3" aria-labelledby="staff-attention-heading">
+        <h2 id="staff-attention-heading" className="text-lg font-semibold">
+          Needs attention
+        </h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            [
+              "pending_requests",
+              "Membership requests",
+              "Review requests",
+              "/applications",
+            ],
+            [
+              "activation_review",
+              "Paid access to review",
+              "Review activation",
+              "/payments?status=needs_review",
+            ],
+          ].map(([key, label, action, href]) => (
+            <Link key={key} href={href} className="club-staff-attention">
+              <div>
+                <p className="text-sm font-medium">{label}</p>
+                <p className="mt-1 text-2xl font-semibold tabular-nums">
+                  {metric(key)}
+                </p>
+              </div>
+              <span className="club-text-link text-sm">
+                {action}
+                <ArrowRight size={16} aria-hidden="true" />
+              </span>
             </Link>
           ))}
         </div>
-      )}
-      <section className="rounded border p-4 text-sm">
-        <h2 className="font-semibold">Programme reporting</h2>
-        <p className="mt-2 text-muted-foreground">
-          These are operational counts, not proof of repeat hotel business.
-          Benefit-use and booking attribution require a defined programme and
-          connected booking/outlet data.
-        </p>
       </section>
+      <section className="space-y-3" aria-labelledby="staff-today-heading">
+        <h2 id="staff-today-heading" className="text-lg font-semibold">
+          Club at a glance
+        </h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            ["visits_today", "Visits today", "/checkins"],
+            ["members", "Active members", "/members"],
+            ["access", "With facility access", "/members?filter=access"],
+            ["rewards_only", "Rewards only", "/members?filter=rewards"],
+          ].map(([key, label, href]) => (
+            <Link key={key} href={href} className="rounded-xl border p-4">
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <p className="mt-2 text-2xl font-semibold tabular-nums">
+                {metric(key)}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <details className="rounded-xl border p-4">
+        <summary className="cursor-pointer font-semibold">
+          Programme activity
+        </summary>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {[
+            ["benefit_uses_30d", "Benefit uses · last 30 days"],
+            [
+              "returning_benefit_members",
+              "Members using benefits on multiple days · last 30 days",
+            ],
+            ["pending_payments", "Pending checkout attempts"],
+          ].map(([key, label]) => (
+            <div key={key}>
+              <p className="text-sm text-muted-foreground">{label}</p>
+              <p className="mt-2 text-xl font-semibold tabular-nums">
+                {metric(key)}
+              </p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-muted-foreground">
+          Pending checkout attempts are not confirmed payments.
+        </p>
+        <Link
+          href="/payments?status=pending"
+          className="club-text-link mt-3 text-sm"
+        >
+          View payment attempts <ArrowRight size={16} aria-hidden="true" />
+        </Link>
+      </details>
     </div>
   );
 }

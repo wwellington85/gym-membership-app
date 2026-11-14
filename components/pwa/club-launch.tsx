@@ -4,7 +4,13 @@ import { usePathname } from "next/navigation";
 
 export function ClubLaunch() {
   const pathname = usePathname();
-  const eligible = pathname === "/member";
+  const eligible = [
+    "/",
+    "/app",
+    "/member",
+    "/dashboard",
+    "/checkins/scan",
+  ].includes(pathname);
   const [phase, setPhase] = useState<"holding" | "leaving" | "hidden">(
     "holding",
   );
@@ -38,7 +44,12 @@ export function ClubLaunch() {
       }
     };
     const ready = async () => {
-      if (preparing || !document.querySelector("[data-club-home-ready]"))
+      if (
+        preparing ||
+        !document.querySelector(
+          "[data-club-home-ready], [data-club-staff-ready], [data-club-entry-ready]",
+        )
+      )
         return;
       preparing = true;
       observer.disconnect();

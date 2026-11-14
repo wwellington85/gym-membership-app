@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Travellers Club",
     description:
       "Membership, rewards, and facility access for Travellers Beach Resort.",
-    start_url: "/",
+    start_url: "/app",
     scope: "/",
     display: "standalone",
     background_color: "#ffffff",

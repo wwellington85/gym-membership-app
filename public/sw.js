@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-floating-glass-nav-v1";
+const CACHE_NAME = "tbr-static-fast-entry-v1";
 
 function isStaticAsset(requestUrl, request) {
   return (
