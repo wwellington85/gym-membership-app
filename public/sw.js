@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-fast-entry-v1";
+const CACHE_NAME = "tbr-static-stable-brand-v1";
 
 function isStaticAsset(requestUrl, request) {
   return (

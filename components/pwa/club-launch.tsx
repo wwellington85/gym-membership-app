@@ -98,6 +98,8 @@ export function ClubLaunch() {
         {/* Inline the selected mark so it paints with the title on a cold launch. */}
         <svg
           className="club-launch-emblem"
+          width="100"
+          height="100"
           viewBox="0 0 1024 1024"
           focusable="false"
           aria-hidden="true"
@@ -147,7 +149,7 @@ export function ClubLaunch() {
             mask="url(#club-launch-c-cut)"
           />
         </svg>
-        <span>TRAVELLERS CLUB</span>
+        <span className="club-launch-title">TRAVELLERS CLUB</span>
       </div>
     </div>
   );
