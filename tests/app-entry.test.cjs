@@ -121,6 +121,17 @@ async function dashboard(role, error = false) {
       requireStaff: async () => ({
         staff: { role },
         admin: {
+          from: (table) => {
+            assert.equal(table, "experience_bookings");
+            return {
+              select: () => ({
+                eq: async () => ({
+                  count: 3,
+                  error: error ? { message: "offline" } : null,
+                }),
+              }),
+            };
+          },
           rpc: async () => ({
             data: { pending_requests: 2, pending_payments: 74 },
             error: error ? { message: "offline" } : null,

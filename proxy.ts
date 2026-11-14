@@ -13,6 +13,7 @@ const STAFF_PREFIXES = [
   "/settings",
   "/more",
   "/rewards",
+  "/bookings",
 ];
 
 function isStaffPath(pathname: string) {
@@ -37,6 +38,8 @@ function roleAllowsPath(role: Role, pathname: string) {
   }
 
   if (role === "front_desk" || role === "supervisor") {
+    if (pathname === "/bookings" || pathname.startsWith("/bookings/"))
+      return true;
     if (pathname === "/rewards" || pathname.startsWith("/rewards/"))
       return true;
     return (
@@ -186,5 +189,6 @@ export const config = {
     "/settings/:path*",
     "/more/:path*",
     "/rewards/:path*",
+    "/bookings/:path*",
   ],
 };

@@ -32,6 +32,7 @@ export function StaffSidebar({
           { href: "/checkins/rankings", label: "Club rankings", icon: Trophy },
           { href: "/rewards/redeem", label: "Redeem reward", icon: Gift },
           { href: "/applications", label: "Requests", icon: Inbox },
+          { href: "/bookings", label: "Cabanas & dinner", icon: CalendarCheck },
           { href: "/payments", label: "Payments", icon: Receipt },
         ]
       : []),
