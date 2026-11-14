@@ -71,8 +71,13 @@ export async function changeMemberPlanAction(formData: FormData) {
     p_key: key,
   });
   if (error) {
-    console.error("Staff access grant failed", { code: error.code, message: error.message });
-    fail("Access was not saved. Refresh the record before retrying. If this continues, contact the administrator.");
+    console.error("Staff access grant failed", {
+      code: error.code,
+      message: error.message,
+    });
+    fail(
+      "Access was not saved. Refresh the record before retrying. If this continues, contact the administrator.",
+    );
   }
   redirect(`/members/${memberId}?saved=1`);
 }
@@ -335,4 +340,30 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
   }
 
   redirect(`/members/${memberId}?member_reset=sent`);
+}
+
+export async function setLocalRewardsAction(formData: FormData) {
+  const { admin, user } = await requireStaff(["admin", "front_desk"]);
+  const memberId = String(formData.get("member_id") || "");
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      memberId,
+    )
+  )
+    redirect("/members");
+  const active = String(formData.get("active"));
+  const reason = String(formData.get("reason") || "").trim();
+  if (!["1", "0"].includes(active) || reason.length < 3 || reason.length > 500)
+    redirect(
+      `/members/${memberId}?err=Give%20a%20reason%20between%203%20and%20500%20characters.`,
+    );
+  const { error } = await admin.rpc("set_local_rewards", {
+    p_member_id: memberId,
+    p_active: active === "1",
+    p_staff_id: user.id,
+    p_reason: reason,
+  });
+  redirect(
+    `/members/${memberId}?${error ? "err=Local%20Rewards%20could%20not%20be%20updated.%20Check%20the%20member%20is%20active%20and%20try%20again." : "saved=1"}`,
+  );
 }

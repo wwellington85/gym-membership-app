@@ -2,7 +2,11 @@ import Link from "next/link";
 import { randomUUID } from "crypto";
 import { notFound, redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
-import { loadAccess, loadCatalogue } from "@/lib/access/server";
+import {
+  loadAccess,
+  loadCatalogue,
+  loadLocalRewards,
+} from "@/lib/access/server";
 import {
   formatMemberNumber,
   facilities,
@@ -11,6 +15,7 @@ import {
 import { jamaicaTodayYmd } from "@/lib/membership/status";
 import { ChangePlanForm } from "./ChangePlanForm";
 import {
+  setLocalRewardsAction,
   changeMemberPlanAction,
   setMemberActiveAction,
   updateMemberContactAction,
@@ -33,6 +38,7 @@ export default async function MemberProfile({
     .eq("id", memberId)
     .maybeSingle();
   if (error || !member) notFound();
+  const localRewards = await loadLocalRewards(member.id);
   const [access, catalogue, sp, ranking, points] = await Promise.all([
     loadAccess(member.id, member.is_active),
     loadCatalogue(true),
@@ -78,7 +84,7 @@ export default async function MemberProfile({
         <h1 className="text-2xl font-semibold">{member.full_name}</h1>
         <p className="mt-2 text-sm">
           {member.is_active
-            ? "Rewards membership active"
+            ? "Club account active"
             : "Membership inactive — benefits and access blocked"}
         </p>
         <p className="mt-2 break-all font-mono text-xs">
@@ -160,6 +166,59 @@ export default async function MemberProfile({
           </button>
         </form>
       </div>
+      <section className="oura-card space-y-3 p-4">
+        <h2 className="font-semibold">Local Rewards</h2>
+        <p className="text-sm">
+          {localRewards?.is_active
+            ? "Approved · base outlet discounts enabled"
+            : "Free account · no Local Rewards discounts"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          For selected local residents, workers and community partners. Approval
+          does not grant facility access. Paid pass benefits remain separate.
+        </p>
+        {localRewards && (
+          <p className="text-sm text-muted-foreground">
+            Last updated{" "}
+            {new Date(localRewards.updated_at).toLocaleDateString("en-GB", {
+              timeZone: "America/Jamaica",
+            })}{" "}
+            · {localRewards.reason}
+          </p>
+        )}
+        <details>
+          <summary className="cursor-pointer py-2 text-sm underline">
+            {localRewards?.is_active
+              ? "Remove Local Rewards"
+              : "Activate Local Rewards"}
+          </summary>
+          <form action={setLocalRewardsAction} className="mt-2 space-y-3">
+            <input type="hidden" name="member_id" value={member.id} />
+            <input
+              type="hidden"
+              name="active"
+              value={localRewards?.is_active ? "0" : "1"}
+            />
+            <label className="block text-sm" htmlFor="local-rewards-reason">
+              Reason for {localRewards?.is_active ? "removal" : "approval"}
+            </label>
+            <textarea
+              id="local-rewards-reason"
+              name="reason"
+              required
+              minLength={3}
+              maxLength={500}
+              className="oura-input w-full p-3"
+              placeholder="For example: local resident, eligibility confirmed at front desk"
+            />
+            <button className="club-button-secondary">
+              {localRewards?.is_active
+                ? "Remove discounts"
+                : "Approve Local Rewards"}
+            </button>
+          </form>
+        </details>
+      </section>
       <section className="space-y-3">
         <h2 className="font-semibold">Access passes</h2>
         {!access.passes.length && (

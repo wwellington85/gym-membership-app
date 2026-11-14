@@ -17,7 +17,6 @@ export default async function HomePage() {
   } catch {
     /* Sign-in stays available during a catalogue outage. */
   }
-  const rewards = plans.find((plan) => plan.code === "rewards_free");
   return (
     <main
       id="main-content"
@@ -46,8 +45,8 @@ export default async function HomePage() {
               every visit.
             </h1>
             <p className="mt-4 text-base text-muted-foreground">
-              Your free Rewards membership, hotel benefits, and optional gym &
-              resort access. All in one place.
+              Your free account, Club visits, and optional weekly and monthly
+              gym & resort plans. All in one place.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/join" className="club-button">
@@ -80,23 +79,12 @@ export default async function HomePage() {
         <section className="grid gap-5 border-y py-7 sm:grid-cols-2">
           <div>
             <Gift className="text-primary" size={23} aria-hidden="true" />
-            <h2 className="mt-3 text-lg font-semibold">
-              Benefits between visits
-            </h2>
+            <h2 className="mt-3 text-lg font-semibold">A place in the Club</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              Your free membership stays with you. Show your digital card at
-              participating outlets.
+              Join free for your digital card and visit history. Local Rewards
+              discounts are approved by staff for selected community members.
+              Discounts and facility access are not included with free signup.
             </p>
-            {rewards && (
-              <p className="mt-3 text-sm">
-                Restaurant & bar{" "}
-                {Math.round(Number(rewards.discount_food ?? 0) * 100)}% · Spa{" "}
-                {Math.round(Number(rewards.discount_spa ?? 0) * 100)}% · Gift
-                shop {Math.round(Number(rewards.discount_giftshop ?? 0) * 100)}%
-                · Watersports{" "}
-                {Math.round(Number(rewards.discount_watersports ?? 0) * 100)}%
-              </p>
-            )}
           </div>
           <div>
             <Dumbbell className="text-primary" size={23} aria-hidden="true" />

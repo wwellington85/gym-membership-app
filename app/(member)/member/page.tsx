@@ -1,3 +1,4 @@
+import { UpgradeOptions } from "@/components/member/upgrade-options";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CreditCard } from "lucide-react";
@@ -22,6 +23,8 @@ export default async function MemberHome() {
     catalogue.find((plan) => plan.code === "rewards_free"),
     access.passes,
     member.is_active,
+    new Date(),
+    member.local_rewards,
   );
   const included = [
     ...new Set(
@@ -54,7 +57,8 @@ export default async function MemberHome() {
           <div>
             <p className="club-eyebrow">Your membership</p>
             <h2 className="mt-1 font-semibold">
-              {access.best?.plan_snapshot.name || "Rewards membership"}
+              {access.best?.plan_snapshot.name ||
+                (member.local_rewards ? "Local Rewards" : "Free account")}
             </h2>
           </div>
           <span className={member.is_active ? "club-status" : "text-sm"}>
@@ -65,7 +69,9 @@ export default async function MemberHome() {
           {member.is_active
             ? access.best
               ? `Facility access until ${membershipDate(access.best.paid_through_date)} · 10 pm Jamaica time`
-              : "Free Rewards benefits. Facility passes are available separately."
+              : member.local_rewards
+                ? "Local Rewards discounts are active. Facility passes are available separately."
+                : "Your free account includes your digital card and Club visit history. Discounts and facility access are separate."
             : "Please speak with the front desk."}
         </p>
         <div className="flex flex-wrap items-center gap-4">
@@ -163,6 +169,12 @@ export default async function MemberHome() {
           </p>
         </section>
       )}
+      <UpgradeOptions
+        catalogue={catalogue}
+        benefits={benefits}
+        active={member.is_active}
+        localRewards={member.local_rewards}
+      />
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Enjoy Travellers</h2>
         <p className="text-sm text-muted-foreground">

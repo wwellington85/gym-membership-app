@@ -102,8 +102,9 @@ export function RewardsSignup() {
         </p>
       </div>
       <p className="text-sm text-muted-foreground">
-        Rewards is free. Gym and resort access are optional purchases, with
-        their own dates and facility waiver.
+        Your account is free. Discounts are available through approved Local
+        Rewards or qualifying paid plans. Gym and resort access are optional
+        purchases with their own dates and facility waiver.
       </p>
       {error && (
         <p role="alert" className="oura-alert-danger">
@@ -114,7 +115,7 @@ export function RewardsSignup() {
         disabled={busy}
         className="w-full rounded border bg-primary text-primary-foreground px-4 py-3 font-medium disabled:opacity-50"
       >
-        {busy ? "Creating account…" : "Join Rewards free"}
+        {busy ? "Creating account…" : "Create free account"}
       </button>
       <p className="text-sm">
         Already a member?{" "}

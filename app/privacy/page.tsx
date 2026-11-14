@@ -31,8 +31,8 @@ export default function PrivacyPage() {
             We use your name, email, account identifier, and any contact or
             profile details you provide to manage your membership. We also keep
             membership and pass details, purchase and payment references,
-            facility-waiver records, verified property visits, recorded benefit use,
-            and staff activity relating to your account.
+            facility-waiver records, verified property visits, recorded benefit
+            use, and staff activity relating to your account.
           </p>
           <p>
             Authentication cookies and browser storage keep you signed in.
@@ -86,8 +86,8 @@ export default function PrivacyPage() {
           <p>
             Records are retained for membership administration, transaction
             reconciliation, security, and applicable recordkeeping obligations.
-            An expired access pass does not automatically delete your free
-            Rewards membership or visit history.
+            An expired access pass does not automatically delete your free Club
+            account or visit history.
           </p>
           <p>
             You can update your name and optional phone number in My account.

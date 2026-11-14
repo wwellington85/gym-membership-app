@@ -1,3 +1,4 @@
+import { UpgradeOptions } from "@/components/member/upgrade-options";
 import Link from "next/link";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
 import { effectiveBenefits } from "@/lib/access/benefits";
@@ -10,8 +11,14 @@ export default async function BenefitsPage() {
     loadCatalogue(),
   ]);
   const free = catalogue.find((p) => p.code === "rewards_free");
-  const benefits = effectiveBenefits(free, access.passes, member.is_active);
-  const ids = free ? [free.id] : [];
+  const benefits = effectiveBenefits(
+    free,
+    access.passes,
+    member.is_active,
+    new Date(),
+    member.local_rewards,
+  );
+  const ids = free && member.local_rewards ? [free.id] : [];
   const { data: currentExtras, error } = ids.length
     ? await admin
         .from("membership_plan_benefits")
@@ -39,9 +46,9 @@ export default async function BenefitsPage() {
         View recorded benefit activity
       </Link>
       <p className="text-sm text-muted-foreground">
-        Your Rewards benefits continue between visits. Any enhanced pass
-        discounts apply only during its valid period. Discounts do not add
-        together.
+        Your free account stays with you. Local Rewards discounts require staff
+        approval. Paid plan discounts apply only during valid pass dates.
+        Discounts do not add together.
       </p>
       {!member.is_active ? (
         <p role="alert" className="oura-alert-warning">
@@ -52,10 +59,7 @@ export default async function BenefitsPage() {
         <>
           <section className="divide-y divide-border">
             {benefits.map((benefit) => (
-              <div
-                key={benefit.key}
-                className="club-rule-row"
-              >
+              <div key={benefit.key} className="club-rule-row">
                 <span>{benefit.label}</span>
                 <strong className="shrink-0 text-2xl font-semibold tabular-nums">
                   {benefit.percent}% off
@@ -87,15 +91,25 @@ export default async function BenefitsPage() {
               before ordering. Ask the front desk to resolve a benefit
               discrepancy.
             </p>
-            <Link
-              href="/member/card"
-              className="club-button mt-3"
-            >
+            <Link href="/member/card" className="club-button mt-3">
               Show my card
             </Link>
           </div>
         </>
       )}
+      {member.is_active && !member.local_rewards && (
+        <p className="oura-card p-4 text-sm">
+          Local Rewards is available to selected members of our local community.
+          Ask the front desk about eligibility. A free account does not include
+          outlet discounts or facility access.
+        </p>
+      )}
+      <UpgradeOptions
+        catalogue={catalogue}
+        benefits={benefits}
+        active={member.is_active}
+        localRewards={member.local_rewards}
+      />
       <div className="text-sm">
         <h2 className="font-semibold">Gym & resort facilities</h2>
         <p className="mt-2 text-muted-foreground">

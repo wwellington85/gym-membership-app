@@ -19,8 +19,8 @@ export default async function AccessPage({
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Gym & resort access</h1>
       <p className="text-sm text-muted-foreground">
-        Optional passes alongside your free Rewards membership. Staying at the
-        hotel? Ask the front desk what your room booking includes before buying.
+        Optional passes alongside your free Club account. Staying at the hotel?
+        Ask the front desk what your room booking includes before buying.
       </p>
       {sp.err && (
         <p role="alert" className="oura-alert-danger">
@@ -34,7 +34,7 @@ export default async function AccessPage({
         <h2 className="font-semibold">My passes</h2>
         {access.passes.length === 0 && (
           <p className="text-sm text-muted-foreground">
-            No passes yet. Your free Rewards benefits remain available.
+            No passes yet. You can explore weekly, monthly or day passes below.
           </p>
         )}
         {access.passes.map((p) => (
@@ -60,8 +60,7 @@ export default async function AccessPage({
               passIsActive(p) &&
               p.paid_through_date <= addDaysYmd(jamaicaTodayYmd(), 3) && (
                 <p className="text-sm font-medium">
-                  This pass ends soon. Your free Rewards membership will
-                  continue.
+                  This pass ends soon. Your free Club account will continue.
                 </p>
               )}
             {member.is_active && p.status === "active" && (
@@ -96,8 +95,9 @@ export default async function AccessPage({
               </p>
               {p.code === "gym_day" && (
                 <p className="text-sm text-muted-foreground">
-                  Gym only; other resort facilities are not included. Standard
-                  Rewards discounts continue.
+                  Gym only; other resort facilities are not included. Outlet
+                  discounts are shown below. Local Rewards requires staff
+                  approval.
                 </p>
               )}
               <div className="text-sm text-muted-foreground">

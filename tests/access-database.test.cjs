@@ -405,3 +405,135 @@ test("ranking RPCs return correct all-time/monthly counts and are server-only", 
     assert.equal((await db.query(`SELECT has_function_privilege('service_role','public.member_leaderboard_summary(uuid,text)','EXECUTE') AS allowed`)).rows[0].allowed,true);
   } finally { await db.close(); }
 });
+
+test("Local Rewards preserves existing benefits, defaults new accounts to none, and protects approval and redemptions", async () => {
+  const db = await fixture();
+  try {
+    await db.exec(
+      readFileSync(
+        "supabase/migrations/20261114140000_selective_local_rewards.sql",
+        "utf8",
+      ),
+    );
+    assert.equal(
+      Number(
+        (await db.query("SELECT count(*) FROM local_rewards WHERE is_active"))
+          .rows[0].count,
+      ),
+      2,
+    );
+    await db.query("INSERT INTO members(id,full_name) VALUES($1,$2)", [
+      id(3),
+      "New Free Member",
+    ]);
+    assert.equal(
+      Number(
+        (
+          await db.query(
+            "SELECT count(*) FROM local_rewards WHERE member_id=$1",
+            [id(3)],
+          )
+        ).rows[0].count,
+      ),
+      0,
+    );
+    const redeem = (member, key) =>
+      db.query("SELECT record_benefit_use($1,'restaurant',$2,$3,$4)", [
+        member,
+        key,
+        id(30),
+        key,
+      ]);
+    await redeem(id(1), id(71));
+    await assert.rejects(redeem(id(3), id(72)), /No eligible discount/);
+    const approve = (
+      member,
+      active,
+      staff = id(30),
+      reason = "Local resident verified",
+    ) =>
+      db.query("SELECT set_local_rewards($1,$2,$3,$4)", [
+        member,
+        active,
+        staff,
+        reason,
+      ]);
+    await assert.rejects(approve(id(3), true, id(31)), /Not authorised/);
+    await assert.rejects(approve(id(3), true, id(32)), /Not authorised/);
+    await assert.rejects(approve(id(3), true, id(30), ""), /reason/);
+    await db.query("INSERT INTO staff_profiles VALUES($1,'front_desk',true)", [
+      id(33),
+    ]);
+    await approve(id(3), true, id(33));
+    await redeem(id(3), id(73));
+    assert.equal(
+      Number(
+        (
+          await db.query(
+            "SELECT discount_percent FROM benefit_uses WHERE submission_key=$1",
+            [id(73)],
+          )
+        ).rows[0].discount_percent,
+      ),
+      5,
+    );
+    await approve(id(3), false, id(33), "Eligibility review removed");
+    await assert.rejects(redeem(id(3), id(74)), /No eligible discount/);
+    // A paid pass supplies discounts independently of Local Rewards approval.
+    await db.query(
+      `INSERT INTO access_passes(member_id,plan_id,start_date,paid_through_date,plan_snapshot,status,source) SELECT $1,id,'2026-11-12','2026-11-12',to_jsonb(p),'active','staff' FROM membership_plans p WHERE code='club_day'`,
+      [id(3)],
+    );
+    await redeem(id(3), id(75));
+    assert.equal(
+      Number(
+        (
+          await db.query(
+            "SELECT discount_percent FROM benefit_uses WHERE submission_key=$1",
+            [id(75)],
+          )
+        ).rows[0].discount_percent,
+      ),
+      10,
+    );
+    await db.query("UPDATE members SET is_active=false WHERE id=$1", [id(3)]);
+    await assert.rejects(approve(id(3), true), /inactive/);
+    await assert.rejects(redeem(id(3), id(76)), /Invalid member/);
+    for (const role of ["anon", "authenticated"]) {
+      assert.equal(
+        (
+          await db.query(
+            "SELECT has_function_privilege($1,'set_local_rewards(uuid,boolean,uuid,text)','execute') AS allowed",
+            [role],
+          )
+        ).rows[0].allowed,
+        false,
+      );
+      assert.equal(
+        (
+          await db.query(
+            "SELECT has_table_privilege($1,'local_rewards','insert,update,select') AS allowed",
+            [role],
+          )
+        ).rows[0].allowed,
+        false,
+      );
+    }
+    assert.equal(
+      Number(
+        (
+          await db.query(
+            "SELECT count(*) FROM club_audit_events WHERE action IN ('local_rewards_approved','local_rewards_removed')",
+          )
+        ).rows[0].count,
+      ),
+      2,
+    );
+    assert.equal(
+      Number((await db.query("SELECT count(*) FROM checkins")).rows[0].count),
+      0,
+    );
+  } finally {
+    await db.close();
+  }
+});

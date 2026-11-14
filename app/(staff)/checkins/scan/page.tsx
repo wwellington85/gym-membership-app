@@ -3,7 +3,11 @@ import Link from "next/link";
 import { randomUUID } from "crypto";
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
-import { loadAccess, loadCatalogue } from "@/lib/access/server";
+import {
+  loadAccess,
+  loadCatalogue,
+  loadLocalRewards,
+} from "@/lib/access/server";
 import {
   memberIdFromNumber,
   normalizeMemberNumber,
@@ -95,11 +99,14 @@ export default async function ScanPage({
     : { data: null };
   const access = member ? await loadAccess(member.id, member.is_active) : null;
   const catalogue = member ? await loadCatalogue() : [];
+  const localRewards = member ? await loadLocalRewards(member.id) : null;
   const free = catalogue.find((p) => p.code === "rewards_free");
   const benefits = effectiveBenefits(
     free,
     access?.passes ?? [],
     member?.is_active ?? false,
+    new Date(),
+    localRewards?.is_active === true,
   );
   return (
     <div className="space-y-4" data-club-staff-ready>
@@ -149,7 +156,9 @@ export default async function ScanPage({
           </p>
           <p>
             {member.is_active
-              ? "Rewards membership active"
+              ? localRewards?.is_active
+                ? "Local Rewards active"
+                : "Free account · no Local Rewards discounts"
               : "Member inactive — refer to front desk"}
           </p>
           <div className="rounded border p-3">
