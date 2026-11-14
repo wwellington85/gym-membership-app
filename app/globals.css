@@ -592,17 +592,19 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
     padding-inline: 8px;
   }
 }
-/* Installed apps have no browser toolbar. Fill their current viewport and
-   reserve the system safe areas once, instead of a small Safari viewport. */
+/* Installed WebKit apps can undercount dvh/svh with viewport-fit=cover.
+   Use the full vh canvas and anchor the phone dock to that same height.
+   https://www2.webkit.org/show_bug.cgi?id=254868 */
 @media (display-mode: standalone) {
   html,
   body {
     height: 100%;
-    min-height: 100dvh;
+    min-height: 100vh;
   }
   .club-member-main,
-  .club-auth-main {
-    height: 100dvh;
+  .club-auth-main,
+  .club-staff-main {
+    height: 100vh;
   }
   .club-member-main {
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
@@ -611,14 +613,17 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
     padding-top: calc(28px + env(safe-area-inset-top));
   }
 }
-/* Installed phone apps can use the bottom edge; keep gesture clearance
-   inside the dock rather than leaving an empty gap below a floating pill. */
 @media (display-mode: standalone) and (max-width: 640px) {
+  :root {
+    --club-phone-dock-height: calc(64px + max(7px, env(safe-area-inset-bottom)));
+  }
   .club-member-nav,
   .club-staff-nav {
     left: 0;
     right: 0;
-    bottom: 0;
+    top: calc(100vh - var(--club-phone-dock-height));
+    bottom: auto;
+    height: var(--club-phone-dock-height);
     max-width: none;
     padding-bottom: max(7px, env(safe-area-inset-bottom));
     border-bottom: 0;
@@ -626,7 +631,7 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
     box-shadow: 0 -4px 24px #17384d0d;
   }
   .club-member-main {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--club-phone-dock-height) + 12px);
   }
 }
 @media (prefers-reduced-motion: reduce) {
