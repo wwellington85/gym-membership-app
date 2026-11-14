@@ -3,11 +3,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { House, Dumbbell, CreditCard, Gift, UserRound } from "lucide-react";
+import { House, CreditCard, Gift, UserRound } from "lucide-react";
 import { memberTab } from "@/lib/member/navigation";
 const tabs = [
   { href: "/member", label: "Home", icon: House },
-  { href: "/member/gym", label: "Gym", icon: Dumbbell },
   { href: "/member/card", label: "Card", icon: CreditCard },
   { href: "/member/benefits", label: "Benefits", icon: Gift },
   { href: "/member/settings", label: "Account", icon: UserRound },

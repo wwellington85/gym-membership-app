@@ -123,7 +123,7 @@ export default async function AccessPage({
         className="inline-block py-2 text-sm underline"
         href="/member/check-ins"
       >
-        Gym visit history
+        Club visit history
       </Link>
     </div>
   );

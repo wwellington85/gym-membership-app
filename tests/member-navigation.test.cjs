@@ -49,7 +49,7 @@ const pass = {
   },
 };
 
-test("active gym access opens Gym for paid and complimentary members", () => {
+test("active gym access opens Club Home for paid and complimentary members", () => {
   for (const price of [95, 0])
     assert.equal(
       navigation.memberStartPath(
@@ -58,7 +58,7 @@ test("active gym access opens Gym for paid and complimentary members", () => {
         true,
         now,
       ),
-      "/member/gym",
+      "/member",
     );
 });
 test("resort access, expired, future, revoked and inactive memberships default to Home", () => {
@@ -88,19 +88,19 @@ test("resort access, expired, future, revoked and inactive memberships default t
     "/member",
   );
 });
-test("explicit display preferences override access without altering passes", () => {
+test("legacy display preferences open Home without altering passes", () => {
   assert.equal(
     navigation.memberStartPath("home", [pass], true, now),
     "/member",
   );
   assert.equal(
     navigation.memberStartPath("gym", [], false, now),
-    "/member/gym",
+    "/member",
   );
   assert.equal(navigation.startScreenPreference("https://example.com"), "auto");
   assert.equal(pass.status, "active");
 });
-test("automatic Gym default ends at the Jamaica access cutoff", () => {
+test("Club Home remains the default across the Jamaica access cutoff", () => {
   const daily = {
     ...pass,
     start_date: "2026-11-12",
@@ -114,7 +114,7 @@ test("automatic Gym default ends at the Jamaica access cutoff", () => {
       true,
       new Date("2026-11-13T02:59:00Z"),
     ),
-    "/member/gym",
+    "/member",
   );
   assert.equal(
     navigation.memberStartPath(
@@ -128,8 +128,8 @@ test("automatic Gym default ends at the Jamaica access cutoff", () => {
 });
 test("secondary screens have stable parents and the correct active tab", () => {
   for (const path of ["/member/check-ins", "/member/leaderboard"]) {
-    assert.equal(navigation.memberPageParent(path).href, "/member/gym");
-    assert.equal(navigation.memberTab(path), "/member/gym");
+    assert.equal(navigation.memberPageParent(path).href, "/member");
+    assert.equal(navigation.memberTab(path), "/member");
   }
   assert.equal(
     navigation.memberPageParent("/member/activity").href,
@@ -141,7 +141,7 @@ test("secondary screens have stable parents and the correct active tab", () => {
   );
   for (const path of [
     "/member",
-    "/member/gym",
+    "/member",
     "/member/card",
     "/member/benefits",
     "/member/settings",
@@ -197,8 +197,8 @@ async function redirected(fn) {
 test("starting screen uses the preference and avoids loading access for explicit choices", async () => {
   for (const [preference, expected] of [
     ["home", "/member"],
-    ["gym", "/member/gym"],
-    ["auto", "/member/gym"],
+    ["gym", "/member"],
+    ["auto", "/member"],
   ]) {
     let lookups = 0;
     const Page = load("app/(member)/member/start/page.tsx", {
@@ -339,42 +339,9 @@ test("gym summary uses only member-filtered visits and reports unavailable data 
   );
 });
 
-test("former gym members can still see their achievements and reach history and rankings", async () => {
-  const React = require("react");
-  const { renderToStaticMarkup } = require("react-dom/server");
-  const Page = load("app/(member)/member/gym/page.tsx", {
-    "@/lib/format/date": load("lib/format/date.ts"),
-    "react/jsx-runtime": require("react/jsx-runtime"),
-    "next/link": {
-      default: ({ children, ...props }) =>
-        React.createElement("a", props, children),
-    },
-    "@/lib/access/server": {
-      requireMember: async () => ({
-        member: { id: "self", full_name: "Test Member", is_active: true },
-        admin: {},
-      }),
-      loadAccess: async () => ({ current: [], gym: false }),
-    },
-    "@/lib/member/leaderboard": {
-      getMemberGymSummary: async () => ({
-        rank: 5,
-        rankingAvailable: true,
-        allTimeCheckins: 27,
-        streakDays: 0,
-        badges: [{ label: "25 Check-ins" }],
-        recentVisits: [{ checked_in_at: "2026-10-10T15:00:00Z" }],
-      }),
-    },
-    "@/lib/format/name": { firstName: (name) => name.split(" ")[0] },
-  }).default;
-  const html = renderToStaticMarkup(await Page());
-  assert.match(html, /No gym access active now/);
-  assert.match(html, /25 Check-ins/);
-  assert.match(html, /#5/);
-  assert.match(html, /href="\/member\/check-ins"/);
-  assert.match(html, /href="\/member\/leaderboard"/);
-  assert.doesNotMatch(html, /Gym access active/);
+test("old Gym links redirect to Club visits without losing history", async () => {
+  const Page = load("app/(member)/member/gym/page.tsx", {"next/navigation": {redirect}}).default;
+  assert.equal(await redirected(Page), "/member#club-visits");
 });
 
 test("failed preference saves never show a success message", async () => {
@@ -395,7 +362,7 @@ test("failed preference saves never show a success message", async () => {
   assert.ok(!result.includes("preference_saved"));
 });
 
-test("Club Monthly opens Gym despite resort inclusions, and respects a saved Home preference", () => {
+test("Club Monthly and legacy preferences open Club Home", () => {
   const monthly = {
     ...pass,
     plan_snapshot: {
@@ -412,7 +379,7 @@ test("Club Monthly opens Gym despite resort inclusions, and respects a saved Hom
         true,
         now,
       ),
-      "/member/gym",
+      "/member",
     );
     assert.equal(
       navigation.memberStartPath(

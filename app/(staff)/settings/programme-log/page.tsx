@@ -24,7 +24,7 @@ export default async function ProgrammeLog({
         employee actor.
       </p>
       <Link href="/settings/logs" className="inline-block py-3 underline">
-        Payment & gym activity logs
+        Payment & Club visit activity logs
       </Link>
       {error ? (
         <p role="alert">Could not load programme audit.</p>

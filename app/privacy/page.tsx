@@ -31,7 +31,7 @@ export default function PrivacyPage() {
             We use your name, email, account identifier, and any contact or
             profile details you provide to manage your membership. We also keep
             membership and pass details, purchase and payment references,
-            facility-waiver records, verified gym visits, recorded benefit use,
+            facility-waiver records, verified property visits, recorded benefit use,
             and staff activity relating to your account.
           </p>
           <p>
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
             We use membership information to issue your digital card, verify
             access and benefits, record visits and payments, provide account
             assistance, and protect the service. Authorized hotel staff can
-            access information needed for their role. Signed-in gym rankings
+            access information needed for their role. Signed-in Club rankings
             show member names or display labels, visit totals, and ranks.
           </p>
           <p>

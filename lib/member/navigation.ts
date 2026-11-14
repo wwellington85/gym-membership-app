@@ -1,4 +1,4 @@
-import { accessScope, passIsActive, type AccessPass } from "@/lib/access/rules";
+import { type AccessPass } from "@/lib/access/rules";
 import { safeReturnTo } from "@/lib/auth/return-to";
 
 export type StartScreen = "auto" | "home" | "gym";
@@ -13,18 +13,12 @@ export function memberStartPath(
   active = true,
   now = new Date(),
 ) {
-  const choice = startScreenPreference(preference);
-  if (choice !== "auto") return choice === "gym" ? "/member/gym" : "/member";
-  return active &&
-    passes.some(
-      (pass) =>
-        passIsActive(pass, now) &&
-        (accessScope(pass.plan_snapshot) === "gym" ||
-          (accessScope(pass.plan_snapshot) === "resort" &&
-            pass.plan_snapshot.code === "club_monthly_95")),
-    )
-    ? "/member/gym"
-    : "/member";
+  // Legacy Gym preferences now open Club Home, where visits and progress live.
+  void preference;
+  void passes;
+  void active;
+  void now;
+  return "/member";
 }
 
 export function memberTab(pathname: string) {
@@ -33,7 +27,7 @@ export function memberTab(pathname: string) {
       (path) => pathname === path || pathname.startsWith(path + "/"),
     )
   )
-    return "/member/gym";
+    return "/member";
   if (pathname === "/member/activity" || pathname === "/member/points")
     return "/member/benefits";
   if (pathname.startsWith("/member/card")) return "/member/card";
@@ -62,7 +56,7 @@ export function memberPageParent(
   )
     return null;
   if (pathname === "/member/leaderboard" || pathname === "/member/check-ins")
-    return { href: "/member/gym", label: "Back to Gym" };
+    return { href: "/member", label: "Back to Home" };
   if (pathname === "/member/upgrade" || pathname === "/member/checkout")
     return { href: "/member/access", label: "Back to access" };
   if (pathname === "/member/activity" || pathname === "/member/points")
