@@ -6,6 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: "Travellers Club",
     description:
       "Membership, rewards, and facility access for Travellers Beach Resort.",
+    // Preserve the original installed identity while changing its launch URL.
+    id: "/",
     start_url: "/app",
     scope: "/",
     display: "standalone",
