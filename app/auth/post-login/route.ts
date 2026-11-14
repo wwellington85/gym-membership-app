@@ -30,7 +30,10 @@ export async function GET(request: Request) {
       ),
     );
   if (staffError) return fail();
-  if (staff && ["admin", "front_desk", "security"].includes(staff.role)) {
+  if (
+    staff &&
+    ["admin", "supervisor", "front_desk", "security"].includes(staff.role)
+  ) {
     if (staff.is_active === false) {
       await supabase.auth.signOut();
       return fail();

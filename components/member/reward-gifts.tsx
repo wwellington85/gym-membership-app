@@ -1,3 +1,4 @@
+import { RewardIcon } from "@/components/rewards/reward-icon";
 import Link from "next/link";
 import { giftStatus, type RewardGift } from "@/lib/rewards/gifts";
 import { membershipDate } from "@/lib/format/date";
@@ -17,7 +18,10 @@ export function RewardGifts({
     return (
       <article key={g.id} className="oura-card space-y-2 p-4">
         <div className="flex justify-between gap-3">
-          <h3 className="font-medium">{g.title}</h3>
+          <div className="flex items-center gap-2">
+            <RewardIcon icon={g.icon} />
+            <h3 className="font-medium">{g.title}</h3>
+          </div>
           <span className="text-xs capitalize">
             {status === "available" ? "Ready to use" : status}
           </span>
@@ -30,6 +34,7 @@ export function RewardGifts({
         </p>
         {active && status === "available" && (
           <Link
+            prefetch={false}
             href={`/member/rewards/${g.id}`}
             className="club-button-secondary"
           >

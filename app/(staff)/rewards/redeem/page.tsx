@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { requireStaff } from "@/lib/auth/staff";
+import { requireRewardPermission } from "@/lib/rewards/permissions";
+import { RewardIcon } from "@/components/rewards/reward-icon";
 import { QrScanner } from "@/components/checkins/qr-scanner";
 import { verifyRewardToken } from "@/lib/rewards/token";
 import { giftStatus } from "@/lib/rewards/gifts";
@@ -11,18 +12,18 @@ export default async function RedeemReward({
 }: {
   searchParams: Promise<{ code?: string; err?: string; ok?: string }>;
 }) {
-  const { admin } = await requireStaff(["admin", "front_desk"]);
+  const { admin } = await requireRewardPermission("can_redeem");
   const sp = await searchParams;
   async function lookup(form: FormData) {
     "use server";
-    await requireStaff(["admin", "front_desk"]);
+    await requireRewardPermission("can_redeem");
     redirect(
       `/rewards/redeem?code=${encodeURIComponent(String(form.get("code") || "").slice(0, 1000))}`,
     );
   }
   async function redeem(form: FormData) {
     "use server";
-    const { admin, user } = await requireStaff(["admin", "front_desk"]);
+    const { admin, user } = await requireRewardPermission("can_redeem");
     const claims = process.env.QR_TOKEN_SECRET
       ? verifyRewardToken(
           String(form.get("code") || ""),
@@ -50,7 +51,7 @@ export default async function RedeemReward({
     ? await admin
         .from("reward_gifts")
         .select(
-          "id, member_id, title, terms, valid_until, status, redeemed_at, members(full_name, member_number, is_active)",
+          "id, member_id, title, terms, valid_until, status, redeemed_at, icon, members(full_name, member_number, is_active)",
         )
         .eq("id", claims.giftId)
         .eq("member_id", claims.memberId)
@@ -99,7 +100,10 @@ export default async function RedeemReward({
       )}
       {gift && (
         <section className="oura-card space-y-3 p-4">
-          <h2 className="font-semibold">{gift.title}</h2>
+          <div className="flex items-center gap-3">
+            <RewardIcon icon={gift.icon} />
+            <h2 className="font-semibold">{gift.title}</h2>
+          </div>
           <p>
             {member?.full_name} · {member?.member_number}
           </p>

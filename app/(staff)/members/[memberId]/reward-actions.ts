@@ -1,13 +1,14 @@
 "use server";
-import { requireStaff } from "@/lib/auth/staff";
+import { requireRewardPermission } from "@/lib/rewards/permissions";
 import { redirect } from "next/navigation";
 const uuid = /^[0-9a-f-]{36}$/i;
 export async function issueGiftAction(form: FormData) {
-  const { admin, user } = await requireStaff(["admin"]);
+  const { admin, user } = await requireRewardPermission("can_issue");
   const id = String(form.get("member_id") || "");
   if (!uuid.test(id)) redirect("/members");
-  const { error } = await admin.rpc("issue_reward_gift", {
+  const { error } = await admin.rpc("issue_reward_gift_with_icon", {
     p_member_id: id,
+    p_icon: String(form.get("icon") || "gift"),
     p_title: String(form.get("title") || "").trim(),
     p_terms: String(form.get("terms") || "").trim(),
     p_reason: String(form.get("reason") || "").trim(),
@@ -21,7 +22,7 @@ export async function issueGiftAction(form: FormData) {
   );
 }
 export async function revokeGiftAction(form: FormData) {
-  const { admin, user } = await requireStaff(["admin"]);
+  const { admin, user } = await requireRewardPermission("can_revoke");
   const id = String(form.get("member_id") || "");
   if (!uuid.test(id)) redirect("/members");
   const { error } = await admin.rpc("revoke_reward_gift", {

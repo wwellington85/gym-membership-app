@@ -673,3 +673,39 @@ test("gift expiry is enforced at 10 pm even for a previously issued gift",async(
   await assert.rejects(db.query('SELECT redeem_reward_gift($1,$2,$3)',[gift,id(1),id(30)]),/unavailable/);
  }finally{await db.close();}
 });
+
+test("supervisors inherit operations while admin-controlled reward permissions apply immediately and icons remain idempotent",async()=>{
+ const db=await fixture();
+ try {
+  for(const migration of ['20261114010000_club_property_visits.sql','20261114140000_selective_local_rewards.sql','20261114180000_manual_reward_gifts.sql','20261114190000_reward_icons_and_supervisors.sql'])await db.exec(readFileSync('supabase/migrations/'+migration,'utf8'));
+  await db.query("INSERT INTO staff_profiles VALUES($1,'supervisor',true),($2,'front_desk',true),($3,'supervisor',false)",[id(34),id(35),id(36)]);
+  const issue=(staff=id(34),key=id(90),icon='drink')=>db.query("SELECT issue_reward_gift_with_icon($1,'A selected drink','Selected menu','Approved guest gift','treat','2026-12-12',$2,$3,$4) AS id",[id(1),staff,key,icon]);
+  const gift=(await issue()).rows[0].id;
+  assert.equal((await issue()).rows[0].id,gift);
+  assert.equal((await db.query('SELECT icon FROM reward_gifts WHERE id=$1',[gift])).rows[0].icon,'drink');
+  await assert.rejects(issue(id(34),id(90),'food'),/key already used/);
+  await assert.rejects(issue(id(34),id(91),'bad-icon'),/valid reward icon/);
+  await assert.rejects(issue(id(35),id(91)),/authorised/);
+  await assert.rejects(issue(id(36),id(91)),/authorised/);
+  const configure=(role,issuePermission,staff=id(30))=>db.query('SELECT set_reward_role_permissions($1,$2,true,false,$3)',[role,issuePermission,staff]);
+  await assert.rejects(configure('front_desk',true,id(34)),/authorised/);
+  await assert.rejects(configure('admin',false),/Invalid role/);
+  await assert.rejects(configure('security',true),/Invalid role/);
+  await configure('front_desk',true);
+  await issue(id(35),id(91),'treat');
+  await configure('supervisor',false);
+  await assert.rejects(issue(id(34),id(92)),/authorised/);
+  assert.equal((await db.query('SELECT redeem_reward_gift($1,$2,$3) AS used',[gift,id(1),id(34)])).rows[0].used,true);
+  assert.equal((await db.query("SELECT staff_has_reward_permission($1,'issue') AS ok",[id(30)])).rows[0].ok,true);
+  assert.equal((await db.query('SELECT record_club_visit($1,$2) AS saved',[id(1),id(34)])).rows[0].saved,true);
+  await db.query('SELECT set_local_rewards($1,true,$2,$3)',[id(1),id(34),'Local worker verified']);
+  await db.query("SELECT grant_staff_access($1,$2,'2026-11-12',true,'complimentary',0,'Courtesy pass',$3,$4)",[id(1),id(11),id(34),id(93)]);
+  assert.equal((await db.query('SELECT mark_reward_seen($1,$2) AS seen',[id(2),gift])).rows[0].seen,false);
+  assert.equal((await db.query('SELECT mark_reward_seen($1,$2) AS seen',[id(1),gift])).rows[0].seen,true);
+  assert.ok((await db.query('SELECT seen_at FROM reward_gifts WHERE id=$1',[gift])).rows[0].seen_at);
+  for(const role of ['anon','authenticated']){
+   assert.equal((await db.query("SELECT has_table_privilege($1,'reward_role_permissions','select,update') AS ok",[role])).rows[0].ok,false);
+   for(const fn of ['set_reward_role_permissions(text,boolean,boolean,boolean,uuid)','mark_reward_seen(uuid,uuid)','issue_reward_gift_with_icon(uuid,text,text,text,text,date,uuid,uuid,text)'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'execute') AS ok",[role,fn])).rows[0].ok,false);
+  }
+ }finally{await db.close();}
+});

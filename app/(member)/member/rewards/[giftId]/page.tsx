@@ -1,3 +1,5 @@
+import { RewardIcon } from "@/components/rewards/reward-icon";
+import { RewardSeen } from "@/components/rewards/reward-seen";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireMember } from "@/lib/access/server";
@@ -15,7 +17,7 @@ export default async function RewardPage({
   if (!/^[0-9a-f-]{36}$/i.test(giftId)) notFound();
   const { data: gift, error } = await admin
     .from("reward_gifts")
-    .select("id, title, terms, valid_until, status")
+    .select("id, title, terms, valid_until, status, icon")
     .eq("id", giftId)
     .eq("member_id", member.id)
     .maybeSingle();
@@ -25,7 +27,11 @@ export default async function RewardPage({
   const status = giftStatus(gift);
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">{gift.title}</h1>
+      <RewardSeen giftId={gift.id} />
+      <div className="flex items-center gap-3">
+        <RewardIcon icon={gift.icon} className="h-9 w-9" />
+        <h1 className="text-xl font-semibold">{gift.title}</h1>
+      </div>
       <p>{gift.terms}</p>
       <p className="text-sm">
         Valid through {membershipDate(gift.valid_until)} at 10 pm

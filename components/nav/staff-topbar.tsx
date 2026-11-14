@@ -61,9 +61,11 @@ export function StaffTopbar({ role }: { role: string }) {
             <span className="ml-2 hidden text-xs font-normal text-muted-foreground sm:inline">
               {role === "admin"
                 ? "Management"
-                : role === "security"
-                  ? "Gate"
-                  : "Front desk"}
+                : role === "supervisor"
+                  ? "Supervisor"
+                  : role === "security"
+                    ? "Gate"
+                    : "Front desk"}
             </span>
           </Link>
         )}

@@ -1,3 +1,4 @@
+import { rewardPermissions } from "@/lib/rewards/permissions";
 import { effectiveBenefits } from "@/lib/access/benefits";
 import Link from "next/link";
 import { randomUUID } from "crypto";
@@ -28,6 +29,8 @@ export default async function ScanPage({
   }>;
 }) {
   const { admin, staff } = await requireStaff();
+  const canRedeemRewards = (await rewardPermissions(admin, staff.role))
+    .can_redeem;
   const sp = await searchParams;
   async function lookup(data: FormData) {
     "use server";
@@ -78,7 +81,11 @@ export default async function ScanPage({
   }
   async function recordBenefit(data: FormData) {
     "use server";
-    const { admin, user } = await requireStaff(["admin", "front_desk"]);
+    const { admin, user } = await requireStaff([
+      "admin",
+      "supervisor",
+      "front_desk",
+    ]);
     const id = String(data.get("member_id") || "");
     const { error } = await admin.rpc("record_benefit_use", {
       p_member_id: id,
@@ -144,7 +151,7 @@ export default async function ScanPage({
       <Link href="/members" className="inline-block py-3 underline">
         Search by name or phone
       </Link>
-      {staff.role !== "security" && (
+      {canRedeemRewards && (
         <Link href="/rewards/redeem" className="inline-block py-3 underline">
           Redeem a reward gift
         </Link>

@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   if (
     !staff ||
     staff.is_active === false ||
-    !["admin", "front_desk"].includes(staff.role)
+    !["admin", "supervisor", "front_desk"].includes(staff.role)
   )
     return new NextResponse("Not authorised", { status: 403 });
   const sp = new URL(req.url).searchParams;

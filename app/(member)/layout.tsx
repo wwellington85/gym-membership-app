@@ -1,3 +1,4 @@
+import { RewardNotice } from "@/components/rewards/reward-notice";
 import Link from "next/link";
 import { CreditCard } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -27,13 +28,16 @@ export default async function MemberGateLayout({
             <span className="club-wordmark">Travellers Club</span>
             <p>Travellers Beach Resort</p>
           </Link>
-          <Link
-            href="/member/card"
-            className="club-member-header-action"
-            aria-label="Show my membership card"
-          >
-            <CreditCard size={21} aria-hidden="true" />
-          </Link>
+          <div className="flex items-center gap-3">
+            <RewardNotice />
+            <Link
+              href="/member/card"
+              className="club-member-header-action"
+              aria-label="Show my membership card"
+            >
+              <CreditCard size={21} aria-hidden="true" />
+            </Link>
+          </div>
         </header>
         <div className="club-member-content">
           <InstallAppPrompt audience="member" />

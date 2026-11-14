@@ -20,7 +20,11 @@ export default async function DashboardPage() {
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="club-eyebrow">
-            {staff.role === "admin" ? "Management" : "Front desk"}
+            {staff.role === "admin"
+              ? "Management"
+              : staff.role === "supervisor"
+                ? "Supervisor"
+                : "Front desk"}
           </p>
           <h1 className="mt-2 text-2xl font-semibold">
             {staff.role === "admin" ? "Club overview" : "Member service"}

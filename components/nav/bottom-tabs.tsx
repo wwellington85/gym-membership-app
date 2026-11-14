@@ -10,31 +10,31 @@ import {
   ScanLine,
   Ellipsis,
 } from "lucide-react";
-type Role = "admin" | "front_desk" | "security";
+type Role = "admin" | "supervisor" | "front_desk" | "security";
 const tabs = [
   {
     href: "/dashboard",
     label: "Overview",
     icon: LayoutDashboard,
-    roles: ["admin", "front_desk", "security"],
+    roles: ["admin", "supervisor", "front_desk", "security"],
   },
   {
     href: "/members",
     label: "Members",
     icon: Users,
-    roles: ["admin", "front_desk", "security"],
+    roles: ["admin", "supervisor", "front_desk", "security"],
   },
   {
     href: "/payments",
     label: "Payments",
     icon: Receipt,
-    roles: ["admin", "front_desk"],
+    roles: ["admin", "supervisor", "front_desk"],
   },
   {
     href: "/checkins",
     label: "Visits",
     icon: ScanLine,
-    roles: ["admin", "front_desk", "security"],
+    roles: ["admin", "supervisor", "front_desk", "security"],
   },
   { href: "/more", label: "More", icon: Ellipsis, roles: ["admin"] },
 ];
