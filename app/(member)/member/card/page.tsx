@@ -21,7 +21,10 @@ export default async function MemberCard() {
         membershipNumber={member.member_number}
         name={member.full_name}
         active={member.is_active}
-        product={access.best?.plan_snapshot.name}
+        product={
+          access.best?.plan_snapshot.name ||
+          (member.local_rewards ? "Local Rewards" : "Free account")
+        }
         validThrough={access.best?.paid_through_date}
       />
       {member.is_active ? (
@@ -61,9 +64,9 @@ export default async function MemberCard() {
           ))
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            No facility pass is active now. Your Rewards membership is separate.
-            Staying at the hotel? Ask the front desk about access included in
-            your booking.
+            No facility pass is active now. Your free account and any approved
+            Local Rewards discounts are separate. Staying at the hotel? Ask the
+            front desk about access included in your booking.
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-3">

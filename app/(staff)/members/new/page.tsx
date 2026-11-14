@@ -11,10 +11,11 @@ export default async function NewMemberPage({
   const sp = await searchParams;
   return (
     <div className="max-w-xl space-y-4">
-      <h1 className="text-xl font-semibold">Add Rewards member</h1>
+      <h1 className="text-xl font-semibold">Add Club member</h1>
       <p className="text-sm text-muted-foreground">
-        Create the free membership first. Sell optional gym or resort access
-        from the member record.
+        Create the free account first. Approve Local Rewards separately on the
+        member record. Sell optional gym or resort access from the member
+        record.
       </p>
       <Link href="/members" className="inline-block py-2 underline">
         Check for an existing member

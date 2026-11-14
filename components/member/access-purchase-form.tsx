@@ -73,7 +73,7 @@ export function AccessPurchaseForm({
           the last day.
           {renew
             ? " This extends this product after your existing pass ends."
-            : " Your other passes and free Rewards membership remain unchanged."}
+            : " Your other passes and free Club account remain unchanged."}
         </p>
       )}
       <label className="flex items-start gap-3 rounded border p-3 text-sm">

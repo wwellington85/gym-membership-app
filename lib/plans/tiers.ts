@@ -11,25 +11,20 @@ type Tier = {
   badge?: string;
   discounts: Array<{ label: string; value: string }>;
   access: string[];
-notes?: string[];
+  notes?: string[];
 };
 
 const TIERS: Tier[] = [
   {
     code: "rewards_free",
-    name: "Travellers Rewards",
+    name: "Free account",
     priceLabel: "Free",
-    badge: "Discounts only",
-    discounts: [
-      { label: "Restaurant & Bar", value: "5% off" },
-      { label: "Spa services", value: "5% off" },
-      { label: "Gift shop", value: "5% off" },
-      { label: "Watersports", value: "5% off" },
-      { label: "Complimentary high-speed Wi‑Fi", value: "Included" },
-    ],
-
+    badge: "Open to everyone",
+    discounts: [],
     access: [],
-    notes: ["No facility access (gym, pool, towels, lockers, showers)."],
+    notes: [
+      "Digital card and Club visit history. Local Rewards discounts require staff approval. Facility access is purchased separately.",
+    ],
   },
   {
     code: "club_day",

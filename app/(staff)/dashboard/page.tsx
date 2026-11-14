@@ -154,7 +154,7 @@ export default async function DashboardPage() {
             ["visits_today", "Visits today", "/checkins"],
             ["members", "Active members", "/members"],
             ["access", "With facility access", "/members?filter=access"],
-            ["rewards_only", "Rewards only", "/members?filter=rewards"],
+            ["rewards_only", "No facility pass", "/members?filter=rewards"],
           ].map(([key, label, href]) => (
             <Link key={key} href={href} className="rounded-xl border p-4">
               <p className="text-sm text-muted-foreground">{label}</p>

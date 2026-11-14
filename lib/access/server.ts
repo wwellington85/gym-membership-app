@@ -24,7 +24,13 @@ export async function requireMember() {
   if (error)
     throw new Error("We could not load your membership. Please try again.");
   if (!member) redirect("/join");
-  return { supabase, admin, user, member };
+  const localRewards = await loadLocalRewards(member.id);
+  return {
+    supabase,
+    admin,
+    user,
+    member: { ...member, local_rewards: localRewards?.is_active === true },
+  };
 }
 
 export async function loadAccess(memberId: string, active = true) {
@@ -71,4 +77,18 @@ export async function loadCatalogue(includeHidden = false) {
       "We could not load current products. Please try again or ask the front desk.",
     );
   return (data ?? []) as AccessPlan[];
+}
+
+// Missing approval means a free account. A database failure must never grant benefits.
+export async function loadLocalRewards(memberId: string) {
+  const { data, error } = await createAdminClient()
+    .from("local_rewards")
+    .select("is_active, approved_at, updated_at, reason")
+    .eq("member_id", memberId)
+    .maybeSingle();
+  if (error)
+    throw new Error(
+      "We could not verify Local Rewards. Please try again or ask the front desk.",
+    );
+  return data;
 }

@@ -14,10 +14,11 @@ export function effectiveBenefits(
   passes: AccessPass[],
   active = true,
   now = new Date(),
+  localRewards = false,
 ) {
   const plans = active
     ? ([
-        free,
+        localRewards ? free : undefined,
         ...passes
           .filter((pass) => passIsActive(pass, now))
           .map((pass) => pass.plan_snapshot),

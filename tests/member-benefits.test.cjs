@@ -59,7 +59,7 @@ const pass = {
 const now = new Date("2026-11-12T20:00:00Z");
 const rates = (passes) =>
   Array.from(
-    benefits.effectiveBenefits(free, passes, true, now),
+    benefits.effectiveBenefits(free, passes, true, now, true),
     (row) => row.percent,
   );
 test("monthly benefits replace base rates per outlet without stacking", () => {
@@ -101,6 +101,7 @@ test("enhanced rates stop at the Jamaica closing time", () => {
       [daily],
       true,
       new Date("2026-11-13T02:59:00Z"),
+      true,
     )[0].percent,
     20,
   );
@@ -110,6 +111,7 @@ test("enhanced rates stop at the Jamaica closing time", () => {
       [daily],
       true,
       new Date("2026-11-13T03:00:00Z"),
+      true,
     )[0].percent,
     10,
   );
@@ -128,8 +130,13 @@ test("Home renders the current pass benefits instead of the free catalogue rates
     "@/lib/format/date": load("lib/format/date.ts"),
   };
   const card = load("components/member/membership-card.tsx", shared);
+  const upgrades = load("components/member/upgrade-options.tsx", {
+    ...shared,
+    "@/lib/access/benefits": benefits,
+  });
   const Home = load("app/(member)/member/page.tsx", {
     ...shared,
+    "@/components/member/upgrade-options": upgrades,
     "next/image": {
       default: (props) =>
         React.createElement("img", { src: props.src, alt: props.alt }),
@@ -172,4 +179,76 @@ test("Home renders the current pass benefits instead of the free catalogue rates
   assert.match(html, /20% off/);
   assert.match(html, /15% off/);
   assert.doesNotMatch(html, /10% off/);
+});
+
+test("free accounts default to no base discounts; paid benefits do not need Local Rewards approval", () => {
+  assert.deepEqual(
+    Array.from(
+      benefits.effectiveBenefits(free, [], true, now),
+      (r) => r.percent,
+    ),
+    [0, 0, 0, 0],
+  );
+  assert.deepEqual(
+    Array.from(
+      benefits.effectiveBenefits(free, [pass], true, now),
+      (r) => r.percent,
+    ),
+    [20, 15, 15, 15],
+  );
+  assert.deepEqual(
+    Array.from(
+      benefits.effectiveBenefits(
+        free,
+        [{ ...pass, status: "revoked" }],
+        true,
+        now,
+      ),
+      (r) => r.percent,
+    ),
+    [0, 0, 0, 0],
+  );
+});
+test("upgrade comparison uses live prices and paid plan rates, including current higher rates", () => {
+  const React = require("react");
+  const { UpgradeOptions } = load("components/member/upgrade-options.tsx", {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    "next/link": {
+      default: ({ children, ...props }) =>
+        React.createElement("a", props, children),
+    },
+    "@/lib/access/rules": rules,
+  });
+  const monthly = { ...pass.plan_snapshot, price: 95 };
+  const weekly = {
+    ...monthly,
+    id: "weekly",
+    code: "club_weekly",
+    name: "Club Weekly",
+    price: 45,
+    duration_days: 7,
+    discount_food: 0.15,
+  };
+  const current = benefits.effectiveBenefits(free, [pass], true, now, false);
+  const html = require("react-dom/server").renderToStaticMarkup(
+    React.createElement(UpgradeOptions, {
+      catalogue: [free, weekly, monthly],
+      benefits: current,
+    }),
+  );
+  assert.match(html, /45.00 USD/);
+  assert.match(html, /95.00 USD/);
+  assert.match(html, /Restaurant &amp; bar: 15% off/);
+  assert.match(html, /currently 20% with your active pass/);
+  assert.match(html, /\/member\/upgrade\?plan=club_weekly/);
+  assert.equal(
+    require("react-dom/server").renderToStaticMarkup(
+      React.createElement(UpgradeOptions, {
+        catalogue: [weekly],
+        benefits: current,
+        active: false,
+      }),
+    ),
+    "",
+  );
 });

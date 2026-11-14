@@ -15,16 +15,13 @@ type Plan = {
 const PLANS: Plan[] = [
   {
     code: "rewards_free",
-    name: "Travellers Rewards",
+    name: "Free account",
     priceLabel: "Free",
-    subtitle: "Discounts only (no facility access)",
+    subtitle: "Your digital card and Club visit history",
     highlights: [
-      "Restaurant & Bar: 5% off",
-      "Spa services: 5% off",
-      "Gift shop: 5% off",
-      "Watersports: 5% off",
-      "Earn points on eligible spend",
-      "Complimentary high-speed Wi-Fi",
+      "No automatic discounts or facility access",
+      "Local Rewards requires staff approval",
+      "Weekly and monthly upgrades available",
     ],
   },
   {
@@ -97,7 +94,10 @@ export function PlanPicker({
   showSubmit?: boolean;
   submitLabel?: string;
 }) {
-  const initial = useMemo<PlanCode>(() => defaultValue || "rewards_free", [defaultValue]);
+  const initial = useMemo<PlanCode>(
+    () => defaultValue || "rewards_free",
+    [defaultValue],
+  );
   const [selected, setSelected] = useState<PlanCode>(initial);
 
   useEffect(() => setSelected(initial), [initial]);
@@ -124,7 +124,7 @@ export function PlanPicker({
               : "cursor-pointer text-foreground border-[rgba(255,255,255,0.12)]",
             isSelected
               ? "opacity-100 ring-2 ring-[rgba(255,255,255,0.38)] shadow-[0_22px_80px_rgba(0,0,0,0.62)] border-[rgba(255,255,255,0.24)] border-l-4 border-l-[rgba(255,255,255,0.75)]"
-              : ""
+              : "",
           );
 
           const hovery = isCurrent
@@ -141,7 +141,11 @@ export function PlanPicker({
               };
 
           return (
-            <CardTag key={p.code} className={cx(baseCard, hovery)} {...cardProps}>
+            <CardTag
+              key={p.code}
+              className={cx(baseCard, hovery)}
+              {...cardProps}
+            >
               {/* subtle “selected wash” */}
               {isSelected ? (
                 <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-[rgba(255,255,255,0.04)]" />
@@ -165,11 +169,15 @@ export function PlanPicker({
                     ) : null}
                   </div>
 
-                  <div className="mt-0.5 text-xs text-muted-foreground">{p.subtitle}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    {p.subtitle}
+                  </div>
                 </div>
 
                 <div className="flex flex-col items-end gap-2">
-                  <div className="text-sm font-semibold whitespace-nowrap">{p.priceLabel}</div>
+                  <div className="text-sm font-semibold whitespace-nowrap">
+                    {p.priceLabel}
+                  </div>
 
                   <div
                     className={cx(
@@ -177,7 +185,7 @@ export function PlanPicker({
                       isCurrent ? "opacity-55" : "",
                       isSelected
                         ? "border-[rgba(255,255,255,0.40)] shadow-[0_0_0_4px_rgba(255,255,255,0.10)]"
-                        : "border-[rgba(255,255,255,0.16)]"
+                        : "border-[rgba(255,255,255,0.16)]",
                     )}
                     aria-hidden="true"
                   >
@@ -198,7 +206,9 @@ export function PlanPicker({
               </div>
 
               {isCurrent ? (
-                <div className="relative mt-3 text-xs text-muted-foreground">This is your current plan.</div>
+                <div className="relative mt-3 text-xs text-muted-foreground">
+                  This is your current plan.
+                </div>
               ) : null}
             </CardTag>
           );
@@ -211,20 +221,27 @@ export function PlanPicker({
           disabled={isSameAsCurrent}
           className={cx(
             "w-full rounded border px-3 py-2 text-sm transition-opacity",
-            isSameAsCurrent ? "opacity-50 cursor-not-allowed" : "hover:oura-surface-muted"
+            isSameAsCurrent
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:oura-surface-muted",
           )}
-          title={isSameAsCurrent ? "Select a different plan to continue." : undefined}
+          title={
+            isSameAsCurrent ? "Select a different plan to continue." : undefined
+          }
         >
           {submitLabel}
         </button>
       ) : (
         <div className="text-xs text-muted-foreground">
-          Select a plan, then press <span className="font-semibold">Continue</span>.
+          Select a plan, then press{" "}
+          <span className="font-semibold">Continue</span>.
         </div>
       )}
 
       {showSubmit && isSameAsCurrent ? (
-        <div className="text-xs text-muted-foreground">Select a different plan to continue.</div>
+        <div className="text-xs text-muted-foreground">
+          Select a different plan to continue.
+        </div>
       ) : null}
     </div>
   );

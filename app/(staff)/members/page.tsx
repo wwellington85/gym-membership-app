@@ -43,6 +43,18 @@ export default async function MembersPage({
     p_page: page,
     p_size: size,
   });
+  const { data: approvals, error: approvalsError } = rows?.length
+    ? await admin
+        .from("local_rewards")
+        .select("member_id, is_active")
+        .in(
+          "member_id",
+          rows.map((m: { id: string }) => m.id),
+        )
+    : { data: [], error: null };
+  const approved = new Set(
+    (approvals ?? []).filter((r) => r.is_active).map((r) => r.member_id),
+  );
   const total = Number(rows?.[0]?.total ?? 0);
   const href = (overrides: Record<string, string>) =>
     `/members?${new URLSearchParams({ q: query, filter, ...overrides }).toString()}`;
@@ -78,7 +90,7 @@ export default async function MembersPage({
         {[
           ["all", "Active members"],
           ["access", "Valid access"],
-          ["rewards", "Rewards only"],
+          ["rewards", "No facility pass"],
           ["due_soon", "Access ends soon"],
           ...(staff.role === "admin"
             ? [
@@ -146,8 +158,15 @@ export default async function MembersPage({
                         ? "Gym & resort access"
                         : m.scope === "gym"
                           ? "Gym only"
-                          : "Rewards benefits · No paid facility access"}
+                          : "No paid facility access"}
                     {m.valid_through ? ` · Through ${m.valid_through}` : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {approvalsError
+                      ? "Local Rewards status unavailable"
+                      : approved.has(m.id)
+                        ? "Local Rewards approved"
+                        : "Free account · no Local Rewards discounts"}
                   </p>
                 </Link>
               ),

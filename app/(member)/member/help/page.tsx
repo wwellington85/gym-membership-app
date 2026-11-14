@@ -4,11 +4,15 @@ export default function HelpPage() {
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Membership help</h1>
       <section className="space-y-2">
-        <h2 className="font-semibold">Using your Rewards membership</h2>
+        <h2 className="font-semibold">Your account and Local Rewards</h2>
         <p className="text-sm text-muted-foreground">
-          Show your card before the bill is prepared. Rewards membership is free
-          and remains separate from optional gym and resort access. Check any
-          outlet or event restrictions before ordering.
+          Anyone can join for a free account, digital card and Club visit
+          history. Free signup does not include discounts or facility access.
+          Local Rewards discounts are approved by staff for selected community
+          members; ask the front desk about eligibility. Weekly and monthly Club
+          plans include their published access and discounts during the pass
+          dates. Show your card before ordering and check outlet or event
+          restrictions.
         </p>
         <Link href="/member/benefits" className="inline-block py-3 underline">
           View my benefits

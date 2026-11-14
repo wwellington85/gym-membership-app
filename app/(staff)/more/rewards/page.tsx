@@ -480,7 +480,7 @@ export default async function RewardsManagerPage({
             time when maintenance is configured.
           </p>
           <p className="text-sm text-muted-foreground">
-            Update discounts, points, and custom plan benefits.
+            Update discounts, points, and custom plan benefits. The rewards_free base rates and perks apply only to members with approved Local Rewards. New free accounts receive no automatic discounts.
           </p>
         </div>
         <Link

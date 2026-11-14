@@ -23,9 +23,7 @@ export function MembershipCard({
     >
       <div className="flex items-start justify-between gap-4">
         <span className="club-card-brand">Travellers Club</span>
-        <span className="club-card-product">
-          {product || "Rewards membership"}
-        </span>
+        <span className="club-card-product">{product || "Free account"}</span>
       </div>
       <div className="space-y-2">
         <h2 className="club-card-name">{name}</h2>
@@ -48,7 +46,7 @@ export function MembershipCard({
             {active
               ? validThrough
                 ? `Access until ${membershipDate(validThrough)}`
-                : "Your Rewards membership stays with you"
+                : "Your free Club account stays with you"
               : "Please speak with the front desk"}
           </p>
         </div>

@@ -15,7 +15,9 @@ export default async function JoinPage() {
     <div className="space-y-5">
       <h1 className="text-2xl font-semibold">Join Travellers Club.</h1>
       <p className="text-muted-foreground">
-        Join free for your digital membership card and hotel benefits.
+        Join free for your digital card and Club visit history. Explore optional
+        weekly and monthly plans. Local Rewards discounts require staff
+        approval; free signup does not include discounts or facility access.
       </p>
       {googleSignInEnabled() && <GoogleSignIn />}
       <RewardsSignup />
