@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth/staff";
 export async function createMember(data: FormData) {
-  const { admin } = await requireStaff(["admin", "front_desk"]);
+  const { admin } = await requireStaff(["admin", "supervisor", "front_desk"]);
   const name = String(data.get("full_name") || "").trim();
   const phone = String(data.get("phone") || "").trim();
   const email = String(data.get("email") || "")

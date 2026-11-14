@@ -10,7 +10,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 
 export async function changeMemberPlanAction(formData: FormData) {
-  const { admin, user } = await requireStaff(["admin", "front_desk"]);
+  const { admin, user } = await requireStaff([
+    "admin",
+    "supervisor",
+    "front_desk",
+  ]);
   const memberId = String(formData.get("member_id") || "");
   const fail = (message: string): never =>
     redirect(`/members/${memberId}?err=${encodeURIComponent(message)}`);
@@ -124,7 +128,7 @@ function isValidEmail(email: string) {
 }
 
 export async function updateMemberContactAction(formData: FormData) {
-  await requireStaff(["admin", "front_desk"]);
+  await requireStaff(["admin", "supervisor", "front_desk"]);
   const memberId = String(formData.get("member_id") ?? "").trim();
   if (!memberId) redirect("/members");
 
@@ -147,7 +151,7 @@ export async function updateMemberContactAction(formData: FormData) {
     .maybeSingle();
 
   const role = (staffProfile?.role ?? "") as string;
-  if (!["admin", "front_desk"].includes(role)) {
+  if (!["admin", "supervisor", "front_desk"].includes(role)) {
     redirect(`/members/${memberId}?member_error=forbidden`);
   }
 
@@ -241,7 +245,7 @@ async function getOrigin() {
 }
 
 export async function sendMemberLoginDetailsAction(formData: FormData) {
-  await requireStaff(["admin", "front_desk"]);
+  await requireStaff(["admin", "supervisor", "front_desk"]);
   const memberId = String(formData.get("member_id") ?? "").trim();
   if (!memberId) redirect("/members");
 
@@ -260,7 +264,7 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
 
   if (!staffProfile) redirect("/auth/login");
   const role = (staffProfile.role ?? "") as string;
-  if (!["admin", "front_desk"].includes(role)) {
+  if (!["admin", "supervisor", "front_desk"].includes(role)) {
     redirect(`/members/${memberId}?member_error=forbidden`);
   }
 
@@ -343,7 +347,11 @@ export async function sendMemberLoginDetailsAction(formData: FormData) {
 }
 
 export async function setLocalRewardsAction(formData: FormData) {
-  const { admin, user } = await requireStaff(["admin", "front_desk"]);
+  const { admin, user } = await requireStaff([
+    "admin",
+    "supervisor",
+    "front_desk",
+  ]);
   const memberId = String(formData.get("member_id") || "");
   if (
     !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(

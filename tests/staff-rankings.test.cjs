@@ -83,7 +83,7 @@ test("management rankings preserve database rank across pages and restrict acces
   );
   assert.equal(
     JSON.stringify(roles),
-    JSON.stringify([["admin", "front_desk"]]),
+    JSON.stringify([["admin", "supervisor", "front_desk"]]),
   );
   assert.equal(calls[0][0], "member_leaderboard_rankings");
   assert.equal(calls[0][1].p_period, "month");

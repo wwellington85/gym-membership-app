@@ -6,7 +6,7 @@ export default async function PaymentsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const { admin } = await requireStaff(["admin", "front_desk"]);
+  const { admin } = await requireStaff(["admin", "supervisor", "front_desk"]);
   const sp = await searchParams;
   const query = String(sp.q || "").slice(0, 120);
   const status = ["all", "pending", "paid", "needs_review", "failed"].includes(

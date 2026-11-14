@@ -1,3 +1,5 @@
+import { rewardPermissions } from "@/lib/rewards/permissions";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
@@ -11,7 +13,12 @@ export default async function StaffLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const STAFF_ROLES = new Set(["admin", "front_desk", "security"]);
+  const STAFF_ROLES = new Set([
+    "admin",
+    "supervisor",
+    "front_desk",
+    "security",
+  ]);
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,11 +42,18 @@ export default async function StaffLayout({
     redirect("/auth/login");
   }
 
+  const rewardAccess = await rewardPermissions(
+    createAdminClient(),
+    staffProfile.role,
+  );
   const isSecurity = staffProfile.role === "security";
 
   return (
     <>
-      <StaffSidebar role={staffProfile.role} />
+      <StaffSidebar
+        role={staffProfile.role}
+        canRedeemRewards={rewardAccess.can_redeem}
+      />
       <main
         id="main-content"
         tabIndex={-1}

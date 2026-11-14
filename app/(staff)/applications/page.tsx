@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-type Role = "admin" | "front_desk" | "security";
+type Role = "admin" | "supervisor" | "front_desk" | "security";
 type Status = "pending" | "contacted" | "converted" | "canceled" | "all";
 
 function safeStatus(s: string | undefined): Status {
@@ -37,7 +37,8 @@ export default async function ApplicationsPage({
   if (!staffProfile) redirect("/auth/login");
 
   const role = staffProfile.role as Role;
-  if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
+  if (role !== "admin" && role !== "supervisor" && role !== "front_desk")
+    redirect("/dashboard");
 
   const q = (sp.q ?? "")
     .trim()
@@ -96,7 +97,9 @@ export default async function ApplicationsPage({
               key={t.key}
               href={href}
               className={`rounded-full border px-3 py-1 text-xs ${
-                active ? "font-semibold" : "text-muted-foreground hover:bg-gray-50"
+                active
+                  ? "font-semibold"
+                  : "text-muted-foreground hover:bg-gray-50"
               }`}
             >
               {t.label}
@@ -122,7 +125,9 @@ export default async function ApplicationsPage({
       {error ? (
         <div className="rounded border p-3 text-sm">
           Could not load applications.
-          <div className="mt-1 text-xs text-muted-foreground">{error.message}</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {error.message}
+          </div>
         </div>
       ) : null}
 

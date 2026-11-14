@@ -1,6 +1,7 @@
 import { jamaicaNowParts } from "@/lib/membership/status";
 export type RewardGift = {
   id: string;
+  icon?: string;
   member_id: string;
   title: string;
   terms: string;

@@ -13,7 +13,13 @@ import {
   Settings,
   UserRound,
 } from "lucide-react";
-export function StaffSidebar({ role }: { role: string }) {
+export function StaffSidebar({
+  role,
+  canRedeemRewards = true,
+}: {
+  role: string;
+  canRedeemRewards?: boolean;
+}) {
   const pathname = usePathname();
   const security = role === "security";
   const links = [
@@ -40,26 +46,28 @@ export function StaffSidebar({ role }: { role: string }) {
       aria-label="Employee navigation"
     >
       <p className="club-eyebrow mb-4 px-3">Staff workspace</p>
-      {links.map(({ href, label, icon: Icon }) => {
-        const active =
-          (pathname === href || pathname.startsWith(href + "/")) &&
-          !(
-            href === "/checkins" &&
-            (pathname.startsWith("/checkins/scan") ||
-              pathname.startsWith("/checkins/rankings"))
+      {links
+        .filter((link) => link.href !== "/rewards/redeem" || canRedeemRewards)
+        .map(({ href, label, icon: Icon }) => {
+          const active =
+            (pathname === href || pathname.startsWith(href + "/")) &&
+            !(
+              href === "/checkins" &&
+              (pathname.startsWith("/checkins/scan") ||
+                pathname.startsWith("/checkins/rankings"))
+            );
+          return (
+            <Link
+              key={href}
+              href={href}
+              className="club-sidebar-link"
+              aria-current={active ? "page" : undefined}
+            >
+              <Icon size={18} aria-hidden="true" />
+              <span>{label}</span>
+            </Link>
           );
-        return (
-          <Link
-            key={href}
-            href={href}
-            className="club-sidebar-link"
-            aria-current={active ? "page" : undefined}
-          >
-            <Icon size={18} aria-hidden="true" />
-            <span>{label}</span>
-          </Link>
-        );
-      })}
+        })}
     </aside>
   );
 }

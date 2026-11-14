@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (
     !staff ||
     staff.is_active === false ||
-    !["admin", "front_desk", "security"].includes(staff.role)
+    !["admin", "supervisor", "front_desk", "security"].includes(staff.role)
   )
     return NextResponse.json({ error: "Not authorised" }, { status: 403 });
   const secret = process.env.QR_TOKEN_SECRET;

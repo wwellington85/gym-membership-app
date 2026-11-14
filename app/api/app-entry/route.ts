@@ -28,7 +28,7 @@ export async function GET() {
     );
   if (
     staff.data &&
-    ["admin", "front_desk", "security"].includes(staff.data.role)
+    ["admin", "supervisor", "front_desk", "security"].includes(staff.data.role)
   ) {
     if (staff.data.is_active === false) {
       await supabase.auth.signOut();

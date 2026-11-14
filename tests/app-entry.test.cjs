@@ -77,6 +77,7 @@ test("app launch resolves guest and staff destinations without membership writes
     [null, "/member"],
     [{ role: "admin", is_active: true }, "/dashboard"],
     [{ role: "front_desk", is_active: true }, "/dashboard"],
+    [{ role: "supervisor", is_active: true }, "/dashboard"],
     [{ role: "security", is_active: true }, "/checkins/scan"],
   ]) {
     const f = entry({ staff });

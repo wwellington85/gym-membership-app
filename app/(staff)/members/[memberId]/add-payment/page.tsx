@@ -12,7 +12,11 @@ export default async function AddPaymentPage({
 }) {
   const { memberId } = await params;
 
-  const { admin: supabase } = await requireStaff(["admin", "front_desk"]);
+  const { admin: supabase } = await requireStaff([
+    "admin",
+    "supervisor",
+    "front_desk",
+  ]);
 
   const { data: member } = await supabase
     .from("members")
@@ -39,6 +43,7 @@ export default async function AddPaymentPage({
 
     const { admin: supabase, user } = await requireStaff([
       "admin",
+      "supervisor",
       "front_desk",
     ]);
 

@@ -7,7 +7,7 @@ export default async function NewMemberPage({
 }: {
   searchParams: Promise<{ err?: string }>;
 }) {
-  await requireStaff(["admin", "front_desk"]);
+  await requireStaff(["admin", "supervisor", "front_desk"]);
   const sp = await searchParams;
   return (
     <div className="max-w-xl space-y-4">

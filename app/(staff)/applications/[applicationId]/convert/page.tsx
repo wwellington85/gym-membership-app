@@ -34,7 +34,7 @@ export default async function ProcessRequest({
   params: Promise<{ applicationId: string }>;
   searchParams: Promise<{ err?: string }>;
 }) {
-  const { admin } = await requireStaff(["admin", "front_desk"]);
+  const { admin } = await requireStaff(["admin", "supervisor", "front_desk"]);
   const { applicationId } = await params;
   const sp = await searchParams;
   const { data: request } = await admin
@@ -48,7 +48,7 @@ export default async function ProcessRequest({
   const member = await findMember(admin, request);
   async function prepare() {
     "use server";
-    const { admin } = await requireStaff(["admin", "front_desk"]);
+    const { admin } = await requireStaff(["admin", "supervisor", "front_desk"]);
     const { data: req } = await admin
       .from("membership_applications")
       .select("id,full_name,phone,email,user_id")
@@ -73,7 +73,11 @@ export default async function ProcessRequest({
   }
   async function resolve() {
     "use server";
-    const { admin, user } = await requireStaff(["admin", "front_desk"]);
+    const { admin, user } = await requireStaff([
+      "admin",
+      "supervisor",
+      "front_desk",
+    ]);
     const { data: req } = await admin
       .from("membership_applications")
       .select("email,user_id,requested_plan_code,requested_start_date")

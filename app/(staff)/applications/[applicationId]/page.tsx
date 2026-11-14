@@ -5,7 +5,7 @@ import { FlashBanners } from "@/components/ui/flash-banners";
 
 import { safeReturnTo } from "@/lib/auth/return-to";
 
-type Role = "admin" | "front_desk" | "security";
+type Role = "admin" | "supervisor" | "front_desk" | "security";
 type Status = "pending" | "contacted" | "converted" | "canceled";
 
 function withParam(url: string, key: string, value: string) {
@@ -43,7 +43,8 @@ export default async function ApplicationDetailPage({
   if (!staffProfile) redirect("/auth/login");
 
   const role = staffProfile.role as Role;
-  if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
+  if (role !== "admin" && role !== "supervisor" && role !== "front_desk")
+    redirect("/dashboard");
 
   const { data: app, error } = await supabase
     .from("membership_applications")
@@ -57,7 +58,9 @@ export default async function ApplicationDetailPage({
         <h1 className="text-xl font-semibold">Application</h1>
         <div className="rounded border p-3 text-sm">
           Could not load application.
-          <div className="mt-1 text-xs text-muted-foreground">{error?.message}</div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {error?.message}
+          </div>
         </div>
         <Link className="underline underline-offset-2" href={backTo}>
           Back to Applications
@@ -96,7 +99,8 @@ export default async function ApplicationDetailPage({
     if (!staffProfile) redirect("/auth/login");
 
     const role = staffProfile.role as Role;
-    if (role !== "admin" && role !== "front_desk") redirect("/dashboard");
+    if (role !== "admin" && role !== "supervisor" && role !== "front_desk")
+      redirect("/dashboard");
 
     const { error } = await supabase
       .from("membership_applications")
@@ -161,10 +165,14 @@ export default async function ApplicationDetailPage({
             {app.waiver_accepted_at ? `: ${app.waiver_accepted_at}` : ""}.
           </div>
         ) : (
-          <div className="text-xs text-muted-foreground">Waiver not recorded.</div>
+          <div className="text-xs text-muted-foreground">
+            Waiver not recorded.
+          </div>
         )}
 
-        <div className="text-xs text-muted-foreground">Submitted: {app.created_at}</div>
+        <div className="text-xs text-muted-foreground">
+          Submitted: {app.created_at}
+        </div>
       </div>
 
       <div className="rounded border p-4 space-y-2">

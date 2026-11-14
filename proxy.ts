@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-type Role = "admin" | "front_desk" | "security";
+type Role = "admin" | "supervisor" | "front_desk" | "security";
 
 const STAFF_PREFIXES = [
   "/dashboard",
@@ -36,7 +36,7 @@ function roleAllowsPath(role: Role, pathname: string) {
     );
   }
 
-  if (role === "front_desk") {
+  if (role === "front_desk" || role === "supervisor") {
     if (pathname === "/rewards" || pathname.startsWith("/rewards/"))
       return true;
     return (

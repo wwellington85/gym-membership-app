@@ -13,7 +13,7 @@ export default async function StaffRankings({
 }: {
   searchParams: Promise<{ period?: string; page?: string }>;
 }) {
-  const { admin } = await requireStaff(["admin", "front_desk"]);
+  const { admin } = await requireStaff(["admin", "supervisor", "front_desk"]);
   const sp = await searchParams;
   const period = sp.period === "month" ? "month" : "all";
   const page = Math.min(100000, Math.max(0, Math.floor(Number(sp.page) || 0)));

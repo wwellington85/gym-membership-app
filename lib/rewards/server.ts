@@ -5,7 +5,7 @@ export async function loadMemberGifts(admin: SupabaseClient, memberId: string) {
   const { data, error } = await admin
     .from("reward_gifts")
     .select(
-      "id, member_id, title, terms, valid_until, status, created_at, redeemed_at",
+      "id, member_id, title, terms, valid_until, status, created_at, redeemed_at, icon",
     )
     .eq("member_id", memberId)
     .order("created_at", { ascending: false })

@@ -24,7 +24,7 @@ export default async function MembersNewLayout({
   if (!staffProfile) redirect("/auth/login");
 
   // Only admin + front desk can add members
-  if (!["admin", "front_desk"].includes(staffProfile.role)) {
+  if (!["admin", "supervisor", "front_desk"].includes(staffProfile.role)) {
     redirect("/members");
   }
 
