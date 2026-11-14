@@ -20,7 +20,7 @@ export default async function DashboardPage() {
     ["members", "Active Rewards members", "/members"],
     ["access", "Members with access valid now", "/members?filter=access"],
     ["rewards_only", "Rewards only", "/members?filter=rewards"],
-    ["visits_today", "Gym visits today", "/checkins"],
+    ["visits_today", "Club visits today", "/checkins"],
     ["pending_requests", "Requests to review", "/applications"],
     ["pending_payments", "Pending payments", "/payments?status=pending"],
     [
@@ -37,14 +37,14 @@ export default async function DashboardPage() {
         includes passes ending soon.
       </p>
       <div className="flex flex-wrap gap-3">
-        <Link
-          href="/checkins/scan"
-          className="rounded border bg-secondary p-3"
-        >
+        <Link href="/checkins/scan" className="rounded border bg-secondary p-3">
           Verify member
         </Link>
         <Link href="/members" className="rounded border p-3">
           Find member
+        </Link>
+        <Link href="/checkins/rankings" className="rounded border p-3">
+          Club rankings
         </Link>
         <Link href="/applications" className="rounded border p-3">
           Review requests

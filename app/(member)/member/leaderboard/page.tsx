@@ -66,7 +66,7 @@ export default async function MemberLeaderboardPage(props: {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Leaderboard</h1>
+          <h1 className="text-xl font-semibold">Club rankings</h1>
         </div>
       </div>
 

@@ -648,3 +648,25 @@ a[class~="rounded"][class~="border"] {
   background: hsl(var(--secondary));
   font-weight: 600;
 }
+
+/* Club Home: photography brings the property into the member experience. */
+.club-home-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 20px; min-height: 190px; display: flex; align-items: flex-end; background: #1d3f56; }
+.club-home-hero > img { object-fit: cover; object-position: 50% 48%; }
+.club-home-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 10%, #102838cf); z-index: -1; }
+.club-home-hero > img { z-index: -2; }
+.club-home-hero-copy { padding: 22px; color: #fff; }
+.club-home-hero-copy .club-eyebrow { color: #f4e4ba; }
+.club-home-hero-copy h1 { margin: 7px 0; font-size: clamp(24px, 5.5vw, 32px); line-height: 1.15; }
+.club-home-hero-copy > p:last-child { font-size: 14px; color: #ffffffdf; }
+.club-home-membership { display: grid; gap: 12px; padding: 18px; border: 1px solid hsl(var(--border)); border-radius: 18px; }
+.club-inclusions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
+.club-inclusions li { padding: 7px 11px; background: #eef4f1; color: #31574d; border-radius: 10px; font-size: 13px; }
+.club-home-visits { scroll-margin-top: 30px; }
+.club-home-benefits .club-rule-row { padding-block: 12px; }
+.club-hotel-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px 16px; }
+.club-hotel-photo { position: relative; aspect-ratio: 4/3; border-radius: 14px; overflow: hidden; background: #eef2f4; }
+.club-hotel-photo img { object-fit: cover; }
+.club-launch { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #fff; color: #1d3f56; pointer-events: none; letter-spacing: .18em; font-size: 12px; animation: club-launch-fade .75s ease both; }
+.club-launch-emblem { width: 100px; height: 100px; border-radius: 24px; background: url('/brand/club-icon.svg') center / cover; }
+@keyframes club-launch-fade { 0% { opacity: 0; } 20%,65% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .club-launch { display: none; animation: none; } }

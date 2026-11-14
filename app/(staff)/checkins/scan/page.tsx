@@ -62,12 +62,12 @@ export default async function ScanPage({
     "use server";
     const { admin, user } = await requireStaff();
     const id = String(data.get("member_id") || "");
-    const { data: outcome, error } = await admin.rpc("record_gym_visit", {
+    const { data: outcome, error } = await admin.rpc("record_club_visit", {
       p_member_id: id,
       p_staff_id: user.id,
     });
     redirect(
-      `/checkins/scan?member=${encodeURIComponent(id)}&${error ? "err=Gym%20visit%20could%20not%20be%20recorded.%20Verify%20access%20or%20contact%20the%20front%20desk." : `ok=${outcome ? "recorded" : "already"}`}`,
+      `/checkins/scan?member=${encodeURIComponent(id)}&${error ? "err=Club%20visit%20could%20not%20be%20recorded.%20Please%20contact%20the%20front%20desk." : `ok=${outcome ? "recorded" : "already"}`}`,
     );
   }
   async function recordBenefit(data: FormData) {
@@ -112,10 +112,10 @@ export default async function ScanPage({
       {sp.ok && (
         <p role="status" className="oura-alert-success">
           {sp.ok === "benefit"
-            ? "Benefit use recorded. No gym visit was created."
+            ? "Benefit use recorded. No Club visit was created."
             : sp.ok === "already"
-              ? "Gym visit already recorded today."
-              : "Gym visit recorded."}
+              ? "Already checked in today. No additional points awarded."
+              : "Club visit recorded. 3 points earned."}
         </p>
       )}
       <QrScanner lookup={lookup} />
@@ -176,7 +176,7 @@ export default async function ScanPage({
                 </p>
               ))}
               <p className="text-sm text-muted-foreground">
-                Verifying or applying a discount does not record a gym visit.
+                Verifying or applying a discount does not record a Club visit.
               </p>
             </div>
           )}
@@ -227,12 +227,17 @@ export default async function ScanPage({
               </form>
             </details>
           )}
-          {access.gym && (
+          {member.is_active && (
             <form action={recordVisit}>
               <input type="hidden" name="member_id" value={member.id} />
               <button className="w-full rounded border bg-secondary p-3">
-                Record gym visit
+                Record Club visit · 3 points
               </button>
+              <p className="mt-2 text-xs text-muted-foreground">
+                Front gate or restaurant: one shared visit per member per
+                Jamaica calendar day. A Club visit does not grant facility
+                access.
+              </p>
             </form>
           )}
           <Link

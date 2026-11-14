@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireMember } from "@/lib/access/server";
-import { startScreenPreference } from "@/lib/member/navigation";
-import { saveStartingScreen } from "./actions";
 
 export const dynamic = "force-dynamic";
 export default async function AccountPage({
@@ -14,7 +12,7 @@ export default async function AccountPage({
     err?: string;
   }>;
 }) {
-  const { member, admin, user } = await requireMember();
+  const { member, admin } = await requireMember();
   const sp = await searchParams;
   const { data: payments, error } = await admin
     .from("payments")
@@ -109,39 +107,6 @@ export default async function AccountPage({
           Help & membership information
         </Link>
       </div>
-      <section id="starting-screen" className="oura-card space-y-3 p-4">
-        <h2 className="font-semibold">Starting screen</h2>
-        <p id="starting-screen-help" className="text-sm text-muted-foreground">
-          Choose where the app opens when you sign in or launch it. Links to a
-          specific screen still take you there.
-        </p>
-        <form action={saveStartingScreen} className="space-y-3">
-          <label htmlFor="starting-screen-choice" className="block text-sm">
-            Open on
-          </label>
-          <select
-            id="starting-screen-choice"
-            name="starting_screen"
-            defaultValue={startScreenPreference(
-              user.user_metadata?.member_start_screen,
-            )}
-            aria-describedby="starting-screen-help starting-screen-auto"
-            className="oura-input w-full p-3"
-          >
-            <option value="auto">Automatic</option>
-            <option value="home">Home — Rewards and hotel benefits</option>
-            <option value="gym">Gym — visits, progress, and access</option>
-          </select>
-          <p id="starting-screen-auto" className="text-sm text-muted-foreground">
-            Automatic opens Gym while gym-specific access or a Club Monthly
-            membership is active, whether paid or complimentary. Otherwise it
-            opens Home. Resort day and weekly passes keep Home as the default.
-          </p>
-          <button className="rounded border px-4 py-3 text-sm">
-            Save starting screen
-          </button>
-        </form>
-      </section>
       <section className="space-y-3">
         <h2 className="font-semibold">Recent purchases</h2>
         {error ? (

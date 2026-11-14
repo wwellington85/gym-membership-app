@@ -81,7 +81,7 @@ test("membership date formatting retains Jamaica calendar dates", () => {
   assert.equal(dates.membershipDate("2026-12-11"), "11 Dec 2026");
   assert.equal(dates.membershipDate("unknown"), "unknown");
 });
-test("member navigation retains all five labelled links and marks the selected Gym section", () => {
+test("member navigation uses four labelled links and marks Club visit pages as Home", () => {
   const navigation = load("lib/member/navigation.ts", {
     "@/lib/access/rules": rules,
     "@/lib/auth/return-to": load("lib/auth/return-to.ts"),
@@ -98,9 +98,9 @@ test("member navigation retains all five labelled links and marks the selected G
     { document: { body: {} } },
   );
   const html = renderToStaticMarkup(React.createElement(MemberTabs));
-  for (const label of ["Home", "Gym", "Card", "Benefits", "Account"])
+  for (const label of ["Home", "Card", "Benefits", "Account"])
     assert.ok(html.includes(`>${label}</span>`));
-  assert.match(html, /href="\/member\/gym" aria-current="page"/);
+  assert.match(html, /href="\/member" aria-current="page"/);
   assert.equal((html.match(/aria-current="page"/g) || []).length, 1);
 });
 

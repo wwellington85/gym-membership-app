@@ -130,6 +130,17 @@ test("Home renders the current pass benefits instead of the free catalogue rates
   const card = load("components/member/membership-card.tsx", shared);
   const Home = load("app/(member)/member/page.tsx", {
     ...shared,
+    "next/image": {
+      default: (props) =>
+        React.createElement("img", { src: props.src, alt: props.alt }),
+    },
+    "@/lib/member/leaderboard": {
+      getMemberGymSummary: async () => ({
+        allTimeCheckins: 33,
+        rankingAvailable: true,
+        rank: 2,
+      }),
+    },
     "@/components/member/membership-card": card,
     "react/jsx-runtime": require("react/jsx-runtime"),
     "next/link": {
@@ -139,6 +150,7 @@ test("Home renders the current pass benefits instead of the free catalogue rates
     "@/lib/access/server": {
       requireMember: async () => ({
         member: { id: "self", full_name: "Example Member", is_active: true },
+        admin: { rpc: async () => ({ data: 3, error: null }) },
       }),
       loadAccess: async () => ({
         passes: [activePass],

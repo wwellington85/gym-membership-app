@@ -33,10 +33,15 @@ export default async function MemberProfile({
     .eq("id", memberId)
     .maybeSingle();
   if (error || !member) notFound();
-  const [access, catalogue, sp] = await Promise.all([
+  const [access, catalogue, sp, ranking, points] = await Promise.all([
     loadAccess(member.id, member.is_active),
     loadCatalogue(true),
     searchParams,
+    admin.rpc("member_leaderboard_summary", {
+      p_member_id: member.id,
+      p_period: "all",
+    }),
+    admin.rpc("club_visit_points", { p_member_id: member.id }),
   ]);
   const { data: payments, error: paymentError } = await admin
     .from("payments")
@@ -81,6 +86,39 @@ export default async function MemberProfile({
             "Membership number unavailable"}
         </p>
       </div>
+      <section className="oura-card space-y-3 p-4">
+        <h2 className="font-semibold">Club visits & progress</h2>
+        <dl className="club-metrics">
+          {[
+            [
+              "All-time rank",
+              ranking.error
+                ? "—"
+                : ranking.data?.[0]?.my_rank
+                  ? `#${ranking.data[0].my_rank}`
+                  : "Unranked",
+            ],
+            [
+              "Visits",
+              ranking.error ? "—" : (ranking.data?.[0]?.my_checkins ?? 0),
+            ],
+            ["Points", points.error ? "—" : (points.data ?? 0)],
+          ].map(([label, value]) => (
+            <div key={label} className="club-metric">
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="tabular-nums">{value}</dd>
+            </div>
+          ))}
+        </dl>
+        {(ranking.error || points.error) && (
+          <p role="status" className="text-sm">
+            Some progress data is temporarily unavailable.
+          </p>
+        )}
+        <Link href="/checkins/rankings" className="club-text-link">
+          View Club rankings
+        </Link>
+      </section>
       {(sp.err || sp.member_error) && (
         <p role="alert" className="oura-alert-danger">
           {sp.err ||
@@ -110,7 +148,7 @@ export default async function MemberProfile({
           className="rounded border p-3 text-sm"
           href={`/checkins/scan?member=${member.id}`}
         >
-          Verify benefits / record gym visit
+          Verify benefits / record Club visit
         </Link>
         <form action={sendMemberLoginDetailsAction}>
           <input type="hidden" name="member_id" value={member.id} />

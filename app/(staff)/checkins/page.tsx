@@ -7,7 +7,7 @@ export default async function CheckinsPage({
 }: {
   searchParams: Promise<{ range?: string; page?: string; err?: string }>;
 }) {
-  const { admin } = await requireStaff();
+  const { admin, staff } = await requireStaff();
   const sp = await searchParams;
   const days = [1, 7, 30, 90].includes(Number(sp.range)) ? Number(sp.range) : 1;
   const page = Math.max(0, Math.floor(Number(sp.page) || 0));
@@ -30,14 +30,19 @@ export default async function CheckinsPage({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap justify-between gap-3">
-        <h1 className="text-xl font-semibold">Gym visits</h1>
+        <h1 className="text-xl font-semibold">Club visits</h1>
         <Link href="/checkins/scan" className="rounded border p-3">
           Verify / record visit
         </Link>
       </div>
+      {staff.role !== "security" && (
+        <Link href="/checkins/rankings" className="club-text-link">
+          View member rankings
+        </Link>
+      )}
       <p className="text-sm text-muted-foreground">
-        Verified gym activity. A member lookup or discount check does not create
-        a visit.
+        Verified Club visit activity. A member lookup or discount check does not
+        create a visit.
       </p>
       <nav className="flex flex-wrap gap-2" aria-label="Visit period">
         {[1, 7, 30, 90].map((n) => (

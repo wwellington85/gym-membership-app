@@ -5,7 +5,8 @@ import {
   LayoutDashboard,
   Users,
   ScanLine,
-  Dumbbell,
+  CalendarCheck,
+  Trophy,
   Inbox,
   Receipt,
   Settings,
@@ -18,9 +19,10 @@ export function StaffSidebar({ role }: { role: string }) {
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/members", label: "Members", icon: Users },
     { href: "/checkins/scan", label: "Verify member", icon: ScanLine },
-    { href: "/checkins", label: "Gym visits", icon: Dumbbell },
+    { href: "/checkins", label: "Club visits", icon: CalendarCheck },
     ...(!security
       ? [
+          { href: "/checkins/rankings", label: "Club rankings", icon: Trophy },
           { href: "/applications", label: "Requests", icon: Inbox },
           { href: "/payments", label: "Payments", icon: Receipt },
         ]
@@ -39,7 +41,11 @@ export function StaffSidebar({ role }: { role: string }) {
       {links.map(({ href, label, icon: Icon }) => {
         const active =
           (pathname === href || pathname.startsWith(href + "/")) &&
-          !(href === "/checkins" && pathname.startsWith("/checkins/scan"));
+          !(
+            href === "/checkins" &&
+            (pathname.startsWith("/checkins/scan") ||
+              pathname.startsWith("/checkins/rankings"))
+          );
         return (
           <Link
             key={href}
