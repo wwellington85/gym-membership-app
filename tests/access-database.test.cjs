@@ -537,3 +537,84 @@ test("Local Rewards preserves existing benefits, defaults new accounts to none, 
     await db.close();
   }
 });
+
+test("complimentary extensions are admin-only, idempotent, audited and preserve financial records and pass terms", async () => {
+  const db = await fixture();
+  try {
+    await db.exec(readFileSync('supabase/migrations/20261114160000_complimentary_access_extensions.sql','utf8'));
+    await db.query(`INSERT INTO staff_profiles VALUES($1,'admin',true),($2,'front_desk',true),($3,'admin',false)`,[id(34),id(35),id(36)]);
+    await db.query(`INSERT INTO membership_plans(id,code,name,price,duration_days,plan_type,grants_access,access_scope,discount_food,discount_spa,discount_giftshop,discount_watersports) VALUES($1,'club_monthly_95','Monthly',95,30,'pass',true,'resort',.2,.15,.15,.15)`,[id(12)]);
+    const grant = async (method,amount,key) => (await db.query(`SELECT grant_staff_access($1,$2,'2026-11-12',true,$3,$4,'Approved pass',$5,$6) AS id`,[id(1),id(12),method,amount,id(30),key])).rows[0].id;
+    const passId = await grant('cash',95,id(80));
+    const beforePass=(await db.query('SELECT * FROM access_passes WHERE id=$1',[passId])).rows[0];
+    const beforePayments=(await db.query('SELECT * FROM payments ORDER BY id')).rows;
+    const beforeMemberships=(await db.query('SELECT * FROM memberships ORDER BY id')).rows;
+    const extend=(overrides={}) => {
+      const p={pass:passId,member:id(1),expected:'2026-12-11',end:'2026-12-31',reason:'Approved courtesy extension',staff:id(34),key:id(81),...overrides};
+      return db.query('SELECT extend_access_pass($1,$2,$3,$4,$5,$6,$7) AS id',[p.pass,p.member,p.expected,p.end,p.reason,p.staff,p.key]);
+    };
+    for(const staff of [id(31),id(32),id(35),id(36)]) await assert.rejects(extend({staff}),/Not authorised/);
+    await assert.rejects(extend({reason:''}),/reason/);
+    await assert.rejects(extend({reason:'x'.repeat(501)}),/reason/);
+    await assert.rejects(extend({key:null}),/valid later expiry/);
+    await assert.rejects(extend({end:'2026-12-11'}),/later/);
+    await assert.rejects(extend({end:'2026-11-01'}),/later/);
+    await assert.rejects(extend({end:'infinity'}),/valid later expiry/);
+    await assert.rejects(extend({member:id(2)}),/Pass not found/);
+    const extensionId=(await extend()).rows[0].id;
+    assert.equal((await extend()).rows[0].id,extensionId);
+    await assert.rejects(extend({reason:'Different reason'}),/key already used/);
+    await assert.rejects(extend({key:id(82),end:'2027-01-01'}),/Expiry changed/);
+    const afterPass=(await db.query('SELECT * FROM access_passes WHERE id=$1',[passId])).rows[0];
+    assert.equal(new Date(afterPass.paid_through_date).toISOString().slice(0,10),'2026-12-31');
+    delete beforePass.paid_through_date; delete afterPass.paid_through_date;
+    assert.deepEqual(afterPass,beforePass);
+    assert.deepEqual((await db.query('SELECT * FROM payments ORDER BY id')).rows,beforePayments);
+    assert.deepEqual((await db.query('SELECT * FROM memberships ORDER BY id')).rows,beforeMemberships);
+    assert.equal(Number((await db.query('SELECT count(*) FROM access_pass_extensions')).rows[0].count),1);
+    const event=(await db.query("SELECT * FROM club_audit_events WHERE action='access_pass_extended'")).rows[0];
+    assert.equal(event.actor_id,id(34));
+    assert.equal(event.detail.previous_end_date,'2026-12-11');
+    assert.equal(event.detail.new_end_date,'2026-12-31');
+    assert.equal(event.detail.complimentary,true);
+    assert.equal(event.detail.reason,'Approved courtesy extension');
+    await db.query("UPDATE access_passes SET status='revoked' WHERE id=$1",[passId]);
+    await assert.rejects(extend({expected:'2026-12-31',end:'2027-01-01',key:id(82)}),/revoked/);
+    await db.query("UPDATE access_passes SET status='active' WHERE id=$1",[passId]);
+    await db.query('UPDATE members SET is_active=false WHERE id=$1',[id(1)]);
+    await assert.rejects(extend({expected:'2026-12-31',end:'2027-01-01',key:id(82)}),/inactive/);
+    await db.query('UPDATE members SET is_active=true WHERE id=$1',[id(1)]);
+    // A failed history/audit write must roll the date update back atomically.
+    await db.exec(`CREATE FUNCTION reject_extension() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'history unavailable'; END $$; CREATE TRIGGER reject_extension BEFORE INSERT ON access_pass_extensions FOR EACH ROW EXECUTE FUNCTION reject_extension();`);
+    await assert.rejects(extend({expected:'2026-12-31',end:'2027-01-01',key:id(82)}),/history unavailable/);
+    assert.equal(new Date((await db.query('SELECT paid_through_date FROM access_passes WHERE id=$1',[passId])).rows[0].paid_through_date).toISOString().slice(0,10),'2026-12-31');
+    await db.exec('DROP TRIGGER reject_extension ON access_pass_extensions');
+    // Existing complimentary passes use the same operation without recording payment.
+    const compPass=await grant('complimentary',0,id(83));
+    const paymentsBeforeComp=(await db.query('SELECT * FROM payments ORDER BY id')).rows;
+    await extend({pass:compPass,key:id(84)});
+    assert.deepEqual((await db.query('SELECT * FROM payments ORDER BY id')).rows,paymentsBeforeComp);
+    // An ended, non-revoked pass can be restored; it must still end in the future.
+    await db.query("UPDATE access_passes SET start_date='2000-01-01',paid_through_date='2000-01-31' WHERE id=$1",[compPass]);
+    await assert.rejects(extend({pass:compPass,expected:'2000-01-31',end:'2026-11-11',key:id(85)}),/still valid/);
+    await extend({pass:compPass,expected:'2000-01-31',end:'2026-11-12',key:id(85)});
+    for(const role of ['anon','authenticated']) {
+      assert.equal((await db.query("SELECT has_function_privilege($1,'extend_access_pass(uuid,uuid,date,date,text,uuid,uuid)','execute') AS allowed",[role])).rows[0].allowed,false);
+      assert.equal((await db.query("SELECT has_table_privilege($1,'access_pass_extensions','select,insert,update,delete') AS allowed",[role])).rows[0].allowed,false);
+    }
+    assert.equal((await db.query("SELECT has_table_privilege('service_role','access_pass_extensions','update,delete') AS allowed")).rows[0].allowed,false);
+  } finally { await db.close(); }
+});
+
+test("same-day access extensions respect the 10 pm Jamaica closing time", async () => {
+  const db=await fixture();
+  try {
+    // Set the clock before compiling the extension function's cached SQL plans.
+    await db.exec(`CREATE OR REPLACE FUNCTION pg_catalog.now() RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT timestamptz '2026-11-13 03:00:00+00' $$;`);
+    await db.exec(readFileSync('supabase/migrations/20261114160000_complimentary_access_extensions.sql','utf8'));
+    const passId=(await db.query(`INSERT INTO access_passes(member_id,plan_id,start_date,paid_through_date,plan_snapshot) SELECT $1,id,'2000-01-01','2000-01-31',to_jsonb(p) FROM membership_plans p WHERE code='club_day' RETURNING id`,[id(1)])).rows[0].id;
+    const sql="SELECT extend_access_pass($1,$2,'2000-01-31',$3,'Approved courtesy',$4,$5)";
+    await assert.rejects(db.query(sql,[passId,id(1),'2026-11-12',id(30),id(90)]),/still valid/);
+    await db.query(sql,[passId,id(1),'2026-11-13',id(30),id(90)]);
+  } finally {await db.close();}
+});
