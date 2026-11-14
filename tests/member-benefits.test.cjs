@@ -239,7 +239,7 @@ test("upgrade comparison uses live prices and paid plan rates, including current
   assert.match(html, /45.00 USD/);
   assert.match(html, /95.00 USD/);
   assert.match(html, /Restaurant &amp; bar: 15% off/);
-  assert.match(html, /currently 20% with your active pass/);
+  assert.match(html, /today 20%/);
   assert.match(html, /\/member\/upgrade\?plan=club_weekly/);
   assert.equal(
     require("react-dom/server").renderToStaticMarkup(
@@ -251,4 +251,55 @@ test("upgrade comparison uses live prices and paid plan rates, including current
     ),
     "",
   );
+});
+
+test("upgrade prompts respect current monthly and weekly passes, with ended, upcoming and revoked passes excluded", () => {
+  const React = require("react");
+  const { UpgradeOptions } = load("components/member/upgrade-options.tsx", {
+    "react/jsx-runtime": require("react/jsx-runtime"),
+    "next/link": {
+      default: ({ children, ...props }) =>
+        React.createElement("a", props, children),
+    },
+    "@/lib/access/rules": rules,
+  });
+  const monthly = { ...pass.plan_snapshot, price: 95 };
+  const weekly = {
+    ...monthly,
+    id: "weekly",
+    code: "club_weekly",
+    price: 45,
+    duration_days: 7,
+  };
+  const activeMonthly = {
+    ...pass,
+    start_date: "2000-01-01",
+    paid_through_date: "2099-12-31",
+  };
+  const render = (passes) =>
+    require("react-dom/server").renderToStaticMarkup(
+      React.createElement(UpgradeOptions, {
+        catalogue: [weekly, monthly],
+        benefits: benefits.effectiveBenefits(free, [], true, now),
+        passes,
+      }),
+    );
+  assert.equal(render([activeMonthly]), "");
+  assert.equal(
+    render([activeMonthly, { ...activeMonthly, plan_snapshot: weekly }]),
+    "",
+  );
+  const weeklyHtml = render([{ ...activeMonthly, plan_snapshot: weekly }]);
+  assert.match(weeklyHtml, /plan=club_monthly_95/);
+  assert.doesNotMatch(weeklyHtml, /plan=club_weekly|Swipe to compare/);
+  for (const p of [
+    { ...activeMonthly, status: "revoked" },
+    { ...activeMonthly, paid_through_date: "2000-01-02" },
+    { ...activeMonthly, start_date: "2099-01-01" },
+  ]) {
+    const html = render([p]);
+    assert.match(html, /plan=club_weekly/);
+    assert.match(html, /plan=club_monthly_95/);
+    assert.match(html, /Swipe to compare plans/);
+  }
 });

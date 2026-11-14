@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { effectiveBenefits } from "@/lib/access/benefits";
-import { facilities, type AccessPlan } from "@/lib/access/rules";
+import {
+  facilities,
+  passIsActive,
+  type AccessPass,
+  type AccessPlan,
+} from "@/lib/access/rules";
 
 type Benefit = ReturnType<typeof effectiveBenefits>[number];
 export function UpgradeOptions({
@@ -8,29 +13,52 @@ export function UpgradeOptions({
   benefits,
   active = true,
   localRewards = false,
+  passes = [],
 }: {
   catalogue: AccessPlan[];
   benefits: Benefit[];
   active?: boolean;
   localRewards?: boolean;
+  passes?: AccessPass[];
 }) {
+  const currentCodes = new Set(
+    passes
+      .filter((pass) => passIsActive(pass))
+      .map((pass) => pass.plan_snapshot.code),
+  );
+  // A monthly member already has the highest Club plan. Keep renewals in Access.
+  if (!active || currentCodes.has("club_monthly_95")) return null;
   const plans = catalogue.filter(
     (p) =>
       ["club_weekly", "club_monthly_95"].includes(p.code) &&
       p.grants_access &&
-      p.price > 0,
+      p.price > 0 &&
+      !currentCodes.has(p.code),
   );
   if (!active || !plans.length) return null;
   return (
     <section className="space-y-3" aria-label="Upgrade your membership">
       <h2 className="text-lg font-semibold">More time at Travellers.</h2>
       <p className="text-sm text-muted-foreground">
-        Explore weekly and monthly Club plans for facility access and enhanced
-        discounts. Choose your dates before checkout.
+        Weekly or monthly facility access, with enhanced discounts.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2">
+      {plans.length > 1 && (
+        <p className="text-xs text-muted-foreground sm:hidden">
+          Swipe to compare plans →
+        </p>
+      )}
+      <div
+        className="club-upgrade-carousel"
+        data-single={plans.length === 1}
+        role="region"
+        aria-label="Club plans"
+        tabIndex={0}
+      >
         {plans.map((plan) => (
-          <article key={plan.id} className="oura-card space-y-3 p-4">
+          <article
+            key={plan.id}
+            className="oura-card flex min-w-0 flex-col gap-3 p-4"
+          >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h3 className="font-semibold">{plan.name}</h3>
               <span className="text-sm font-medium">
@@ -60,31 +88,31 @@ export function UpgradeOptions({
                     {extra > 0 ? (
                       <span className="text-muted-foreground">
                         {" "}
-                        · {extra} percentage points more than today
+                        · today {benefit.percent}%
                       </span>
                     ) : extra < 0 ? (
                       <span className="text-muted-foreground">
                         {" "}
-                        · currently {benefit.percent}% with your active pass
+                        · today {benefit.percent}%
                       </span>
                     ) : null}
                   </li>
                 );
               })}
             </ul>
-            <p className="text-xs text-muted-foreground">
-              Paid benefits apply during your pass dates. Discounts do not add
-              together. Cabana rentals are separate.
-            </p>
             <Link
               href={`/member/upgrade?plan=${plan.code}`}
-              className="club-button-secondary"
+              className="club-button-secondary mt-auto self-start"
             >
               Explore {plan.duration_days === 7 ? "weekly" : "monthly"} plan
             </Link>
           </article>
         ))}
       </div>
+      <p className="text-xs text-muted-foreground">
+        Benefits apply during pass dates. Discounts do not stack. Cabana rentals
+        are separate.
+      </p>
     </section>
   );
 }

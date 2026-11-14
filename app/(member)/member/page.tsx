@@ -170,6 +170,7 @@ export default async function MemberHome() {
         </section>
       )}
       <UpgradeOptions
+        passes={access.passes}
         catalogue={catalogue}
         benefits={benefits}
         active={member.is_active}

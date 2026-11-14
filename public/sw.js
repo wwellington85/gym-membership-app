@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-local-rewards-v1";
+const CACHE_NAME = "tbr-static-upgrade-carousel-v1";
 
 function isStaticAsset(requestUrl, request) {
   return (
