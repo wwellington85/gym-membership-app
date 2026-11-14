@@ -1,5 +1,7 @@
 # Visit rewards: pilot and redemption proposal
 
+Follow-up: the agreed launch uses manually issued complimentary gifts, now implemented in [manual reward gifts](2026-11-14-manual-reward-gifts.md). The points-priced catalogue and deductions below remain unadopted proposals.
+
 Prepared 14 November 2026. These are proposed rules for review, not published entitlements or activated rewards. Current app changes improve member experience and explain that redemption is coming later.
 
 ## Comparable models

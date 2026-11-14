@@ -36,8 +36,8 @@ export function VisitPoints({
       </p>
       <p className="text-sm text-muted-foreground">
         {active
-          ? "Rewards are on the way. Keep collecting points for future treats; redemption is not available yet."
-          : "Your earned points remain on your account. Rewards redemption is not available yet."}
+          ? "Collect visit points and receive selected rewards from Travellers. Our team chooses gifts to recognise our members."
+          : "Your earned points remain on your account. Contact the front desk about any gifts issued to you."}
       </p>
       <div className="flex flex-wrap gap-4">
         {active && (

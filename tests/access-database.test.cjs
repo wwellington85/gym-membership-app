@@ -618,3 +618,58 @@ test("same-day access extensions respect the 10 pm Jamaica closing time", async 
     await db.query(sql,[passId,id(1),'2026-11-13',id(30),id(90)]);
   } finally {await db.close();}
 });
+
+test("manual gifts require management approval, redeem once and never spend points or alter access",async()=>{
+ const db=await fixture();
+ try {
+  await db.exec(readFileSync('supabase/migrations/20261114180000_manual_reward_gifts.sql','utf8'));
+  await db.query("INSERT INTO staff_profiles VALUES($1,'front_desk',true),($2,'admin',false)",[id(34),id(35)]);
+  const issue=(args={})=>{const p={member:id(1),title:'One house cocktail or mocktail',terms:'Selected menu items only',reason:'Regular restaurant guest',category:'treat',until:'2026-12-12',staff:id(30),key:id(90),...args};return db.query('SELECT issue_reward_gift($1,$2,$3,$4,$5,$6,$7,$8) AS id',[p.member,p.title,p.terms,p.reason,p.category,p.until,p.staff,p.key]);};
+  const before={points:(await db.query('SELECT * FROM checkins')).rows,passes:(await db.query('SELECT * FROM access_passes')).rows,payments:(await db.query('SELECT * FROM payments')).rows};
+  for(const staff of [id(31),id(32),id(34),id(35)])await assert.rejects(issue({staff}),/authorised/);
+  await assert.rejects(issue({reason:''}),/details/);
+  await assert.rejects(issue({until:'2026-11-11'}),/expiry/);
+  await db.query('UPDATE members SET is_active=false WHERE id=$1',[id(2)]);
+  await assert.rejects(issue({member:id(2)}),/inactive/);
+  const gift=(await issue()).rows[0].id;
+  assert.equal((await issue()).rows[0].id,gift);
+  await assert.rejects(issue({title:'A different gift'}),/key already used/);
+  const redeem=(staff=id(34),member=id(1),giftId=gift)=>db.query('SELECT redeem_reward_gift($1,$2,$3) AS used',[giftId,member,staff]);
+  await assert.rejects(redeem(id(31)),/authorised/);
+  await assert.rejects(redeem(id(32)),/authorised/);
+  await db.query('UPDATE members SET is_active=true WHERE id=$1',[id(2)]);
+  await assert.rejects(redeem(id(34),id(2)),/not found/);
+  assert.equal((await redeem()).rows[0].used,true);
+  assert.equal((await redeem()).rows[0].used,false);
+  assert.equal(Number((await db.query("SELECT count(*) FROM club_audit_events WHERE action='reward_gift_redeemed'")).rows[0].count),1);
+  await assert.rejects(db.query('SELECT revoke_reward_gift($1,$2,$3,$4)',[gift,id(1),id(30),'Changed decision']),/unused/);
+  const revoked=(await issue({key:id(91)})).rows[0].id;
+  await db.query('SELECT revoke_reward_gift($1,$2,$3,$4)',[revoked,id(1),id(30),'Issued in error']);
+  await assert.rejects(redeem(id(34),id(1),revoked),/unavailable/);
+  await issue({category:'quarterly_meal',key:id(92)});
+  await assert.rejects(issue({category:'quarterly_meal',key:id(93)}),/reward_gifts_quarterly_once/);
+  // Any fulfilment audit failure must leave the gift available.
+  const rollback=(await issue({key:id(94)})).rows[0].id;
+  await db.exec(`CREATE FUNCTION reject_reward_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action='reward_gift_redeemed' THEN RAISE EXCEPTION 'audit unavailable'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_reward_audit BEFORE INSERT ON club_audit_events FOR EACH ROW EXECUTE FUNCTION reject_reward_audit();`);
+  await assert.rejects(redeem(id(34),id(1),rollback),/audit unavailable/);
+  assert.equal((await db.query('SELECT status FROM reward_gifts WHERE id=$1',[rollback])).rows[0].status,'available');
+  assert.deepEqual((await db.query('SELECT * FROM checkins')).rows,before.points);
+  assert.deepEqual((await db.query('SELECT * FROM access_passes')).rows,before.passes);
+  assert.deepEqual((await db.query('SELECT * FROM payments')).rows,before.payments);
+  for(const role of ['anon','authenticated']){
+   assert.equal((await db.query("SELECT has_table_privilege($1,'reward_gifts','select,insert,update,delete') AS ok",[role])).rows[0].ok,false);
+   for(const fn of ['issue_reward_gift(uuid,text,text,text,text,date,uuid,uuid)','redeem_reward_gift(uuid,uuid,uuid)','revoke_reward_gift(uuid,uuid,uuid,text)'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'execute') AS ok",[role,fn])).rows[0].ok,false);
+  }
+ }finally{await db.close();}
+});
+test("gift expiry is enforced at 10 pm even for a previously issued gift",async()=>{
+ const db=await fixture();
+ try {
+  await db.exec(`CREATE OR REPLACE FUNCTION pg_catalog.now() RETURNS timestamptz LANGUAGE sql STABLE AS $$ SELECT timestamptz '2026-11-13 03:00:00+00' $$;`);
+  await db.exec(readFileSync('supabase/migrations/20261114180000_manual_reward_gifts.sql','utf8'));
+  await assert.rejects(db.query("SELECT issue_reward_gift($1,'A dessert','','A courtesy','treat','2026-11-12',$2,$3)",[id(1),id(30),id(90)]),/expiry/);
+  const gift=(await db.query("SELECT issue_reward_gift($1,'A dessert','','A courtesy','treat','2026-11-13',$2,$3) AS id",[id(1),id(30),id(90)])).rows[0].id;
+  await db.query("UPDATE reward_gifts SET valid_until='2026-11-12' WHERE id=$1",[gift]);
+  await assert.rejects(db.query('SELECT redeem_reward_gift($1,$2,$3)',[gift,id(1),id(30)]),/unavailable/);
+ }finally{await db.close();}
+});

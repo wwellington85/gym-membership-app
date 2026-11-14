@@ -152,9 +152,12 @@ export default async function MemberHome() {
         </p>
         <p className="text-xs text-muted-foreground">
           {member.is_active
-            ? "Keep collecting for future rewards. Redemption is coming soon."
+            ? "Selected rewards are chosen by our team. Find yours in Benefits."
             : "Your earned points stay with your account."}
         </p>
+        <Link href="/member/benefits#member-rewards" className="club-text-link">
+          View your rewards <ArrowRight size={16} aria-hidden="true" />
+        </Link>
         <Link href="/member/leaderboard" className="club-text-link">
           View Club rankings <ArrowRight size={16} aria-hidden="true" />
         </Link>

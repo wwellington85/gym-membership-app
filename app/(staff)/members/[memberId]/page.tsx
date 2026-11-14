@@ -1,3 +1,5 @@
+import { issueGiftAction, revokeGiftAction } from "./reward-actions";
+import { giftStatus } from "@/lib/rewards/gifts";
 import Link from "next/link";
 import { randomUUID } from "crypto";
 import { notFound, redirect } from "next/navigation";
@@ -45,6 +47,12 @@ export default async function MemberProfile({
     .maybeSingle();
   if (error || !member) notFound();
   const localRewards = await loadLocalRewards(member.id);
+  const { data: gifts, error: giftError } = await admin
+    .from("reward_gifts")
+    .select("id, title, terms, valid_until, status, created_at, issue_reason")
+    .eq("member_id", member.id)
+    .order("created_at", { ascending: false })
+    .limit(50);
   const [access, catalogue, sp, ranking, points] = await Promise.all([
     loadAccess(member.id, member.is_active),
     loadCatalogue(true),
@@ -238,6 +246,129 @@ export default async function MemberProfile({
             </button>
           </form>
         </details>
+      </section>
+      <section className="oura-card space-y-3 p-4">
+        <h2 className="font-semibold">Selected rewards</h2>
+        <p className="text-sm text-muted-foreground">
+          Issue a gift based on the member relationship. Points and
+          paid/complimentary access do not automatically qualify anyone. No
+          points are deducted for these gifts.
+        </p>
+        <Link href="/rewards/redeem" className="club-text-link">
+          Scan a reward for fulfilment
+        </Link>
+        {sp.gift_saved && <p role="status">Reward updated.</p>}
+        {giftError ? (
+          <p role="alert">Reward history could not be loaded.</p>
+        ) : (
+          gifts?.map((g) => (
+            <div key={g.id} className="border-t py-3 text-sm">
+              <strong>{g.title}</strong>
+              <p>
+                {giftStatus(g)} · Through {g.valid_until}
+              </p>
+              <p>{g.terms}</p>
+              <p className="text-muted-foreground">
+                Staff reason: {g.issue_reason}
+              </p>
+              {staff.role === "admin" && g.status === "available" && (
+                <details>
+                  <summary className="cursor-pointer py-2">
+                    Revoke unused gift
+                  </summary>
+                  <form action={revokeGiftAction} className="space-y-2">
+                    <input type="hidden" name="member_id" value={member.id} />
+                    <input type="hidden" name="gift_id" value={g.id} />
+                    <label htmlFor={`gift-reason-${g.id}`}>Reason</label>
+                    <input
+                      id={`gift-reason-${g.id}`}
+                      name="reason"
+                      required
+                      minLength={3}
+                      maxLength={500}
+                      className="oura-input w-full p-3"
+                    />
+                    <button className="club-button-secondary">
+                      Revoke gift
+                    </button>
+                  </form>
+                </details>
+              )}
+            </div>
+          ))
+        )}
+        {staff.role === "admin" && member.is_active && (
+          <details>
+            <summary className="cursor-pointer py-2">
+              Issue a reward gift
+            </summary>
+            <form action={issueGiftAction} className="space-y-3">
+              <input type="hidden" name="member_id" value={member.id} />
+              <input type="hidden" name="submission_key" value={randomUUID()} />
+              <label className="block" htmlFor="gift-title">
+                Reward / selected item
+              </label>
+              <input
+                id="gift-title"
+                name="title"
+                required
+                minLength={3}
+                maxLength={120}
+                placeholder="One selected cocktail or mocktail"
+                className="oura-input w-full p-3"
+              />
+              <label className="block" htmlFor="gift-category">
+                Category
+              </label>
+              <select
+                id="gift-category"
+                name="category"
+                className="oura-input w-full p-3"
+              >
+                <option value="treat">Treat</option>
+                <option value="quarterly_meal">
+                  Quarterly meal (one per member per quarter)
+                </option>
+                <option value="other">Other gift</option>
+              </select>
+              <label className="block" htmlFor="gift-terms">
+                Member-facing terms / selected menu items
+              </label>
+              <textarea
+                id="gift-terms"
+                name="terms"
+                maxLength={1000}
+                className="oura-input w-full p-3"
+              />
+              <label className="block" htmlFor="gift-expiry">
+                Use by (10 pm)
+              </label>
+              <input
+                id="gift-expiry"
+                name="valid_until"
+                type="date"
+                required
+                min={earliestEnd}
+                defaultValue={addDaysYmd(today.ymd, 30)}
+                className="oura-input w-full p-3"
+              />
+              <label className="block" htmlFor="gift-issue-reason">
+                Staff approval reason (private)
+              </label>
+              <textarea
+                id="gift-issue-reason"
+                name="reason"
+                required
+                minLength={3}
+                maxLength={500}
+                className="oura-input w-full p-3"
+              />
+              <button className="club-button-secondary">
+                Issue complimentary gift
+              </button>
+            </form>
+          </details>
+        )}
       </section>
       <section className="space-y-3">
         <h2 className="font-semibold">Access passes</h2>
