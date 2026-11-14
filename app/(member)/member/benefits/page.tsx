@@ -105,6 +105,7 @@ export default async function BenefitsPage() {
         </p>
       )}
       <UpgradeOptions
+        passes={access.passes}
         catalogue={catalogue}
         benefits={benefits}
         active={member.is_active}
