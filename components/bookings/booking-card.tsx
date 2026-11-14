@@ -25,7 +25,7 @@ export function BookingCard({
           <p className="mt-1 text-sm">
             {membershipDate(b.booking_date)} · {timeLabel(b.start_minute)}
             {b.cabana
-              ? ` – ${timeLabel(b.end_minute ?? b.start_minute + 240)} · Cabana ${b.cabana}`
+              ? ` – ${timeLabel(b.end_minute ?? b.start_minute + 240)}${staff ? ` · Cabana ${b.cabana}` : ""}`
               : ""}
           </p>
         </div>

@@ -3,6 +3,7 @@ import { useState, useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   cabanaStarts,
+  availableCabanaStarts,
   dinnerMenu,
   futureSlot,
   money,
@@ -63,7 +64,11 @@ export function BookingForm({
   const [cabana, setCabana] = useState(1);
   const [menuError, setMenuError] = useState("");
   const starts = (
-    dinner ? [1080, 1200] : cabanaStarts(cabana, days, occupied)
+    dinner
+      ? [1080, 1200]
+      : staff
+        ? cabanaStarts(cabana, days, occupied)
+        : availableCabanaStarts(days, occupied)
   ).filter((n) => futureSlot(date, n, dinner ? 24 : 0, now));
   if (!p)
     return <p>No packages are available. Please contact the front desk.</p>;
@@ -177,7 +182,7 @@ export function BookingForm({
           </p>
         </fieldset>
       )}
-      {!dinner && (
+      {!dinner && staff && (
         <label className="block space-y-2">
           <span className="font-medium">Cabana</span>
           <select
@@ -194,7 +199,7 @@ export function BookingForm({
           </select>
         </label>
       )}
-      <label className="block space-y-2">
+      <label id="booking-times" className="block scroll-mt-24 space-y-2">
         <span className="font-medium">
           {dinner ? "Preferred dinner time" : "Available time slot"}
         </span>
@@ -220,13 +225,16 @@ export function BookingForm({
         <p role="status" className="text-sm">
           {dinner
             ? "Dinner needs at least 24 hours’ notice. Choose a later date."
-            : "No available slots for this cabana. Try another cabana or date."}
+            : staff
+              ? "No available slots for this cabana. Try another cabana or date."
+              : "No cabanas are available for this date. Please choose another day."}
         </p>
       )}
       {!dinner && (
         <p className="text-xs text-muted-foreground">
-          Open 7 am–6 pm. The first booking sets two consecutive four-hour slots
-          for that cabana and date. Pending requests hold their slots.
+          {staff
+            ? "Open 7 am–6 pm. The first booking sets two consecutive four-hour slots for that cabana and date. Pending requests hold their slots."
+            : "Choose a four-hour time slot between 7 am and 6 pm. We’ll arrange your cabana for you."}
         </p>
       )}
       {dinner && (

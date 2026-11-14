@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-experience-bookings-v1";
+const CACHE_NAME = "tbr-static-cabana-availability-v2";
 
 function isStaticAsset(requestUrl, request) {
   return (

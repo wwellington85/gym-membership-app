@@ -7,10 +7,9 @@ import { revalidatePath } from "next/cache";
 export async function requestExperience(form: FormData) {
   const { member, user, admin } = await requireMember();
   const payload = bookingPayload(form);
-  const { error } = await admin.rpc("create_experience_booking", {
+  const { error } = await admin.rpc("request_member_experience", {
     p_actor: user.id,
     p_member: member.id,
-    p_source: "member",
     p_key: String(form.get("submission_key") || ""),
     p_payload: payload,
   });

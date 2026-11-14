@@ -17,6 +17,12 @@ async function setup(clock) {
   await db.exec(
     `UPDATE members SET user_id='${id(101)}' WHERE id='${id(1)}'; UPDATE members SET user_id='${id(102)}' WHERE id='${id(2)}'; INSERT INTO staff_profiles VALUES('${id(33)}','front_desk',true),('${id(34)}','supervisor',true);`,
   );
+  await db.exec(
+    readFileSync(
+      "supabase/migrations/20261114220000_automatic_cabana_assignment.sql",
+      "utf8",
+    ),
+  );
   return db;
 }
 const payload = (more = {}) => ({
@@ -59,6 +65,101 @@ const person = {
   sides: ["Herb Mash Potato", "Vegetable Rice"],
   dessert: "Tropical Fruit Salad",
 };
+async function autoBook(
+  db,
+  key,
+  p = payload(),
+  actor = id(101),
+  member = id(1),
+) {
+  return (
+    await db.query("SELECT request_member_experience($1,$2,$3,$4) AS id", [
+      actor,
+      member,
+      id(key),
+      p,
+    ])
+  ).rows[0].id;
+}
+test("guest time requests automatically allocate all three cabanas and reject a fourth hold", async () => {
+  const db = await setup();
+  try {
+    const first = await autoBook(db, 270, payload({ cabana: 3 }));
+    await autoBook(db, 271);
+    await autoBook(db, 272);
+    assert.deepEqual(
+      (
+        await db.query("SELECT cabana FROM experience_bookings ORDER BY cabana")
+      ).rows.map((r) => r.cabana),
+      [1, 2, 3],
+    );
+    assert.equal(await autoBook(db, 270, payload({ cabana: 2 })), first);
+    await assert.rejects(
+      autoBook(db, 273, payload(), id(102), id(2)),
+      /Slot just booked/,
+    );
+    await assert.rejects(
+      autoBook(db, 274, payload(), id(101), id(2)),
+      /Active member/,
+    );
+    await manage(db, first, "cancel", {}, id(101));
+    await autoBook(db, 275, payload(), id(102), id(2));
+    assert.equal(
+      (
+        await db.query(
+          "SELECT count(*) AS n FROM experience_bookings WHERE status='requested'",
+        )
+      ).rows[0].n,
+      3,
+    );
+    assert.equal(
+      (
+        await db.query(
+          "SELECT has_function_privilege('authenticated','public.request_member_experience(uuid,uuid,uuid,jsonb)','EXECUTE') AS allowed",
+        )
+      ).rows[0].allowed,
+      false,
+    );
+  } finally {
+    await db.close();
+  }
+});
+test("automatic assignment fills compatible anchored slots first and retries remain stable after staff moves", async () => {
+  const db = await setup();
+  try {
+    await book(db, 280);
+    const second = await autoBook(db, 281, payload({ start: 780 }));
+    assert.equal(
+      (
+        await db.query("SELECT cabana FROM experience_bookings WHERE id=$1", [
+          second,
+        ])
+      ).rows[0].cabana,
+      1,
+    );
+    await manage(db, second, "reschedule", {
+      date: "2026-11-15",
+      start: 660,
+      cabana: 3,
+    });
+    assert.equal(await autoBook(db, 281, payload({ start: 780 })), second);
+    await assert.rejects(
+      autoBook(db, 281, payload({ start: 840 })),
+      /Submission changed/,
+    );
+    const third = await autoBook(db, 282, payload({ start: 570 }));
+    assert.equal(
+      (
+        await db.query("SELECT cabana FROM experience_bookings WHERE id=$1", [
+          third,
+        ])
+      ).rows[0].cabana,
+      2,
+    );
+  } finally {
+    await db.close();
+  }
+});
 test("front desk can confirm a paid rental already in progress, but cannot confirm an ended rental", async () => {
   const db = await setup("2026-11-14 16:10:00+00");
   try {
