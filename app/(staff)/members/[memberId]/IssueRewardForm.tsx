@@ -27,13 +27,25 @@ export function IssueRewardForm({
   minDate: string;
   defaultDate: string;
 }) {
-  const [icon, setIcon] = useState<RewardIconName>("drink"),
+  const [quarterly, setQuarterly] = useState(false),
+    [icon, setIcon] = useState<RewardIconName>("drink"),
     [title, setTitle] = useState<string>(rewardPresets[0].title),
     [terms, setTerms] = useState<string>(rewardPresets[0].terms);
   function choose(next: (typeof rewardPresets)[number]) {
     const previous = rewardPresets.find((p) => p.icon === icon)!;
-    if (!title.trim() || title === previous.title) setTitle(next.title);
-    if (!terms.trim() || terms === previous.terms) setTerms(next.terms);
+    if (
+      !title.trim() ||
+      title === previous.title ||
+      (quarterly && title === "One selected meal")
+    )
+      setTitle(next.title);
+    if (
+      !terms.trim() ||
+      terms === previous.terms ||
+      (quarterly && terms === "Choose one meal from the selected menu.")
+    )
+      setTerms(next.terms);
+    if (next.icon !== "food") setQuarterly(false);
     setIcon(next.icon);
   }
   return (
@@ -41,8 +53,19 @@ export function IssueRewardForm({
       <input type="hidden" name="member_id" value={memberId} />
       <input type="hidden" name="submission_key" value={submissionKey} />
       <input type="hidden" name="icon" value={icon} />
+      <input
+        type="hidden"
+        name="category"
+        value={
+          quarterly && icon === "food"
+            ? "quarterly_meal"
+            : icon === "gift"
+              ? "other"
+              : "treat"
+        }
+      />
       <fieldset>
-        <legend className="mb-2 text-sm">Choose a reward icon</legend>
+        <legend className="mb-2 text-sm">Reward type</legend>
         <div className="grid grid-cols-4 gap-2">
           {rewardPresets.map((p) => (
             <button
@@ -71,20 +94,36 @@ export function IssueRewardForm({
         onChange={(e) => setTitle(e.target.value)}
         className="oura-input w-full p-3"
       />
-      <label className="block" htmlFor="gift-category">
-        Category
-      </label>
-      <select
-        id="gift-category"
-        name="category"
-        className="oura-input w-full p-3"
-      >
-        <option value="treat">Treat</option>
-        <option value="quarterly_meal">
-          Quarterly meal (one per member per quarter)
-        </option>
-        <option value="other">Other gift</option>
-      </select>
+      {icon === "food" && (
+        <label className="flex items-center gap-3 text-sm">
+          <input
+            type="checkbox"
+            checked={quarterly}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              if (
+                title === rewardPresets[1].title ||
+                title === "One selected meal"
+              )
+                setTitle(
+                  checked ? "One selected meal" : rewardPresets[1].title,
+                );
+              if (
+                terms === rewardPresets[1].terms ||
+                terms === "Choose one meal from the selected menu."
+              )
+                setTerms(
+                  checked
+                    ? "Choose one meal from the selected menu."
+                    : rewardPresets[1].terms,
+                );
+              setQuarterly(checked);
+            }}
+            className="h-5 w-5"
+          />
+          Quarterly meal gift · one per member per quarter
+        </label>
+      )}
       <label className="block" htmlFor="gift-terms">
         Member-facing terms / selected menu items
       </label>
@@ -97,8 +136,8 @@ export function IssueRewardForm({
         className="oura-input w-full p-3"
       />
       <p className="text-xs text-muted-foreground">
-        Suggested wording is editable. Changing icons preserves your custom
-        wording.
+        Suggested wording is editable. Changing reward types preserves your
+        custom wording.
       </p>
       <label className="block" htmlFor="gift-expiry">
         Use by (10 pm)

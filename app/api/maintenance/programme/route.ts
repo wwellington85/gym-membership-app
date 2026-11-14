@@ -1,3 +1,4 @@
+import { deliverRewardPush } from "@/lib/push/delivery";
 import { timingSafeEqual } from "crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -20,8 +21,20 @@ export async function GET(req: Request) {
       { error: "Programme updates could not be applied" },
       { status: 503 },
     );
+  let pushRetries = 0;
+  const admin = createAdminClient();
+  for (let i = 0; i < 5; i++) {
+    const result = await deliverRewardPush(admin);
+    if (
+      result.status === "empty" ||
+      result.status === "not_configured" ||
+      result.status === "unavailable"
+    )
+      break;
+    pushRetries++;
+  }
   return NextResponse.json(
-    { applied: data },
+    { applied: data, pushRetries },
     { headers: { "Cache-Control": "no-store" } },
   );
 }

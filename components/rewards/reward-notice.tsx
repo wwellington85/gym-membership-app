@@ -62,7 +62,7 @@ export function RewardNotice() {
   return (
     <div
       ref={container}
-      className="relative"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center"
       onKeyDown={(e) => {
         if (e.key === "Escape") setOpen(false);
       }}
@@ -91,7 +91,7 @@ export function RewardNotice() {
           id={id}
           role="region"
           aria-label="Reward notifications"
-          className="absolute right-0 top-full z-50 mt-2 w-[min(320px,calc(100vw-40px))] space-y-3 rounded-2xl border bg-background p-4 text-foreground shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] overflow-y-auto w-[min(320px,calc(100vw-40px))] space-y-3 rounded-2xl border bg-background p-4 text-foreground shadow-lg"
         >
           <div className="flex items-center justify-between gap-3">
             <strong className="text-sm">Your rewards</strong>
@@ -128,6 +128,13 @@ export function RewardNotice() {
             className="club-text-link text-sm"
           >
             View all rewards
+          </Link>
+          <Link
+            href="/member/settings#notifications"
+            onClick={() => setOpen(false)}
+            className="block py-2 text-xs underline"
+          >
+            Notification settings
           </Link>
         </div>
       )}

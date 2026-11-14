@@ -1,5 +1,7 @@
 # Reward icons, supervisors and member notifications
 
+Follow-up: [opt-in reward push](2026-11-14-opt-in-reward-push.md) adds closed-app alerts and consolidates icon/category selection.
+
 ## Reward presentation
 
 Staff choose Drink, Food, Treat or Gift icons when issuing a reward. Suggested titles and member-facing terms are prefilled and editable. Switching icons updates untouched preset wording while preserving custom text. The selected icon is stored on the gift, and appears on staff history, fulfilment preview, member reward cards, the reward QR screen and notification items. Existing gifts receive the generic Gift icon without changing their title, terms, expiry, redemption state or QR identity.
