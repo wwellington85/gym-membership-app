@@ -611,6 +611,24 @@ input.join-date-input[type="date"]::-webkit-date-and-time-value {
     padding-top: calc(28px + env(safe-area-inset-top));
   }
 }
+/* Installed phone apps can use the bottom edge; keep gesture clearance
+   inside the dock rather than leaving an empty gap below a floating pill. */
+@media (display-mode: standalone) and (max-width: 640px) {
+  .club-member-nav,
+  .club-staff-nav {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    max-width: none;
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+    border-bottom: 0;
+    border-radius: 22px 22px 0 0;
+    box-shadow: 0 -4px 24px #17384d0d;
+  }
+  .club-member-main {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
