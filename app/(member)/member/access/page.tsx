@@ -9,12 +9,18 @@ export default async function AccessPage({
 }: {
   searchParams: Promise<{ err?: string }>;
 }) {
-  const { member } = await requireMember();
+  const { member, admin } = await requireMember();
   const [catalogue, access, sp] = await Promise.all([
     loadCatalogue(),
     loadAccess(member.id, member.is_active),
     searchParams,
   ]);
+  const { data: extensions } = await admin
+    .from("access_pass_extensions")
+    .select("pass_id, new_end_date")
+    .eq("member_id", member.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-semibold">Gym & resort access</h1>
@@ -56,6 +62,11 @@ export default async function AccessPage({
               {facilities(p.plan_snapshot).join(" · ")} · Ends at 10 pm Jamaica
               time.
             </p>
+            {extensions?.some((e) => e.pass_id === p.id) && (
+              <p className="text-sm text-muted-foreground">
+                Complimentary extension included in the expiration date above.
+              </p>
+            )}
             {member.is_active &&
               passIsActive(p) &&
               p.paid_through_date <= addDaysYmd(jamaicaTodayYmd(), 3) && (

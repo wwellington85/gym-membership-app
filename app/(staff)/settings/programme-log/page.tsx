@@ -19,9 +19,9 @@ export default async function ProgrammeLog({
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Programme audit</h1>
       <p className="text-sm text-muted-foreground">
-        Access grants/revocations, recorded benefit uses, member status, and
-        programme changes since migration. Automated/service changes may have no
-        employee actor.
+        Access grants, complimentary extensions and revocations, recorded
+        benefit uses, member status, and programme changes since migration.
+        Automated/service changes may have no employee actor.
       </p>
       <Link href="/settings/logs" className="inline-block py-3 underline">
         Payment & Club visit activity logs

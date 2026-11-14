@@ -12,7 +12,13 @@ import {
   facilities,
   passIsActive,
 } from "@/lib/access/rules";
-import { jamaicaTodayYmd } from "@/lib/membership/status";
+import {
+  addDaysYmd,
+  jamaicaNowParts,
+  jamaicaTodayYmd,
+} from "@/lib/membership/status";
+import { ExtendAccessForm } from "./ExtendAccessForm";
+import { extendAccessAction } from "./extend-access";
 import { ChangePlanForm } from "./ChangePlanForm";
 import {
   setLocalRewardsAction,
@@ -49,6 +55,14 @@ export default async function MemberProfile({
     }),
     admin.rpc("club_visit_points", { p_member_id: member.id }),
   ]);
+  const { data: extensions, error: extensionError } = await admin
+    .from("access_pass_extensions")
+    .select("id, pass_id, previous_end_date, new_end_date, reason, created_at")
+    .eq("member_id", member.id)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  const today = jamaicaNowParts();
+  const earliestEnd = today.hour >= 22 ? addDaysYmd(today.ymd, 1) : today.ymd;
   const { data: payments, error: paymentError } = await admin
     .from("payments")
     .select(
@@ -129,6 +143,12 @@ export default async function MemberProfile({
         <p role="alert" className="oura-alert-danger">
           {sp.err ||
             "Member details could not be updated. Please check the information and try again."}
+        </p>
+      )}
+      {sp.extended && (
+        <p role="status" className="oura-alert-success">
+          Complimentary extension saved. The updated expiry is shown below; the
+          original payment is unchanged.
         </p>
       )}
       {(sp.saved || sp.member_saved || sp.payment === "saved") && (
@@ -221,6 +241,12 @@ export default async function MemberProfile({
       </section>
       <section className="space-y-3">
         <h2 className="font-semibold">Access passes</h2>
+        {extensionError && (
+          <p role="status" className="text-sm">
+            Extension history could not be loaded. Current pass expiration dates
+            are shown below.
+          </p>
+        )}
         {!access.passes.length && (
           <p className="text-sm text-muted-foreground">
             No access passes. Rewards membership remains separate.
@@ -244,6 +270,40 @@ export default async function MemberProfile({
             <p className="mt-2 text-sm">
               {facilities(p.plan_snapshot).join(" · ")} · 10 pm Jamaica cutoff.
             </p>
+            {extensions
+              ?.filter((e) => e.pass_id === p.id)
+              .map((e) => (
+                <p key={e.id} className="mt-2 text-sm text-muted-foreground">
+                  Complimentary extension: {e.previous_end_date} →{" "}
+                  {e.new_end_date} ·{" "}
+                  {new Date(e.created_at).toLocaleDateString("en-GB", {
+                    timeZone: "America/Jamaica",
+                  })}{" "}
+                  · {e.reason}
+                </p>
+              ))}
+            {staff.role === "admin" &&
+              member.is_active &&
+              p.status === "active" &&
+              p.paid_through_date < "9999-12-31" && (
+                <details className="mt-3 text-sm">
+                  <summary className="cursor-pointer py-2">
+                    Extend access
+                  </summary>
+                  <ExtendAccessForm
+                    action={extendAccessAction}
+                    memberId={member.id}
+                    passId={p.id}
+                    currentEnd={p.paid_through_date}
+                    minEnd={
+                      addDaysYmd(p.paid_through_date, 1) > earliestEnd
+                        ? addDaysYmd(p.paid_through_date, 1)
+                        : earliestEnd
+                    }
+                    submissionKey={randomUUID()}
+                  />
+                </details>
+              )}
             {staff.role === "admin" && p.status === "active" && (
               <details className="mt-3 text-sm">
                 <summary className="cursor-pointer py-2">
