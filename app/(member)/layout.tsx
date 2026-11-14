@@ -29,7 +29,6 @@ export default async function MemberGateLayout({
             <p>Travellers Beach Resort</p>
           </Link>
           <div className="flex items-center gap-3">
-            <RewardNotice />
             <Link
               href="/member/card"
               className="club-member-header-action"
@@ -37,6 +36,7 @@ export default async function MemberGateLayout({
             >
               <CreditCard size={21} aria-hidden="true" />
             </Link>
+            <RewardNotice />
           </div>
         </header>
         <div className="club-member-content">

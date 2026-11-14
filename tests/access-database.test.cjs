@@ -709,3 +709,40 @@ test("supervisors inherit operations while admin-controlled reward permissions a
   }
  }finally{await db.close();}
 });
+
+test("push subscriptions require active members, queue only new gifts and lease delivery attempts without changing visit points",async()=>{
+ const db=await fixture();
+ try {
+  await db.exec(readFileSync('supabase/migrations/20261114180000_manual_reward_gifts.sql','utf8'));
+  const issue=key=>db.query("SELECT issue_reward_gift($1,'A selected drink','','Approved guest gift','treat','2026-12-12',$2,$3) AS id",[id(1),id(30),key]);
+  await issue(id(80));
+  await db.exec(readFileSync('supabase/migrations/20261114200000_opt_in_reward_push.sql','utf8'));
+  assert.equal(Number((await db.query('SELECT count(*) FROM reward_push_outbox')).rows[0].count),0);
+  const register=(member,endpoint)=>db.query('SELECT register_member_push($1,$2,$3,$4) AS id',[member,endpoint,'A'.repeat(87),'A'.repeat(22)]);
+  const endpoint='https://web.push.apple.com/test-endpoint';
+  const sub=(await register(id(1),endpoint)).rows[0].id;
+  assert.equal((await register(id(1),endpoint)).rows[0].id,sub);
+  await db.query('UPDATE members SET is_active=false WHERE id=$1',[id(2)]);
+  await assert.rejects(register(id(2),endpoint),/inactive/);
+  const gift=(await issue(id(81))).rows[0].id;await issue(id(81));
+  assert.equal(Number((await db.query('SELECT count(*) FROM reward_push_outbox')).rows[0].count),1);
+  const claim=async()=> (await db.query('SELECT claim_reward_push($1) AS id',[gift])).rows[0].id;
+  assert.equal(await claim(),gift);assert.equal(await claim(),null);
+  await db.query('SELECT note_reward_push_delivery($1,$2)',[gift,sub]);await db.query('SELECT note_reward_push_delivery($1,$2)',[gift,sub]);
+  assert.equal((await db.query('SELECT sent_subscription_ids FROM reward_push_outbox WHERE gift_id=$1',[gift])).rows[0].sent_subscription_ids.length,1);
+  await db.query("UPDATE reward_push_outbox SET updated_at=now()-interval '6 minutes' WHERE gift_id=$1",[gift]);assert.equal(await claim(),gift);
+  await db.query("UPDATE reward_push_outbox SET status='pending',next_attempt_at=now()+interval '10 minutes' WHERE gift_id=$1",[gift]);assert.equal(await claim(),null);
+  await db.query("UPDATE reward_push_outbox SET attempts=4,next_attempt_at=now() WHERE gift_id=$1",[gift]);assert.equal(await claim(),null);
+  for(let i=0;i<9;i++)await register(id(1),endpoint+i);
+  await assert.rejects(register(id(1),endpoint+'excess'),/Too many devices/);
+  // Explicit opt-in on a shared device rebinds it to the authenticated account.
+  await db.query('UPDATE members SET is_active=true WHERE id=$1',[id(2)]);
+  assert.equal((await register(id(2),endpoint)).rows[0].id,sub);
+  assert.equal((await db.query('SELECT member_id FROM push_subscriptions WHERE id=$1',[sub])).rows[0].member_id,id(2));
+  assert.equal(Number((await db.query('SELECT count(*) FROM checkins')).rows[0].count),0);
+  for(const role of ['anon','authenticated']){
+   for(const table of ['push_subscriptions','reward_push_outbox'])assert.equal((await db.query("SELECT has_table_privilege($1,$2,'select,insert,update,delete') AS ok",[role,table])).rows[0].ok,false);
+   for(const fn of ['register_member_push(uuid,text,text,text)','claim_reward_push(uuid)','note_reward_push_delivery(uuid,uuid)'])assert.equal((await db.query("SELECT has_function_privilege($1,$2,'execute') AS ok",[role,fn])).rows[0].ok,false);
+  }
+ }finally{await db.close();}
+});

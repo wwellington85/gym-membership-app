@@ -1,3 +1,5 @@
+import { PushSettings } from "@/components/rewards/push-settings";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { redirect } from "next/navigation";
@@ -46,7 +48,21 @@ export default async function AccountPage({
   }
   async function logout() {
     "use server";
-    const { supabase } = await requireMember();
+    const { supabase, admin, member } = await requireMember();
+    const jar = await cookies();
+    const device = jar.get("club_push_device")?.value;
+    if (device) {
+      const { error } = await admin
+        .from("push_subscriptions")
+        .delete()
+        .eq("id", device)
+        .eq("member_id", member.id);
+      if (error)
+        redirect(
+          "/member/settings?err=Could%20not%20turn%20off%20device%20alerts.%20Please%20retry%20signing%20out.",
+        );
+      jar.delete("club_push_device");
+    }
     await supabase.auth.signOut();
     redirect("/auth/login");
   }
@@ -167,6 +183,7 @@ export default async function AccountPage({
           Help & membership information
         </Link>
       </div>
+      <PushSettings />
       <section className="space-y-3">
         <h2 className="font-semibold">Recent purchases</h2>
         {error ? (
