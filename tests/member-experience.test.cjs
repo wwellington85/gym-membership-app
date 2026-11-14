@@ -37,6 +37,9 @@ const status = load("lib/membership/status.ts");
 const rules = load("lib/access/rules.ts", {
   "@/lib/membership/status": status,
 });
+const giftRules = load("lib/rewards/gifts.ts", {
+  "@/lib/membership/status": status,
+});
 const benefitRules = load("lib/access/benefits.ts", { "./rules": rules });
 const shared = {
   "react/jsx-runtime": require("react/jsx-runtime"),
@@ -48,6 +51,14 @@ const shared = {
   "@/lib/access/benefits": benefitRules,
   "@/lib/format/date": load("lib/format/date.ts"),
 };
+shared["@/lib/rewards/gifts"] = giftRules;
+shared["@/lib/rewards/server"] = {
+  loadMemberGifts: async () => ({ gifts: [], error: false }),
+};
+shared["@/components/member/reward-gifts"] = load(
+  "components/member/reward-gifts.tsx",
+  shared,
+);
 shared["@/components/member/upgrade-options"] = load(
   "components/member/upgrade-options.tsx",
   shared,
@@ -190,10 +201,10 @@ test("free members see earned points and upgrades without zero-rate discounts or
       html,
       /(?:>| )0%|today 0%|Your discounts today|Discount history|Approved local perk|How to use a benefit|Jamaica time/,
     );
-    assert.match(html, /future rewards|future treats/);
-    assert.match(
+    assert.match(html, /Selected rewards|selected rewards/);
+    assert.doesNotMatch(
       html,
-      /Redemption is coming soon|redemption is not available yet/,
+      /30 points|automatically unlock a gift.*Use this reward/,
     );
   }
 });
@@ -289,4 +300,14 @@ test("point lookup failures show unavailable rather than a false zero balance", 
   const html = await renderPage(benefits, { pointError: true });
   assert.match(html, /points are temporarily unavailable/);
   assert.doesNotMatch(html, />0<\/strong>/);
+});
+
+test("issued gifts show use links only while available; consumed history cannot be reused",()=>{
+ const {RewardGifts}=shared['@/components/member/reward-gifts'];
+ const gift={id:'one',member_id:'self',title:'Selected dessert',terms:'One selected item',valid_until:'2026-11-20',status:'available',created_at:'2026-11-14'};
+ const render=(g,active=true)=>renderToStaticMarkup(React.createElement(RewardGifts,{gifts:[g],error:false,active}));
+ assert.match(render(gift),/Use this reward/);
+ for(const state of ['redeemed','revoked']){const html=render({...gift,status:state});assert.doesNotMatch(html,/Use this reward/);assert.match(html,/Reward history/);}
+ assert.doesNotMatch(render({...gift,valid_until:'2000-01-01'}),/Use this reward/);
+ assert.doesNotMatch(render(gift,false),/Use this reward/);
 });

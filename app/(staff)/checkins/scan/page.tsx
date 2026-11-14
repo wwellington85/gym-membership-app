@@ -33,6 +33,8 @@ export default async function ScanPage({
     "use server";
     const { admin: lookupAdmin } = await requireStaff();
     const code = String(data.get("code") || "").trim();
+    if (code.startsWith("TBR-REWARD:"))
+      redirect(`/rewards/redeem?code=${encodeURIComponent(code)}`);
     let id = memberIdFromNumber(code.replace(/^member:/, ""));
     const number = normalizeMemberNumber(code);
     if (!id && number) {
@@ -142,6 +144,11 @@ export default async function ScanPage({
       <Link href="/members" className="inline-block py-3 underline">
         Search by name or phone
       </Link>
+      {staff.role !== "security" && (
+        <Link href="/rewards/redeem" className="inline-block py-3 underline">
+          Redeem a reward gift
+        </Link>
+      )}
       {id && !member && (
         <p role="status">
           No member found. Search by name or ask the front desk.

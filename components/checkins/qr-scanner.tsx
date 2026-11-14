@@ -6,8 +6,10 @@ import {
 } from "@zxing/browser";
 export function QrScanner({
   lookup,
+  reward = false,
 }: {
   lookup: (data: FormData) => Promise<void>;
+  reward?: boolean;
 }) {
   const video = useRef<HTMLVideoElement | null>(null);
   const controls = useRef<IScannerControls | null>(null);
@@ -56,7 +58,9 @@ export function QrScanner({
   return (
     <div className="space-y-3 rounded border p-3">
       <div className="flex justify-between gap-3">
-        <h2 className="font-medium">Scan membership card</h2>
+        <h2 className="font-medium">
+          {reward ? "Scan reward QR" : "Scan membership card"}
+        </h2>
         <button
           type="button"
           disabled={pending}
@@ -78,8 +82,9 @@ export function QrScanner({
         </p>
       )}
       <p className="text-sm text-muted-foreground">
-        Scanning identifies a member. It does not record a visit or grant
-        access.
+        {reward
+          ? "Scanning checks the reward. Confirm fulfilment separately after verifying the member and item."
+          : "Scanning identifies a member. It does not record a visit or grant access."}
       </p>
     </div>
   );

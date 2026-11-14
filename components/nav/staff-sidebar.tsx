@@ -7,6 +7,7 @@ import {
   ScanLine,
   CalendarCheck,
   Trophy,
+  Gift,
   Inbox,
   Receipt,
   Settings,
@@ -23,6 +24,7 @@ export function StaffSidebar({ role }: { role: string }) {
     ...(!security
       ? [
           { href: "/checkins/rankings", label: "Club rankings", icon: Trophy },
+          { href: "/rewards/redeem", label: "Redeem reward", icon: Gift },
           { href: "/applications", label: "Requests", icon: Inbox },
           { href: "/payments", label: "Payments", icon: Receipt },
         ]

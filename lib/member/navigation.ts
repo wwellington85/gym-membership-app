@@ -31,6 +31,7 @@ export function memberTab(pathname: string) {
   if (pathname === "/member/activity" || pathname === "/member/points")
     return "/member/benefits";
   if (pathname.startsWith("/member/card")) return "/member/card";
+  if (pathname.startsWith("/member/rewards")) return "/member/benefits";
   if (pathname.startsWith("/member/benefits")) return "/member/benefits";
   if (
     pathname.startsWith("/member/settings") ||
@@ -59,6 +60,11 @@ export function memberPageParent(
     return { href: "/member", label: "Back to Home" };
   if (pathname === "/member/upgrade" || pathname === "/member/checkout")
     return { href: "/member/access", label: "Back to access" };
+  if (pathname.startsWith("/member/rewards"))
+    return {
+      href: "/member/benefits#member-rewards",
+      label: "Back to rewards",
+    };
   if (pathname === "/member/activity" || pathname === "/member/points")
     return { href: "/member/benefits", label: "Back to Benefits" };
   if (pathname === "/member/help" || pathname.includes("/payment"))

@@ -7,12 +7,13 @@ export default function HelpPage() {
         <h2 className="font-semibold">Your account and Local Rewards</h2>
         <p className="text-sm text-muted-foreground">
           Anyone can join for a free account, digital card and visit points.
-          Earn 3 points for a verified visit, once per day. Rewards redemption
-          is coming soon. Local Rewards discounts are approved by staff for
-          selected community members; ask the front desk about eligibility.
-          Weekly and monthly Club plans include their published access and
-          discounts during the pass dates. Show your card before ordering and
-          check outlet or event restrictions.
+          Earn 3 points for a verified visit, once per day. Selected gifts are
+          issued by our team. Find yours in Benefits and show the reward QR to
+          staff. Points do not automatically unlock gifts. Local Rewards
+          discounts are approved by staff for selected community members; ask
+          the front desk about eligibility. Weekly and monthly Club plans
+          include their published access and discounts during the pass dates.
+          Show your card before ordering and check outlet or event restrictions.
         </p>
         <Link href="/member/benefits" className="inline-block py-3 underline">
           View my benefits

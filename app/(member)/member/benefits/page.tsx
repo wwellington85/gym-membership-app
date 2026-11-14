@@ -1,3 +1,5 @@
+import { loadMemberGifts } from "@/lib/rewards/server";
+import { RewardGifts } from "@/components/member/reward-gifts";
 import { UpgradeOptions } from "@/components/member/upgrade-options";
 import { VisitPoints } from "@/components/member/visit-points";
 import Link from "next/link";
@@ -14,6 +16,7 @@ export default async function BenefitsPage() {
     loadCatalogue(),
     admin.rpc("club_visit_points", { p_member_id: member.id }),
   ]);
+  const rewards = await loadMemberGifts(admin, member.id);
   const scheduled = member.is_active ? upcomingPass(access.passes) : null;
   const points = pointRows.error ? null : Number(pointRows.data ?? 0);
   const free = catalogue.find((p) => p.code === "rewards_free");
@@ -137,6 +140,7 @@ export default async function BenefitsPage() {
           </Link>
         </p>
       )}
+      <RewardGifts {...rewards} active={member.is_active} />
       <VisitPoints points={points} active={member.is_active} />
       <UpgradeOptions
         passes={access.passes}

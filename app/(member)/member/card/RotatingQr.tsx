@@ -2,7 +2,15 @@
 /* eslint-disable @next/next/no-img-element -- QR data images are generated locally. */
 import { useEffect, useState, useCallback, useRef } from "react";
 import QRCode from "qrcode";
-export function RotatingQr({ size = 240 }: { size?: number }) {
+import { useRouter } from "next/navigation";
+export function RotatingQr({
+  size = 240,
+  giftId,
+}: {
+  size?: number;
+  giftId?: string;
+}) {
+  const router = useRouter();
   const [qr, setQr] = useState<{ url: string; exp: number } | null>(null);
   const [error, setError] = useState("");
   const [now, setNow] = useState(() => Date.now());
@@ -13,11 +21,20 @@ export function RotatingQr({ size = 240 }: { size?: number }) {
     busy.current = true;
     setLoading(true);
     try {
-      const res = await fetch("/api/qr/token", {
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
-      });
-      if (!res.ok) throw new Error();
+      const res = await fetch(
+        giftId
+          ? `/api/rewards/qr?gift=${encodeURIComponent(giftId)}`
+          : "/api/qr/token",
+        {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10000),
+        },
+      );
+      if (!res.ok) {
+        if (giftId) setQr(null);
+        if (giftId && res.status === 410) router.refresh();
+        throw new Error();
+      }
       const json = await res.json();
       if (!json.token || !Number.isFinite(json.exp)) throw new Error();
       const url = await QRCode.toDataURL(json.token, {
@@ -34,13 +51,15 @@ export function RotatingQr({ size = 240 }: { size?: number }) {
       }
     } catch {
       setError(
-        "We could not refresh your QR. Retry, or ask staff to look up your membership number.",
+        giftId
+          ? "Reward QR unavailable. It may have been redeemed or expired. Ask staff to verify its status."
+          : "We could not refresh your QR. Retry, or ask staff to look up your membership number.",
       );
     } finally {
       busy.current = false;
       setLoading(false);
     }
-  }, []);
+  }, [giftId, router]);
   useEffect(() => {
     void refresh();
     const refreshTimer = setInterval(refresh, 30000);
@@ -69,14 +88,20 @@ export function RotatingQr({ size = 240 }: { size?: number }) {
           width={size}
           height={size}
           className="max-w-full rounded bg-white"
-          alt="Membership QR for staff verification"
+          alt={
+            giftId
+              ? "Reward QR for staff redemption"
+              : "Membership QR for staff verification"
+          }
         />
       )}
       {!valid && (
         <p role="status" className="text-sm">
           {loading
             ? "Loading your QR…"
-            : "QR unavailable. Use your membership number for staff lookup."}
+            : giftId
+              ? "Reward QR unavailable. Ask staff for assistance."
+              : "QR unavailable. Use your membership number for staff lookup."}
         </p>
       )}
       {error && (
