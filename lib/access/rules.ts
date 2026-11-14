@@ -61,6 +61,16 @@ export function passIsActive(pass: AccessPass, now = new Date()) {
   );
 }
 
+// Scheduled access is shown separately and never treated as usable today.
+export function upcomingPass(passes: AccessPass[], now = new Date()) {
+  const today = jamaicaTodayYmd(now);
+  return (
+    passes
+      .filter((p) => p.status === "active" && p.start_date > today)
+      .sort((a, b) => a.start_date.localeCompare(b.start_date))[0] ?? null
+  );
+}
+
 export function purchasePeriod(args: {
   start: string;
   duration: number;

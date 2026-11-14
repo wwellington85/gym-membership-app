@@ -213,9 +213,9 @@ function deriveBadges(args: {
   else if (args.streakDays >= 3) out.push({ label: `${args.streakDays}-Day Streak`, tone: "sky" });
 
   if (args.allTimeCheckins >= 100) out.push({ label: "Century Club", tone: "amber" });
-  else if (args.allTimeCheckins >= 50) out.push({ label: "50 Check-ins", tone: "violet" });
-  else if (args.allTimeCheckins >= 25) out.push({ label: "25 Check-ins", tone: "teal" });
-  else if (args.allTimeCheckins >= 10) out.push({ label: "10 Check-ins", tone: "sky" });
+  else if (args.allTimeCheckins >= 50) out.push({ label: "50 Visits", tone: "violet" });
+  else if (args.allTimeCheckins >= 25) out.push({ label: "25 Visits", tone: "teal" });
+  else if (args.allTimeCheckins >= 10) out.push({ label: "10 Visits", tone: "sky" });
 
   return out.slice(0, 4);
 }

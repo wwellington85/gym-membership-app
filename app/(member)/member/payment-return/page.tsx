@@ -38,7 +38,7 @@ export default function PaymentReturnPage() {
           setReady(true);
           setChecking(false);
           setMessage(
-            `Payment received and access activated: ${payment.access_start_date} through ${payment.access_end_date}, until 10 pm Jamaica time on the last day.`,
+            `Payment received and access activated: ${payment.access_start_date} through ${payment.access_end_date}, until 10 pm on the last day.`,
           );
           return;
         }

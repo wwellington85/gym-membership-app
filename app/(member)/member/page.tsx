@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, CreditCard } from "lucide-react";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
 import { firstName } from "@/lib/format/name";
-import { facilities } from "@/lib/access/rules";
+import { facilities, upcomingPass } from "@/lib/access/rules";
 import { effectiveBenefits } from "@/lib/access/benefits";
 import { membershipDate } from "@/lib/format/date";
 import { getMemberGymSummary } from "@/lib/member/leaderboard";
@@ -18,6 +18,7 @@ export default async function MemberHome() {
     getMemberGymSummary(admin, member.id),
     admin.rpc("club_visit_points", { p_member_id: member.id }),
   ]);
+  const scheduled = member.is_active ? upcomingPass(access.passes) : null;
   const points = pointRows.error ? null : Number(pointRows.data ?? 0);
   const benefits = effectiveBenefits(
     catalogue.find((plan) => plan.code === "rewards_free"),
@@ -26,6 +27,7 @@ export default async function MemberHome() {
     new Date(),
     member.local_rewards,
   );
+  const discounts = benefits.filter((b) => b.percent > 0);
   const included = [
     ...new Set(
       access.current.flatMap((pass) => facilities(pass.plan_snapshot)),
@@ -68,12 +70,20 @@ export default async function MemberHome() {
         <p className="text-sm text-muted-foreground">
           {member.is_active
             ? access.best
-              ? `Facility access until ${membershipDate(access.best.paid_through_date)} · 10 pm Jamaica time`
-              : member.local_rewards
-                ? "Local Rewards discounts are active. Facility passes are available separately."
-                : "Your free account includes your digital card and Club visit history. Discounts and facility access are separate."
+              ? `Facility access until ${membershipDate(access.best.paid_through_date)} at 10 pm`
+              : scheduled
+                ? "Your next Club pass is booked. Keep collecting visit points while you look forward to your next visit."
+                : member.local_rewards
+                  ? "Enjoy your Local Rewards discounts. Add a weekly or monthly pass for facility access and enhanced benefits."
+                  : "Earn points with every visit. Upgrade to a weekly or monthly Club pass for facility access and enhanced benefits."
             : "Please speak with the front desk."}
         </p>
+        {scheduled && (
+          <p className="text-sm text-muted-foreground">
+            Your {scheduled.plan_snapshot.name} starts on{" "}
+            {membershipDate(scheduled.start_date)}.
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/member/card" className="club-button">
             <CreditCard size={18} aria-hidden="true" /> Show my card
@@ -109,7 +119,7 @@ export default async function MemberHome() {
         <dl className="club-metrics">
           {[
             ["Visits", summary.allTimeCheckins ?? "—"],
-            ["Points", points ?? "—"],
+            ["Points earned", points ?? "—"],
             [
               "Club rank",
               summary.rankingAvailable && summary.rank
@@ -136,23 +146,29 @@ export default async function MemberHome() {
           </ul>
         )}
         <p className="text-sm text-muted-foreground">
-          Earn 3 points per visit. Show your card at the front gate or
-          restaurant. One visit per day, Jamaica time.
+          {member.is_active
+            ? "Earn 3 points per visit. Show your card at the front gate or restaurant. One visit per day."
+            : "Your past visit points stay on your account. Contact the front desk to resume earning."}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {member.is_active
+            ? "Keep collecting for future rewards. Redemption is coming soon."
+            : "Your earned points stay with your account."}
         </p>
         <Link href="/member/leaderboard" className="club-text-link">
           View Club rankings <ArrowRight size={16} aria-hidden="true" />
         </Link>
       </section>
-      {member.is_active && (
+      {member.is_active && discounts.length > 0 && (
         <section>
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Your benefits today</h2>
+            <h2 className="text-lg font-semibold">Your discounts today</h2>
             <Link href="/member/benefits" className="club-text-link">
               Details <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </div>
           <dl className="club-home-benefits">
-            {benefits.map((benefit) => (
+            {discounts.map((benefit) => (
               <div key={benefit.key} className="club-rule-row">
                 <dt className="text-sm">{benefit.label}</dt>
                 <dd className="text-xl font-semibold tabular-nums">

@@ -20,7 +20,7 @@ export default async function AccountPage({
   const { data: payments, error } = await admin
     .from("payments")
     .select(
-      "id, amount, currency, status, fulfilled_at, created_at, purchased_plan_id, purchase_snapshot, access_start_date, access_end_date, provider",
+      "id, amount, currency, status, fulfilled_at, created_at, purchased_plan_id, purchase_snapshot, access_start_date, access_end_date, provider, payment_method",
     )
     .eq("member_id", member.id)
     .order("created_at", { ascending: false })
@@ -180,8 +180,15 @@ export default async function AccountPage({
                 {p.purchase_snapshot?.name || "Membership payment"}
               </h3>
               <p className="mt-2">
-                ${Number(p.amount).toFixed(2)} {p.currency || "USD"} ·{" "}
-                {p.status || "Recorded at desk"}
+                {["complimentary", "comp"].includes(p.payment_method) ? (
+                  "Complimentary pass"
+                ) : (
+                  <>
+                    {"$"}
+                    {Number(p.amount).toFixed(2)} {p.currency || "USD"} ·{" "}
+                    {p.status || "Recorded at desk"}
+                  </>
+                )}
                 {p.status === "paid" && p.purchased_plan_id
                   ? p.fulfilled_at
                     ? " · Access activated"

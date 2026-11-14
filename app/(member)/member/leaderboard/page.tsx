@@ -83,13 +83,13 @@ export default async function MemberLeaderboardPage(props: {
           <div className="rounded border oura-surface-muted p-3 text-right">
             <div className="text-muted-foreground">{period === "month" ? "This month" : "All-time"}</div>
             <div className="text-lg font-semibold">{snapshot.myCheckins}</div>
-            <div className="text-xs text-muted-foreground">check-ins</div>
+            <div className="text-xs text-muted-foreground">visits</div>
           </div>
         </div>
 
         <div className="mt-2 text-xs text-muted-foreground">
           {snapshot.nextGap && snapshot.myRank
-            ? `${encouragement} ${snapshot.nextGap} more check-in${snapshot.nextGap === 1 ? "" : "s"} to catch the next rank.`
+            ? `${encouragement} ${snapshot.nextGap} more visit${snapshot.nextGap === 1 ? "" : "s"} to catch the next rank.`
             : encouragement}
         </div>
 
@@ -167,7 +167,7 @@ export default async function MemberLeaderboardPage(props: {
         </div>
 
         {rows.length === 0 ? (
-          <div className="mt-3 text-sm text-muted-foreground">No check-ins yet this month.</div>
+          <div className="mt-3 text-sm text-muted-foreground">No visits yet this month.</div>
         ) : (
           <div className="mt-3 space-y-2">
             {rows.map((row) => (

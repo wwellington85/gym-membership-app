@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireMember, loadAccess } from "@/lib/access/server";
-import { facilities } from "@/lib/access/rules";
+import { facilities, upcomingPass } from "@/lib/access/rules";
 import { membershipDate } from "@/lib/format/date";
 import { MembershipCard } from "@/components/member/membership-card";
 import { RotatingQr } from "./RotatingQr";
@@ -9,12 +9,13 @@ export const dynamic = "force-dynamic";
 export default async function MemberCard() {
   const { member } = await requireMember();
   const access = await loadAccess(member.id, member.is_active);
+  const scheduled = member.is_active ? upcomingPass(access.passes) : null;
   return (
     <div className="space-y-6">
       <header>
         <h1>Your membership.</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ready for your next visit.
+          Your card for Club visits and member benefits.
         </p>
       </header>
       <MembershipCard
@@ -32,8 +33,8 @@ export default async function MemberCard() {
           <h2 className="font-semibold">Show your live QR to staff</h2>
           <RotatingQr />
           <p className="text-xs text-muted-foreground">
-            If your QR cannot load, staff can look up the membership number on
-            your card.
+            Staff can record a visit or verify your benefits with this code. If
+            it cannot load, they can use your membership number.
           </p>
         </section>
       ) : (
@@ -57,16 +58,17 @@ export default async function MemberCard() {
                 {facilities(pass.plan_snapshot).join(" · ")}
               </p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Until {membershipDate(pass.paid_through_date)} · 10 pm Jamaica
-                time
+                Until {membershipDate(pass.paid_through_date)} · 10 pm
               </p>
             </div>
           ))
         ) : (
           <p className="mt-3 text-sm text-muted-foreground">
-            No facility pass is active now. Your free account and any approved
-            Local Rewards discounts are separate. Staying at the hotel? Ask the
-            front desk about access included in your booking.
+            {!member.is_active
+              ? "The front desk can help reactivate your membership."
+              : scheduled
+                ? `Your ${scheduled.plan_snapshot.name} starts on ${membershipDate(scheduled.start_date)}.`
+                : "Earn points when you visit. Explore weekly and monthly Club passes for facility access and enhanced benefits. Staying at the hotel? Ask the front desk about access included in your booking."}
           </p>
         )}
         <div className="mt-4 flex flex-wrap gap-3">

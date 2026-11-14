@@ -69,8 +69,8 @@ export function AccessPurchaseForm({
       </div>
       {period && (
         <p aria-live="polite" className="rounded border p-3 text-sm">
-          Valid {period.start} through {period.end}, until 10 pm Jamaica time on
-          the last day.
+          Valid {period.start} through {period.end}, until 10 pm on the last
+          day.
           {renew
             ? " This extends this product after your existing pass ends."
             : " Your other passes and free Club account remain unchanged."}

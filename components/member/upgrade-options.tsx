@@ -3,6 +3,7 @@ import { effectiveBenefits } from "@/lib/access/benefits";
 import {
   facilities,
   passIsActive,
+  upcomingPass,
   type AccessPass,
   type AccessPlan,
 } from "@/lib/access/rules";
@@ -21,12 +22,15 @@ export function UpgradeOptions({
   localRewards?: boolean;
   passes?: AccessPass[];
 }) {
+  const now = new Date();
   const currentCodes = new Set(
     passes
-      .filter((pass) => passIsActive(pass))
+      .filter(
+        (pass) => passIsActive(pass, now) || upcomingPass([pass], now) !== null,
+      )
       .map((pass) => pass.plan_snapshot.code),
   );
-  // A monthly member already has the highest Club plan. Keep renewals in Access.
+  // Current or scheduled monthly access already covers the highest Club plan.
   if (!active || currentCodes.has("club_monthly_95")) return null;
   const plans = catalogue.filter(
     (p) =>
@@ -81,21 +85,16 @@ export function UpgradeOptions({
                 const rate = Math.round(
                   Math.max(base, Number(plan[benefit.key] ?? 0)) * 100,
                 );
-                const extra = rate - benefit.percent;
+                if (rate <= 0) return null;
                 return (
                   <li key={benefit.key}>
                     {benefit.label}: {rate}% off
-                    {extra > 0 ? (
+                    {benefit.percent > 0 && rate !== benefit.percent && (
                       <span className="text-muted-foreground">
                         {" "}
                         · today {benefit.percent}%
                       </span>
-                    ) : extra < 0 ? (
-                      <span className="text-muted-foreground">
-                        {" "}
-                        · today {benefit.percent}%
-                      </span>
-                    ) : null}
+                    )}
                   </li>
                 );
               })}
