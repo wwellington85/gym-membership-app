@@ -174,6 +174,12 @@ export default async function AccountPage({
       </section>
       <div className="flex flex-wrap gap-3">
         <Link
+          href="/member/bookings"
+          className="rounded border px-3 py-3 text-sm"
+        >
+          My cabana & dinner bookings
+        </Link>
+        <Link
           href="/auth/update-password"
           className="rounded border px-3 py-3 text-sm"
         >

@@ -94,6 +94,52 @@ export default async function MemberHome() {
           </Link>
         </div>
       </section>
+      <section className="space-y-3" aria-labelledby="experiences-heading">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="experiences-heading" className="text-lg font-semibold">
+            Make a day of it
+          </h2>
+          <Link href="/member/bookings" className="club-text-link text-sm">
+            My bookings
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              href: "/member/experiences?kind=cabana",
+              image: "cabanas",
+              title: "Your poolside cabana",
+              subtitle: "Four hours to unwind",
+            },
+            {
+              href: "/member/experiences?kind=dinner",
+              image: "starlight",
+              title: "Starlight Dinner",
+              subtitle: "An evening for two",
+            },
+          ].map((e) => (
+            <Link
+              key={e.image}
+              href={e.href}
+              className="overflow-hidden rounded-2xl border"
+            >
+              <div className="relative h-28 sm:h-36">
+                <Image
+                  src={`/images/experiences/${e.image}.webp`}
+                  alt=""
+                  fill
+                  sizes="(max-width:640px) 45vw, 300px"
+                  className="object-cover"
+                />
+              </div>
+              <div className="space-y-1 p-3">
+                <h3 className="text-sm font-semibold">{e.title}</h3>
+                <p className="text-xs text-muted-foreground">{e.subtitle}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
       {member.is_active && included.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold">

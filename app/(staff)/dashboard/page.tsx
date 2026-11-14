@@ -14,6 +14,10 @@ export default async function DashboardPage() {
   const { admin, staff } = await requireStaff();
   if (staff.role === "security") redirect("/checkins/scan");
   const { data, error } = await admin.rpc("club_overview");
+  const bookingQueue = await admin
+    .from("experience_bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "requested");
   const metric = (key: string) => (error ? "—" : (data?.[key] ?? 0));
   return (
     <div className="space-y-6" data-club-staff-ready>
@@ -93,6 +97,7 @@ export default async function DashboardPage() {
       >
         {[
           ["/members/new", "Register member", UserPlus],
+          ["/bookings", "Cabanas & dinner", CalendarCheck],
           ["/checkins", "Visit history", CalendarCheck],
           ["/checkins/rankings", "Club rankings", Trophy],
         ].map(([href, label, Icon]) => {
@@ -120,6 +125,17 @@ export default async function DashboardPage() {
           Needs attention
         </h2>
         <div className="grid gap-3 sm:grid-cols-2">
+          <Link href="/bookings" className="club-staff-attention">
+            <div>
+              <p className="text-sm font-medium">Cabana & dinner requests</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
+                {bookingQueue.error ? "—" : (bookingQueue.count ?? 0)}
+              </p>
+            </div>
+            <span className="club-text-link text-sm">
+              Review bookings <ArrowRight size={16} aria-hidden="true" />
+            </span>
+          </Link>
           {[
             [
               "pending_requests",
