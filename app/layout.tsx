@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { ClubLaunch } from "@/components/pwa/club-launch";
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
@@ -34,8 +36,16 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192.png?v=club-gold-tc-1", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512.png?v=club-gold-tc-1", sizes: "512x512", type: "image/png" },
+      {
+        url: "/icons/icon-192.png?v=club-gold-tc-1",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/icons/icon-512.png?v=club-gold-tc-1",
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
     apple: [
       {
@@ -80,7 +90,8 @@ export default function RootLayout({
             Skip to content
           </a>
           <ServiceWorkerRegister />
-          {children}
+          <ClubLaunch />
+          <Suspense fallback={null}>{children}</Suspense>
           <div id="app-portal" />
         </ThemeProvider>
       </body>

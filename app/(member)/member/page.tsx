@@ -29,7 +29,7 @@ export default async function MemberHome() {
     ),
   ];
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-club-home-ready>
       <header className="club-home-hero">
         <Image
           src="/images/hotel/beach-sunset.webp"

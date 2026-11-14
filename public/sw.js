@@ -1,4 +1,4 @@
-const CACHE_NAME = "tbr-static-club-launch-v2";
+const CACHE_NAME = "tbr-static-club-launch-v3";
 
 function isStaticAsset(requestUrl, request) {
   return (

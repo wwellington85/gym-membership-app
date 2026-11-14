@@ -5,7 +5,6 @@ import { memberLoginHref } from "@/lib/auth/member-login";
 import { createClient } from "@/lib/supabase/server";
 import { MemberTabs } from "@/components/nav/member-tabs";
 import { MemberPageBack } from "@/components/nav/member-page-back";
-import { ClubLaunch } from "@/components/pwa/club-launch";
 import { InstallAppPrompt } from "@/components/pwa/install-app-prompt";
 
 export default async function MemberGateLayout({
@@ -43,7 +42,6 @@ export default async function MemberGateLayout({
         </div>
       </main>
 
-      <ClubLaunch />
       {/* Fixed to viewport bottom */}
       <MemberTabs />
     </>
