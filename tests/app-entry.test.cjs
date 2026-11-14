@@ -225,3 +225,9 @@ test("a cancelled launch cannot navigate after a delayed response and public bro
   const browser = clientEntry({ installedOnly: true, standalone: false });
   assert.equal(browser.requests.length, 0);
 });
+
+test("the faster launch URL preserves the existing installed app identity", () => {
+  const manifest = load("app/manifest.ts", {}).default();
+  assert.equal(manifest.id, "/");
+  assert.equal(manifest.start_url, "/app");
+});
