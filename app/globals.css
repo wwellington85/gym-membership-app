@@ -529,15 +529,25 @@ textarea.oura-input {
   margin-top: 6px;
 }
 
-input.join-date-input[type="date"] {
+input.oura-input[type="date"] {
+  box-sizing: border-box;
+  display: block;
   width: 100%;
   max-width: 100%;
+  min-width: 0;
+  inline-size: 100%;
+  max-inline-size: 100%;
   min-inline-size: 0;
   -webkit-appearance: none;
   appearance: none;
 }
-input.join-date-input[type="date"]::-webkit-date-and-time-value {
+input.oura-input[type="date"]::-webkit-date-and-time-value {
+  min-width: 0;
   text-align: left;
+}
+input.oura-input[type="date"]::-webkit-datetime-edit {
+  min-width: 0;
+  padding: 0;
 }
 .poppins-numerals {
   font-family: var(--font-sans), sans-serif;

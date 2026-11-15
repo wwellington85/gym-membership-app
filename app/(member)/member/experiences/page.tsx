@@ -65,18 +65,21 @@ export default async function Experiences({
           ? "An evening by the sea, made for two. Request your date at least 24 hours ahead and choose your menu."
           : "Settle in by the pool with attentive service, a cooling mist fan and four hours to unwind."}
       </p>
-      <nav className="flex gap-4 text-sm" aria-label="Experience type">
+      <nav
+        className="grid min-w-0 grid-cols-2 gap-2 text-sm"
+        aria-label="Experience type"
+      >
         <Link
           href="/member/experiences?kind=cabana"
           aria-current={!dinner ? "page" : undefined}
-          className="club-text-link"
+          className={`rounded-xl border px-3 py-3 text-center font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${!dinner ? "border-primary bg-primary text-primary-foreground" : "border-border bg-white text-primary hover:bg-muted"}`}
         >
           Cabana rentals
         </Link>
         <Link
           href="/member/experiences?kind=dinner"
           aria-current={dinner ? "page" : undefined}
-          className="club-text-link"
+          className={`rounded-xl border px-3 py-3 text-center font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${dinner ? "border-primary bg-primary text-primary-foreground" : "border-border bg-white text-primary hover:bg-muted"}`}
         >
           Starlight Dinner
         </Link>
