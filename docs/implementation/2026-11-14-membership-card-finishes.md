@@ -1,6 +1,6 @@
 # Membership card finishes
 
-One shared digital card design with a TC seal, static fine-line sun/wave artwork, inset edging and finishes keyed to the active product code:
+One shared digital card design with the existing favicon’s TC geometry in a finish-specific single-ink treatment, static fine-line sun/wave artwork, inset edging and finishes keyed to the active product code:
 
 - Free account: pearl and champagne, navy text.
 - Local Rewards: jade with warm satin accents.
@@ -14,3 +14,5 @@ The card uses the highest currently usable pass, prioritizing monthly, weekly, r
 The product name and its own access expiry remain explicit; the visual finish grants no benefits and changes no account data. The existing live QR stays in its separate white scanning panel. All decorative artwork is inline SVG/CSS with no new images, fonts, motion or network requests. Unknown products fall back to a neutral finish, rather than inferring a premium tier from a display name.
 
 Validation includes existing card and QR behavior, active-tier priority, future/expired exclusions and inactive fallback. Text contrast was checked against gradient endpoints; real-phone visual checking remains manual.
+
+The circular serif monogram and lower-right decorative seal have been removed. A shared inline `ClubMark` uses the same paths and cutouts as the branded favicon, with unique mask IDs so several cards can render safely together.
