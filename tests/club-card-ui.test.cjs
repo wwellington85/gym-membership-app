@@ -44,10 +44,80 @@ const shared = {
   "@/lib/access/rules": rules,
   "@/lib/format/date": dates,
 };
-const { MembershipCard } = load(
+const { MembershipCard, cardFinish } = load(
   "components/member/membership-card.tsx",
   shared,
 );
+test("card finishes follow the actual product code and inactive accounts never retain a paid finish", () => {
+  for (const [code, finish] of [
+    [undefined, "pearl"],
+    ["gym_day", "gym"],
+    ["club_day", "day"],
+    ["club_weekly", "weekly"],
+    ["club_monthly_95", "monthly"],
+  ]) {
+    assert.equal(cardFinish(code, false, true), finish);
+    assert.equal(cardFinish(code, true, false), "pearl");
+  }
+  assert.equal(cardFinish(undefined, true, true), "local");
+  // A renamed product cannot accidentally upgrade the visual tier.
+  const html = renderToStaticMarkup(
+    React.createElement(MembershipCard, {
+      name: "Member",
+      active: true,
+      product: "Monthly special",
+      planCode: "gym_day",
+    }),
+  );
+  assert.match(html, /club-card-finish-gym/);
+  assert.doesNotMatch(html, /club-card-finish-monthly/);
+});
+test("card selects the highest current pass even when a lower tier expires later", () => {
+  const now = new Date("2026-11-14T17:00:00Z");
+  const pass = (
+    code,
+    end = "2026-11-30",
+    start = "2026-11-01",
+    state = "active",
+  ) => ({
+    id: code,
+    status: state,
+    start_date: start,
+    paid_through_date: end,
+    plan_snapshot: {
+      code,
+      grants_access: true,
+      access_scope: "resort",
+      duration_days: 30,
+    },
+  });
+  const monthly = pass("club_monthly_95");
+  assert.equal(
+    rules.membershipCardPass([pass("club_weekly", "2026-12-31"), monthly], now)
+      .id,
+    "club_monthly_95",
+  );
+  assert.equal(
+    rules.membershipCardPass(
+      [
+        pass("club_monthly_95", "2026-12-31", "2026-12-01"),
+        pass("club_weekly"),
+      ],
+      now,
+    ).id,
+    "club_weekly",
+  );
+  assert.equal(
+    rules.membershipCardPass(
+      [
+        pass("club_monthly_95", "2026-11-01"),
+        pass("club_weekly", "2026-12-31", "2026-11-01", "revoked"),
+      ],
+      now,
+    ),
+    null,
+  );
+});
 
 test("digital card displays the assigned 16-digit number in four groups, with no invented QR", () => {
   const html = renderToStaticMarkup(

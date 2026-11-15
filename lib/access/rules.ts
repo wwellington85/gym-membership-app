@@ -71,6 +71,20 @@ export function upcomingPass(passes: AccessPass[], now = new Date()) {
   );
 }
 
+// Card presentation follows the highest current product, independently of
+// expiration sorting. A future or expired pass never upgrades today's card.
+export function membershipCardPass(passes: AccessPass[], now = new Date()) {
+  const priority = (p: AccessPass) =>
+    ({ club_monthly_95: 6, club_weekly: 5, club_day: 4, gym_day: 3 })[
+      p.plan_snapshot.code
+    ] ?? (accessScope(p.plan_snapshot) === "resort" ? 4 : 2);
+  return (
+    [...passes]
+      .filter((p) => passIsActive(p, now))
+      .sort((a, b) => priority(b) - priority(a))[0] ?? null
+  );
+}
+
 export function purchasePeriod(args: {
   start: string;
   duration: number;
