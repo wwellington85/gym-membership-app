@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { requireMember, loadAccess } from "@/lib/access/server";
-import { facilities, upcomingPass } from "@/lib/access/rules";
+import {
+  facilities,
+  upcomingPass,
+  membershipCardPass,
+} from "@/lib/access/rules";
 import { membershipDate } from "@/lib/format/date";
 import { MembershipCard } from "@/components/member/membership-card";
 import { RotatingQr } from "./RotatingQr";
@@ -10,6 +14,7 @@ export default async function MemberCard() {
   const { member } = await requireMember();
   const access = await loadAccess(member.id, member.is_active);
   const scheduled = member.is_active ? upcomingPass(access.passes) : null;
+  const cardPass = membershipCardPass(access.current);
   return (
     <div className="space-y-6">
       <header>
@@ -22,11 +27,13 @@ export default async function MemberCard() {
         membershipNumber={member.member_number}
         name={member.full_name}
         active={member.is_active}
+        planCode={cardPass?.plan_snapshot.code}
+        localRewards={member.local_rewards}
         product={
-          access.best?.plan_snapshot.name ||
+          cardPass?.plan_snapshot.name ||
           (member.local_rewards ? "Local Rewards" : "Free account")
         }
-        validThrough={access.best?.paid_through_date}
+        validThrough={cardPass?.paid_through_date}
       />
       {member.is_active ? (
         <section className="club-qr-panel text-center">
