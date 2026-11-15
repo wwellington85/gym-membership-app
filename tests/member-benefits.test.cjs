@@ -129,6 +129,10 @@ test("Home renders the current pass benefits instead of the free catalogue rates
     "@/lib/access/rules": rules,
     "@/lib/format/date": load("lib/format/date.ts"),
   };
+  shared["@/components/brand/club-mark"] = load(
+    "components/brand/club-mark.tsx",
+    { "react/jsx-runtime": require("react/jsx-runtime"), react: React },
+  );
   const card = load("components/member/membership-card.tsx", shared);
   const upgrades = load("components/member/upgrade-options.tsx", {
     ...shared,

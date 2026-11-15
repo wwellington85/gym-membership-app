@@ -44,6 +44,10 @@ const shared = {
   "@/lib/access/rules": rules,
   "@/lib/format/date": dates,
 };
+shared["@/components/brand/club-mark"] = load(
+  "components/brand/club-mark.tsx",
+  { "react/jsx-runtime": require("react/jsx-runtime"), react: React },
+);
 const { MembershipCard, cardFinish } = load(
   "components/member/membership-card.tsx",
   shared,

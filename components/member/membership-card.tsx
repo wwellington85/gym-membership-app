@@ -1,5 +1,6 @@
 import { formatMemberNumber } from "@/lib/access/rules";
 import { membershipDate } from "@/lib/format/date";
+import { ClubMark } from "@/components/brand/club-mark";
 
 type Props = {
   membershipNumber?: string | number | null;
@@ -56,9 +57,7 @@ export function MembershipCard({
       </svg>
       <div className="club-card-topline">
         <div className="club-card-identity">
-          <span className="club-card-monogram" aria-hidden="true">
-            TC
-          </span>
+          <ClubMark className="club-card-mark" />
           <span className="club-card-brand">
             Travellers Club
             <span className="club-card-resort">Negril · Jamaica</span>
@@ -93,13 +92,6 @@ export function MembershipCard({
               : "Please speak with the front desk"}
           </p>
         </div>
-        <span className="club-card-seal" aria-hidden="true">
-          <svg viewBox="0 0 40 40" fill="none">
-            <circle cx="20" cy="20" r="18" />
-            <circle cx="20" cy="16" r="5" />
-            <path d="M8 23h24M10 27c7-4 13 4 20 0M13 31c5-3 9 3 14 0" />
-          </svg>
-        </span>
       </div>
     </section>
   );
