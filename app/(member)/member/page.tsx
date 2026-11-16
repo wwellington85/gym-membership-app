@@ -58,6 +58,7 @@ export default async function MemberHome() {
         <div className="club-home-hero-copy">
           <p className="club-eyebrow">Your place by the sea</p>
           <h1>Welcome back, {firstName(member.full_name)}.</h1>
+          <p>Make yourself at home.</p>
         </div>
       </header>
       <section className="club-home-membership" aria-label="Membership summary">

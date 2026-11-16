@@ -119,6 +119,17 @@ export function futureSlot(
     now + noticeHours * 3600000
   );
 }
+export function requestableTimes(
+  date: string,
+  dinner: boolean,
+  days: CabanaDay[] = [],
+  occupied: OccupiedSlot[] = [],
+  now = Date.now(),
+) {
+  return (dinner ? [1080, 1200] : availableCabanaStarts(days, occupied)).filter(
+    (start) => futureSlot(date, start, dinner ? 24 : 0, now),
+  );
+}
 export function bookingStatus(status: string) {
   return (
     (

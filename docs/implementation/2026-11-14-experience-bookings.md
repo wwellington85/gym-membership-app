@@ -2,7 +2,7 @@
 
 Guests use the two experience cards on Home, then choose a date, package and time. My bookings is linked from Home, the experience page and Account. Staff use Overview → Cabanas & dinner, or the desktop sidebar. Admins, supervisors and front-desk staff can manage bookings; security cannot.
 
-Date changes refresh availability automatically without scrolling the page. “Show times” is a section jump beside the date label, not a submit button. While a new date loads, booking submission is disabled. Guest cabana times combine availability across all three resources; guests do not choose or see physical cabana numbers in their booking summaries. Staff retain numbered cabanas and reassignment through the schedule.
+Date changes refresh availability automatically without scrolling the page. Guest pages preselect the next date with requestable times and show date, time, then package. Empty dates offer a next-date search instead of an unusable booking form; the previous Show times jump is no longer needed. While a new date loads, the previous form is hidden. Guest cabana times combine availability across all three resources; guests do not choose or see physical cabana numbers in their booking summaries. Staff retain numbered cabanas and reassignment through the schedule.
 
 The service-only `request_member_experience` RPC allocates a compatible cabana under ordered locks across all three resources, using the same lock keys as explicit staff bookings and moves. It fills a compatible established schedule before anchoring an unused cabana. Duplicate submissions replay the original request, including after staff rescheduling; caller-supplied cabana preferences are ignored. Existing bookings and day anchors are unchanged by this migration.
 

@@ -62,26 +62,35 @@ test("guest form pools cabana availability and keeps physical cabana selection o
   assert.doesNotMatch(guest, /name="cabana"|Cabana [123]|Try another cabana/);
   assert.match(guest, /value="540"/);
   assert.match(guest, /id="booking-times"/);
+  assert.ok(guest.indexOf('name="start"') < guest.indexOf('name="product"'));
   const staff = renderToStaticMarkup(BookingForm({ ...props, staff: true }));
   assert.match(staff, /name="cabana"/);
   assert.match(staff, /Cabana 1/);
   assert.doesNotMatch(staff, /value="540"/);
 });
-test("date changes navigate automatically without scrolling; Show times is only a section link", () => {
+test("date changes automatically refresh times without an extra show-times step", () => {
   const calls = [];
   const { MemberBooking } = load("components/bookings/member-booking.tsx", {
     "react/jsx-runtime": require("react/jsx-runtime"),
-    react: { useTransition: () => [false, (callback) => callback()] },
+    react: {
+      useTransition: () => [false, (callback) => callback()],
+      useState: (initial) => [initial, () => {}],
+    },
     "next/navigation": {
       useRouter: () => ({ replace: (...args) => calls.push(args) }),
     },
     "./booking-form": { BookingForm: () => null },
+    "@/lib/bookings/catalogue": rules,
+    "@/lib/format/date": load("lib/format/date.ts"),
   });
   const element = MemberBooking({
     today: "2026-11-14",
     maxDate: "2027-11-14",
     dinner: false,
     date: "2026-11-15",
+    days: [],
+    occupied: [],
+    now: Date.parse("2026-11-14T12:00:00Z"),
   });
   const elements = [];
   function walk(node) {
@@ -98,9 +107,9 @@ test("date changes navigate automatically without scrolling; Show times is only 
   });
   assert.equal(calls[0][0], "/member/experiences?kind=cabana&date=2026-11-16");
   assert.equal(calls[0][1].scroll, false);
-  const jump = elements.find((e) => e.type === "a");
-  assert.equal(jump.props.href, "#booking-times");
-  assert.equal(jump.props.onClick, undefined);
+  assert.ok(
+    !elements.some((e) => e.type === "a" && e.props.href === "#booking-times"),
+  );
   input.props.onChange({
     currentTarget: { value: "", validity: { valid: false } },
   });

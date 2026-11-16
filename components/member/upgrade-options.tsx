@@ -44,7 +44,8 @@ export function UpgradeOptions({
         {plans.map((plan) => (
           <article
             key={plan.id}
-            className="oura-card flex min-w-0 flex-col gap-3 p-4"
+            className="oura-card club-plan-card flex min-w-0 flex-col gap-3 p-4"
+            data-plan-code={plan.code}
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <h3 className="font-semibold">{plan.name}</h3>
