@@ -29,14 +29,14 @@ export async function findNextExperienceDate(
     const [dayRows, slotRows] = await Promise.all([
       admin
         .from("cabana_days")
-        .select("booking_date,cabana,first_start")
+        .select("booking_date,cabana,first_start", { count: "exact" })
         .gte("booking_date", start)
         .lte("booking_date", end)
         .order("booking_date")
         .limit(1000),
       admin
         .from("experience_bookings")
-        .select("booking_date,cabana,start_minute")
+        .select("booking_date,cabana,start_minute", { count: "exact" })
         .gte("booking_date", start)
         .lte("booking_date", end)
         .not("cabana", "is", null)
@@ -47,8 +47,10 @@ export async function findNextExperienceDate(
     if (
       dayRows.error ||
       slotRows.error ||
-      dayRows.data?.length === 1000 ||
-      slotRows.data?.length === 1000
+      dayRows.count === null ||
+      slotRows.count === null ||
+      dayRows.data?.length !== dayRows.count ||
+      slotRows.data?.length !== slotRows.count
     )
       throw new Error("Availability could not be loaded. Please try again.");
     for (let date = start; date <= end; date = addDaysYmd(date, 1)) {

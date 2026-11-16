@@ -32,7 +32,7 @@ const dates = load("lib/bookings/dates.ts", {
   "@/lib/membership/status": status,
   "./catalogue": catalogue,
 });
-function server(days = [], slots = [], error = false) {
+function server(days = [], slots = [], error = false, rowCap = 1000) {
   const calls = [];
   const admin = {
     from(table) {
@@ -63,12 +63,14 @@ function server(days = [], slots = [], error = false) {
         },
         limit(n) {
           assert.equal(n, 1000);
+          const matches = (table === "cabana_days" ? days : slots).filter(
+            (row) =>
+              row.booking_date >= filters.min &&
+              row.booking_date <= filters.max,
+          );
           return Promise.resolve({
-            data: (table === "cabana_days" ? days : slots).filter(
-              (row) =>
-                row.booking_date >= filters.min &&
-                row.booking_date <= filters.max,
-            ),
+            data: matches.slice(0, rowCap),
+            count: matches.length,
             error: error ? { message: "offline" } : null,
           });
         },
@@ -198,6 +200,15 @@ test("search crosses bounded calendar batches, ends at the booking horizon, and 
       false,
       "2026-11-17",
       "2027-11-16",
+    ),
+    /Availability could not be loaded/,
+  );
+  await assert.rejects(
+    server(days, slots, false, 10).findNextExperienceDate(
+      false,
+      "2026-11-17",
+      "2027-11-16",
+      new Date("2026-11-17T02:00:00Z"),
     ),
     /Availability could not be loaded/,
   );
