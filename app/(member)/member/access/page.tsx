@@ -45,7 +45,11 @@ export default async function AccessPage({
           </p>
         )}
         {access.passes.map((p) => (
-          <div key={p.id} className="oura-card space-y-2 p-4">
+          <div
+            key={p.id}
+            className="oura-card club-plan-card space-y-2 p-4"
+            data-plan-code={p.plan_snapshot.code}
+          >
             <h3 className="font-medium">{p.plan_snapshot.name}</h3>
             <p className="text-sm">
               {p.status === "revoked"
@@ -94,7 +98,11 @@ export default async function AccessPage({
             (p) => p.grants_access && p.price > 0 && p.duration_days < 3650,
           )
           .map((p) => (
-            <div key={p.id} className="oura-card space-y-3 p-4">
+            <div
+              key={p.id}
+              className="oura-card club-plan-card space-y-3 p-4"
+              data-plan-code={p.code}
+            >
               <div className="flex justify-between gap-3">
                 <h3 className="font-semibold">{p.name}</h3>
                 <span className="whitespace-nowrap">

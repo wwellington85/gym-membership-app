@@ -3,7 +3,67 @@ import {
   type ExperienceProduct,
   type CabanaDay,
   type OccupiedSlot,
+  requestableTimes,
 } from "./catalogue";
+import { addDaysYmd } from "@/lib/membership/status";
+
+export async function findNextExperienceDate(
+  dinner: boolean,
+  from: string,
+  max: string,
+  now = new Date(),
+) {
+  if (dinner) {
+    for (let date = from; date <= max; date = addDaysYmd(date, 1)) {
+      if (requestableTimes(date, true, [], [], now.getTime()).length)
+        return { date, days: [], occupied: [] };
+    }
+    return null;
+  }
+  const admin = createAdminClient();
+  // A 31-day window holds at most 93 day anchors and 186 occupied slots.
+  // Keeping batches below PostgREST's row cap avoids treating truncated results
+  // as available inventory and avoids a request for every sold-out day.
+  for (let start = from; start <= max; start = addDaysYmd(start, 31)) {
+    const end = addDaysYmd(start, 30) < max ? addDaysYmd(start, 30) : max;
+    const [dayRows, slotRows] = await Promise.all([
+      admin
+        .from("cabana_days")
+        .select("booking_date,cabana,first_start")
+        .gte("booking_date", start)
+        .lte("booking_date", end)
+        .order("booking_date")
+        .limit(1000),
+      admin
+        .from("experience_bookings")
+        .select("booking_date,cabana,start_minute")
+        .gte("booking_date", start)
+        .lte("booking_date", end)
+        .not("cabana", "is", null)
+        .in("status", ["requested", "confirmed", "completed"])
+        .order("booking_date")
+        .limit(1000),
+    ]);
+    if (
+      dayRows.error ||
+      slotRows.error ||
+      dayRows.data?.length === 1000 ||
+      slotRows.data?.length === 1000
+    )
+      throw new Error("Availability could not be loaded. Please try again.");
+    for (let date = start; date <= end; date = addDaysYmd(date, 1)) {
+      const days = (dayRows.data || []).filter(
+        (row) => row.booking_date === date,
+      ) as CabanaDay[];
+      const occupied = (slotRows.data || []).filter(
+        (row) => row.booking_date === date,
+      ) as OccupiedSlot[];
+      if (requestableTimes(date, false, days, occupied, now.getTime()).length)
+        return { date, days, occupied };
+    }
+  }
+  return null;
+}
 
 export async function loadBookingCatalogue() {
   const { data, error } = await createAdminClient()

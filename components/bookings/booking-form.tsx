@@ -70,6 +70,34 @@ export function BookingForm({
         ? cabanaStarts(cabana, days, occupied)
         : availableCabanaStarts(days, occupied)
   ).filter((n) => futureSlot(date, n, dinner ? 24 : 0, now));
+  const timePicker = (
+    <label id="booking-times" className="block scroll-mt-24 space-y-2">
+      <span className="font-medium">
+        {staff
+          ? dinner
+            ? "Preferred dinner time"
+            : "Available time slot"
+          : "2. Choose a time"}
+      </span>
+      <select
+        key={`${dinner ? "dinner" : "cabana"}:${staff ? cabana : "any"}:${date}`}
+        name="start"
+        className="oura-input w-full p-3"
+        required
+        defaultValue={previousValue("start")}
+      >
+        <option value="" disabled>
+          Choose a time
+        </option>
+        {starts.map((n) => (
+          <option key={n} value={n}>
+            {timeLabel(n)}
+            {dinner ? "" : ` – ${timeLabel(n + 240)}`}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
   if (!p)
     return <p>No packages are available. Please contact the front desk.</p>;
   return (
@@ -90,8 +118,11 @@ export function BookingForm({
     >
       <input type="hidden" name="date" value={date} />
       <input type="hidden" name="submission_key" value={submissionKey} />
+      {!staff && timePicker}
       <label className="block space-y-2">
-        <span className="font-medium">Package</span>
+        <span className="font-medium">
+          {staff ? "Package" : "3. Choose a package"}
+        </span>
         <select
           name="product"
           value={product}
@@ -199,28 +230,7 @@ export function BookingForm({
           </select>
         </label>
       )}
-      <label id="booking-times" className="block scroll-mt-24 space-y-2">
-        <span className="font-medium">
-          {dinner ? "Preferred dinner time" : "Available time slot"}
-        </span>
-        <select
-          key={`${product}:${cabana}:${date}`}
-          name="start"
-          className="oura-input w-full p-3"
-          required
-          defaultValue={previousValue("start")}
-        >
-          <option value="" disabled>
-            Choose a time
-          </option>
-          {starts.map((n) => (
-            <option key={n} value={n}>
-              {timeLabel(n)}
-              {dinner ? "" : ` – ${timeLabel(n + 240)}`}
-            </option>
-          ))}
-        </select>
-      </label>
+      {staff && timePicker}
       {starts.length === 0 && (
         <p role="status" className="text-sm">
           {dinner

@@ -5,7 +5,9 @@ import { requireMember } from "@/lib/access/server";
 import {
   loadBookingCatalogue,
   loadCabanaAvailability,
+  findNextExperienceDate,
 } from "@/lib/bookings/server";
+import { earliestRequestDate, validBookingDate } from "@/lib/bookings/dates";
 import { jamaicaTodayYmd, addDaysYmd } from "@/lib/membership/status";
 import { MemberBooking } from "@/components/bookings/member-booking";
 import { requestExperience } from "./actions";
@@ -13,26 +15,40 @@ export const dynamic = "force-dynamic";
 export default async function Experiences({
   searchParams,
 }: {
-  searchParams: Promise<{ kind?: string; date?: string; err?: string }>;
+  searchParams: Promise<{
+    kind?: string;
+    date?: string;
+    after?: string;
+    err?: string;
+  }>;
 }) {
   const { member } = await requireMember();
   const q = await searchParams;
   const dinner = q.kind === "dinner";
-  const today = jamaicaTodayYmd();
-  const date =
-    q.date &&
-    /^\d{4}-\d{2}-\d{2}$/.test(q.date) &&
-    Number.isFinite(Date.parse(q.date)) &&
-    q.date >= today &&
-    q.date <= addDaysYmd(today, 365)
-      ? q.date
-      : dinner
-        ? addDaysYmd(today, 1)
-        : today;
+  const now = new Date();
+  const today = jamaicaTodayYmd(now);
+  const maxDate = addDaysYmd(today, 365);
+  const minDate = earliestRequestDate(dinner, now);
+  const explicitDate = validBookingDate(q.date, minDate, maxDate)
+    ? q.date
+    : null;
+  const after = validBookingDate(q.after, today, maxDate)
+    ? addDaysYmd(q.after, 1)
+    : minDate;
+  const searchFrom = after > minDate ? after : minDate;
   const [products, availability] = await Promise.all([
     loadBookingCatalogue(),
-    loadCabanaAvailability(date),
+    explicitDate
+      ? dinner
+        ? Promise.resolve({ date: explicitDate, days: [], occupied: [] })
+        : loadCabanaAvailability(explicitDate).then((a) => ({
+            ...a,
+            date: explicitDate,
+          }))
+      : findNextExperienceDate(dinner, searchFrom, maxDate, now),
   ]);
+  const date =
+    availability?.date || (searchFrom <= maxDate ? searchFrom : maxDate);
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -99,13 +115,16 @@ export default async function Experiences({
               dinner ? p.code === "starlight" : p.code.startsWith("cabana_"),
             )}
             date={date}
-            today={today}
-            maxDate={addDaysYmd(today, 365)}
+            today={minDate}
+            maxDate={maxDate}
             dinner={dinner}
-            {...availability}
+            days={availability?.days || []}
+            occupied={availability?.occupied || []}
+            autoSelected={!explicitDate && !!availability}
+            noDates={!availability}
             submissionKey={randomUUID()}
             action={requestExperience}
-            now={Date.now()}
+            now={now.getTime()}
           />
         </>
       )}

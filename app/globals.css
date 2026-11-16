@@ -864,6 +864,10 @@ a[class~="rounded"][class~="border"] {
 .club-home-update > span + span { margin-top: 4px; }
 .club-home-progress { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; padding-block: 12px; border-block: 1px solid hsl(var(--border)); }
 .club-home-pass-offer { display: grid; gap: 12px; border-top: 1px solid hsl(var(--border)); padding-top: 18px; }
+.club-plan-card { --plan-accent: #647b87; background: #f3f5f6; border-color: #bdc9d0; border-top: 3px solid var(--plan-accent); }
+.club-plan-card[data-plan-code="club_day"] { --plan-accent: #3b7278; background: #edf7f7; border-color: #a9c7c9; border-top-color: var(--plan-accent); }
+.club-plan-card[data-plan-code="club_weekly"] { --plan-accent: #335976; background: #edf3f8; border-color: #acbfd0; border-top-color: var(--plan-accent); }
+.club-plan-card[data-plan-code="club_monthly_95"] { --plan-accent: #8a6b32; background: #faf4e7; border-color: #c6b17b; border-top-color: var(--plan-accent); }
 .club-menu-categories { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 4px 12px; border-bottom: 1px solid hsl(var(--border)); }
 .club-menu-categories a { min-height: 40px; display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--primary)); font-size: 12px; }
 .club-menu-categories a:hover { background: hsl(var(--muted)); }
