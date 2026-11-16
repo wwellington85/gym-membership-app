@@ -151,7 +151,9 @@ export default async function MemberHome() {
                   {e.subtitle}
                 </p>
                 <span className="mt-auto pt-2 text-xs font-medium text-primary">
-                  View availability →
+                  {e.image === "starlight"
+                    ? "Request dinner →"
+                    : "View availability →"}
                 </span>
               </div>
             </Link>
