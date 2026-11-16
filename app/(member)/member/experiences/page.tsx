@@ -62,7 +62,7 @@ export default async function Experiences({
       </div>
       <p className="text-sm text-muted-foreground">
         {dinner
-          ? "An evening by the sea, made for two. Request your date at least 24 hours ahead and choose your menu."
+          ? "A private beach dinner for two. Request your date at least 24 hours ahead and choose your menu."
           : "Settle in by the pool with attentive service, a cooling mist fan and four hours to unwind."}
       </p>
       <nav

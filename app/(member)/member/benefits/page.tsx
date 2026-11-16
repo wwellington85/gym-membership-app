@@ -153,6 +153,9 @@ export default async function BenefitsPage() {
         <Link href="/member/access" className="club-text-link">
           {access.current.length ? "All passes" : "Day passes & other options"}
         </Link>
+        <Link href="/member/facilities" className="club-text-link">
+          Explore facilities
+        </Link>
         <Link href="/member/help" className="club-text-link">
           Membership help
         </Link>

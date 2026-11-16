@@ -1,38 +1,50 @@
-import { UpgradeOptions } from "@/components/member/upgrade-options";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CreditCard } from "lucide-react";
+import { ArrowRight, CreditCard, Utensils, CalendarDays } from "lucide-react";
 import { requireMember, loadAccess, loadCatalogue } from "@/lib/access/server";
 import { firstName } from "@/lib/format/name";
-import { facilities, upcomingPass } from "@/lib/access/rules";
+import {
+  upcomingPass,
+  membershipCardPass,
+  availableUpgradePlans,
+  accessScope,
+} from "@/lib/access/rules";
 import { effectiveBenefits } from "@/lib/access/benefits";
 import { membershipDate } from "@/lib/format/date";
 import { getMemberGymSummary } from "@/lib/member/leaderboard";
+import { loadHomeUpdates } from "@/lib/member/home-updates";
+import { HomeUpdates } from "@/components/member/home-updates";
 
 export const dynamic = "force-dynamic";
 export default async function MemberHome() {
   const { member, admin } = await requireMember();
-  const [access, catalogue, summary, pointRows] = await Promise.all([
+  const [access, catalogue, summary, pointRows, updates] = await Promise.all([
     loadAccess(member.id, member.is_active),
     loadCatalogue(),
     getMemberGymSummary(admin, member.id),
     admin.rpc("club_visit_points", { p_member_id: member.id }),
+    member.is_active
+      ? loadHomeUpdates(admin, member.id)
+      : Promise.resolve({ booking: null, reward: null, error: false }),
   ]);
   const scheduled = member.is_active ? upcomingPass(access.passes) : null;
+  const current = membershipCardPass(access.current);
   const points = pointRows.error ? null : Number(pointRows.data ?? 0);
   const benefits = effectiveBenefits(
-    catalogue.find((plan) => plan.code === "rewards_free"),
+    catalogue.find((p) => p.code === "rewards_free"),
     access.passes,
     member.is_active,
     new Date(),
     member.local_rewards,
   );
-  const discounts = benefits.filter((b) => b.percent > 0);
-  const included = [
-    ...new Set(
-      access.current.flatMap((pass) => facilities(pass.plan_snapshot)),
-    ),
-  ];
+  const restaurant = benefits.find(
+    (b) => b.key === "discount_food" && b.percent > 0,
+  );
+  const plans = availableUpgradePlans(
+    catalogue,
+    access.passes,
+    member.is_active,
+  );
   return (
     <div className="space-y-6" data-club-home-ready>
       <header className="club-home-hero">
@@ -41,25 +53,19 @@ export default async function MemberHome() {
           alt="Sunset over the beach at Travellers Beach Resort"
           fill
           priority
-          sizes="(max-width: 640px) 100vw, 640px"
+          sizes="(max-width:640px) 100vw, 640px"
         />
         <div className="club-home-hero-copy">
           <p className="club-eyebrow">Your place by the sea</p>
           <h1>Welcome back, {firstName(member.full_name)}.</h1>
-          <p>Make yourself at home.</p>
         </div>
       </header>
-      {!member.is_active && (
-        <p role="alert" className="oura-alert-warning">
-          Please contact the front desk to verify your membership and benefits.
-        </p>
-      )}
       <section className="club-home-membership" aria-label="Membership summary">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="club-eyebrow">Your membership</p>
-            <h2 className="mt-1 font-semibold">
-              {access.best?.plan_snapshot.name ||
+            <h2 className="mt-1 text-lg font-semibold">
+              {current?.plan_snapshot.name ||
                 (member.local_rewards ? "Local Rewards" : "Free account")}
             </h2>
           </div>
@@ -68,60 +74,67 @@ export default async function MemberHome() {
           </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          {member.is_active
-            ? access.best
-              ? `Facility access until ${membershipDate(access.best.paid_through_date)} at 10 pm`
+          {!member.is_active
+            ? "Please contact the front desk to reactivate your membership."
+            : current
+              ? `${accessScope(current.plan_snapshot) === "resort" ? "Gym & resort" : "Gym"} access until ${membershipDate(current.paid_through_date)}.`
               : scheduled
-                ? "Your next Club pass is booked. Keep collecting visit points while you look forward to your next visit."
+                ? `Your ${scheduled.plan_snapshot.name} starts on ${membershipDate(scheduled.start_date)}.`
                 : member.local_rewards
-                  ? "Enjoy your Local Rewards discounts. Add a weekly or monthly pass for facility access and enhanced benefits."
-                  : "Earn points with every visit. Upgrade to a weekly or monthly Club pass for facility access and enhanced benefits."
-            : "Please speak with the front desk."}
+                  ? "Your Local Rewards benefits are ready to use."
+                  : "Earn points when you visit."}
         </p>
-        {scheduled && (
+        {member.is_active && restaurant && (
           <p className="text-sm text-muted-foreground">
-            Your {scheduled.plan_snapshot.name} starts on{" "}
-            {membershipDate(scheduled.start_date)}.
+            Restaurant & bar: {restaurant.percent}% off
           </p>
         )}
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/member/card" className="club-button">
-            <CreditCard size={18} aria-hidden="true" /> Show my card
+            <CreditCard size={18} aria-hidden="true" />
+            Show my card
           </Link>
-          <Link href="/member/access" className="club-text-link">
-            {access.best ? "Manage access" : "Explore passes"}
-            <ArrowRight size={16} aria-hidden="true" />
+          <Link href="/member/benefits" className="club-text-link text-sm">
+            View benefits <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       </section>
+      <nav className="club-home-shortcuts" aria-label="Plan your visit">
+        <Link href="/member/dining">
+          <Utensils size={19} aria-hidden="true" />
+          <span>Restaurant menus</span>
+          <ArrowRight size={15} aria-hidden="true" />
+        </Link>
+        <Link href="/member/bookings">
+          <CalendarDays size={19} aria-hidden="true" />
+          <span>My bookings</span>
+          <ArrowRight size={15} aria-hidden="true" />
+        </Link>
+      </nav>
+      <HomeUpdates {...updates} />
       <section className="space-y-3" aria-labelledby="experiences-heading">
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="experiences-heading" className="text-lg font-semibold">
-            Make a day of it
-          </h2>
-          <Link href="/member/bookings" className="club-text-link text-sm">
-            My bookings
-          </Link>
-        </div>
+        <h2 id="experiences-heading" className="text-lg font-semibold">
+          Book an experience
+        </h2>
         <div className="grid grid-cols-2 gap-3">
           {[
             {
               href: "/member/experiences?kind=cabana",
               image: "cabanas",
-              title: "Your poolside cabana",
-              subtitle: "Four hours to unwind",
+              title: "Cabana rentals",
+              subtitle: "Four hours by the pool",
             },
             {
               href: "/member/experiences?kind=dinner",
               image: "starlight",
               title: "Starlight Dinner",
-              subtitle: "An evening for two",
+              subtitle: "Private beach dinner for two",
             },
           ].map((e) => (
             <Link
               key={e.image}
               href={e.href}
-              className="overflow-hidden rounded-2xl border"
+              className="flex min-w-0 flex-col overflow-hidden rounded-2xl border"
             >
               <div className="relative h-28 sm:h-36">
                 <Image
@@ -132,154 +145,84 @@ export default async function MemberHome() {
                   className="object-cover"
                 />
               </div>
-              <div className="space-y-1 p-3">
+              <div className="flex flex-1 flex-col gap-1 p-3">
                 <h3 className="text-sm font-semibold">{e.title}</h3>
-                <p className="text-xs text-muted-foreground">{e.subtitle}</p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {e.subtitle}
+                </p>
+                <span className="mt-auto pt-2 text-xs font-medium text-primary">
+                  {e.image === "starlight"
+                    ? "Request dinner →"
+                    : "View availability →"}
+                </span>
               </div>
             </Link>
           ))}
         </div>
       </section>
-      {member.is_active && included.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold">
-            Included with your membership
-          </h2>
-          <ul className="club-inclusions">
-            {included.map((name) => (
-              <li key={name}>{name}</li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground">
-            Based on your active passes. Cabana rentals are separate.
-          </p>
-        </section>
-      )}
       <section id="club-visits" className="club-home-visits space-y-3">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold">Your Club visits</h2>
-          <Link href="/member/check-ins" className="club-text-link">
-            History <ArrowRight size={16} aria-hidden="true" />
+          <h2 className="text-lg font-semibold">Your Club progress</h2>
+          <Link href="/member/check-ins" className="club-text-link text-sm">
+            Visit history <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
-        <dl className="club-metrics">
+        <dl className="club-home-progress">
           {[
             ["Visits", summary.allTimeCheckins ?? "—"],
             ["Points earned", points ?? "—"],
-            [
-              "Club rank",
-              summary.rankingAvailable && summary.rank
-                ? `#${summary.rank}`
-                : "—",
-            ],
           ].map(([label, value]) => (
-            <div key={label} className="club-metric">
+            <div key={label}>
               <dt className="text-xs text-muted-foreground">{label}</dt>
-              <dd className="tabular-nums">{value}</dd>
+              <dd className="mt-1 text-2xl font-semibold tabular-nums">
+                {value}
+              </dd>
             </div>
           ))}
         </dl>
-        {summary.badges?.length > 0 && (
-          <ul className="flex flex-wrap gap-2" aria-label="Your achievements">
-            {summary.badges.map((badge) => (
-              <li
-                key={badge.label}
-                className="rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-primary"
-              >
-                {badge.label}
-              </li>
-            ))}
-          </ul>
-        )}
-        <p className="text-sm text-muted-foreground">
-          {member.is_active
-            ? "Earn 3 points per visit. Show your card at the front gate or restaurant. One visit per day."
-            : "Your past visit points stay on your account. Contact the front desk to resume earning."}
-        </p>
         <p className="text-xs text-muted-foreground">
           {member.is_active
-            ? "Selected rewards are chosen by our team. Find yours in Benefits."
-            : "Your earned points stay with your account."}
+            ? "3 points per verified visit · One visit per day."
+            : "Your past visits and earned points stay with your account."}
         </p>
-        <Link href="/member/benefits#member-rewards" className="club-text-link">
-          View your rewards <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-        <Link href="/member/leaderboard" className="club-text-link">
-          View Club rankings <ArrowRight size={16} aria-hidden="true" />
-        </Link>
-      </section>
-      {member.is_active && discounts.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Your discounts today</h2>
-            <Link href="/member/benefits" className="club-text-link">
-              Details <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-          <dl className="club-home-benefits">
-            {discounts.map((benefit) => (
-              <div key={benefit.key} className="club-rule-row">
-                <dt className="text-sm">{benefit.label}</dt>
-                <dd className="text-xl font-semibold tabular-nums">
-                  {benefit.percent}%{" "}
-                  <span className="text-xs font-normal text-muted-foreground">
-                    off
-                  </span>
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Your highest eligible rates. Discounts do not add together.
-          </p>
-        </section>
-      )}
-      <UpgradeOptions
-        passes={access.passes}
-        catalogue={catalogue}
-        benefits={benefits}
-        active={member.is_active}
-        localRewards={member.local_rewards}
-      />
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Enjoy Travellers</h2>
-        <p className="text-sm text-muted-foreground">
-          A little inspiration for your next visit. Check your benefits for what
-          your membership includes.
-        </p>
-        <div className="club-hotel-grid">
-          {[
-            ["pool", "Poolside", "Take a little time to unwind."],
-            [
-              "restaurant-terrace",
-              "By the sea",
-              "Enjoy the restaurant and bar.",
-            ],
-            ["gym", "Stay active", "Make time for your workout."],
-            [
-              "games-lounge",
-              "Family games lounge",
-              "Spend some time together.",
-            ],
-          ].map(([photo, title, caption]) => (
-            <article key={photo}>
-              <div className="club-hotel-photo">
-                <Image
-                  src={`/images/hotel/${photo}.webp`}
-                  alt={title + " at Travellers Beach Resort"}
-                  fill
-                  sizes="(max-width: 640px) 45vw, 300px"
-                />
-              </div>
-              <h3 className="mt-2 text-sm font-semibold">{title}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{caption}</p>
-            </article>
-          ))}
+        <div className="flex flex-wrap gap-x-5 gap-y-3">
+          <Link
+            href="/member/benefits#member-rewards"
+            className="club-text-link text-sm"
+          >
+            View your rewards <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+          <Link href="/member/leaderboard" className="club-text-link text-sm">
+            Club rankings <ArrowRight size={16} aria-hidden="true" />
+          </Link>
         </div>
       </section>
-      <Link href="/member/help" className="club-text-link">
-        Need help with your membership?{" "}
-        <ArrowRight size={16} aria-hidden="true" />
+      {plans.length > 0 && (
+        <section className="club-home-pass-offer">
+          <div>
+            <h2 className="font-semibold">Explore Club passes</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {plans.length > 1
+                ? "Weekly or monthly gym & resort access, with enhanced discounts."
+                : `${plans[0]?.code === "club_weekly" ? "Weekly" : "Monthly"} gym & resort access, with enhanced discounts.`}
+            </p>
+          </div>
+          <Link
+            href="/member/access#explore-passes"
+            className="club-text-link text-sm"
+          >
+            Compare{" "}
+            {plans.length > 1
+              ? "plans"
+              : plans[0]?.code === "club_weekly"
+                ? "weekly access"
+                : "monthly access"}{" "}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </section>
+      )}
+      <Link href="/member/help" className="club-text-link text-sm">
+        Membership help <ArrowRight size={16} aria-hidden="true" />
       </Link>
     </div>
   );

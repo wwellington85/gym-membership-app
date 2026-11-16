@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getMemberGymSummary } from "@/lib/member/leaderboard";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +30,7 @@ export default async function MemberCheckinsInfoPage() {
 
   const { data: member } = await supabase
     .from("members")
-    .select("id")
+    .select("id,is_active")
     .eq("user_id", user.id)
     .maybeSingle();
 
@@ -41,6 +44,7 @@ export default async function MemberCheckinsInfoPage() {
     .limit(50);
 
   const totalCheckins = Number(rows?.length ?? 0);
+  const summary = await getMemberGymSummary(createAdminClient(), member.id);
   const totalPoints = (rows ?? []).reduce(
     (sum, row: any) => sum + Number(row?.points_earned ?? 0),
     0,
@@ -52,8 +56,9 @@ export default async function MemberCheckinsInfoPage() {
         <div>
           <h1 className="text-xl font-semibold">Your Club visits</h1>
           <p className="text-sm text-muted-foreground">
-            Earn 3 points for a verified visit, once per day. Show your card to
-            staff at the front gate or restaurant.
+            {member.is_active
+              ? "Earn 3 points for a verified visit, once per day. Show your card to staff at the front gate or restaurant."
+              : "Your recorded visits and earned points stay with your account."}
           </p>
         </div>
       </div>
@@ -63,6 +68,40 @@ export default async function MemberCheckinsInfoPage() {
           Visit history is temporarily unavailable. Please try again.
         </p>
       )}
+      <section
+        className="space-y-3 border-b pb-4"
+        aria-label="Club achievements"
+      >
+        {summary.rankingAvailable && summary.rank && (
+          <p className="text-sm">
+            Your Club rank{" "}
+            <strong className="ml-2 text-xl">#{summary.rank}</strong>
+          </p>
+        )}
+        {summary.badges?.length > 0 && (
+          <ul className="flex flex-wrap gap-2" aria-label="Your achievements">
+            {summary.badges.map((badge) => (
+              <li
+                key={badge.label}
+                className="rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-primary"
+              >
+                {badge.label}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link href="/member/leaderboard" className="club-text-link">
+            Club rankings →
+          </Link>
+          <Link
+            href="/member/benefits#member-rewards"
+            className="club-text-link"
+          >
+            View your rewards →
+          </Link>
+        </div>
+      </section>
       {!error && (
         <div className="grid grid-cols-2 gap-3">
           <div className="oura-card p-3">

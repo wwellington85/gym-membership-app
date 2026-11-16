@@ -86,7 +86,9 @@ export default async function AccessPage({
         ))}
       </section>
       <section className="space-y-3">
-        <h2 className="font-semibold">Explore passes</h2>
+        <h2 className="font-semibold" id="explore-passes">
+          Explore passes
+        </h2>
         {catalogue
           .filter(
             (p) => p.grants_access && p.price > 0 && p.duration_days < 3650,

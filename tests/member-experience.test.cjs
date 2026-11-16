@@ -57,6 +57,14 @@ shared["@/components/rewards/reward-icon"] = load(
   shared,
 );
 shared["@/lib/rewards/gifts"] = giftRules;
+shared["@/lib/member/home-updates"] = {
+  loadHomeUpdates: async () => ({ booking: null, reward: null, error: false }),
+};
+shared["@/lib/bookings/catalogue"] = load("lib/bookings/catalogue.ts");
+shared["@/components/member/home-updates"] = load(
+  "components/member/home-updates.tsx",
+  shared,
+);
 shared["@/lib/rewards/server"] = {
   loadMemberGifts: async () => ({ gifts: [], error: false }),
 };
@@ -195,18 +203,48 @@ async function renderPage(
 }
 const home = "app/(member)/member/page.tsx";
 const benefits = "app/(member)/member/benefits/page.tsx";
+test("Home prioritises menus and bookings before compact progress and eligible pass offers", async () => {
+  const html = await renderPage(home);
+  assert.ok(
+    html.indexOf("Membership summary") < html.indexOf("Restaurant menus"),
+  );
+  assert.ok(
+    html.indexOf("Restaurant menus") < html.indexOf("Book an experience"),
+  );
+  assert.ok(
+    html.indexOf("Book an experience") < html.indexOf("Your Club progress"),
+  );
+  assert.ok(
+    html.indexOf("Your Club progress") < html.indexOf("Explore Club passes"),
+  );
+  assert.match(html, /Private beach dinner for two/);
+  assert.match(html, /href="\/member\/dining"/);
+  assert.doesNotMatch(
+    html,
+    /Make a day of it|Enjoy Travellers|Swipe to compare plans/,
+  );
+});
 test("free members see earned points and upgrades without zero-rate discounts or unusable benefit instructions", async () => {
   for (const page of [home, benefits]) {
     const html = await renderPage(page);
     assert.match(html, /99/);
     assert.match(html, /points earned|Points earned/);
-    assert.match(html, /plan=club_weekly/);
-    assert.match(html, /plan=club_monthly_95/);
+    if (page === home) {
+      assert.match(html, /Explore Club passes/);
+      assert.match(html, /href="\/member\/access#explore-passes"/);
+      assert.doesNotMatch(html, /Swipe to compare plans/);
+    } else {
+      assert.match(html, /plan=club_weekly/);
+      assert.match(html, /plan=club_monthly_95/);
+    }
     assert.doesNotMatch(
       html,
       /(?:>| )0%|today 0%|Your discounts today|Discount history|Approved local perk|How to use a benefit|Jamaica time/,
     );
-    assert.match(html, /Selected rewards|selected rewards/);
+    assert.match(
+      html,
+      page === home ? /View your rewards/ : /Selected rewards|selected rewards/,
+    );
     assert.doesNotMatch(
       html,
       /30 points|automatically unlock a gift.*Use this reward/,

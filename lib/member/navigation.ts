@@ -60,6 +60,8 @@ export function memberPageParent(
     return { href: "/member", label: "Back to Home" };
   if (pathname === "/member/upgrade" || pathname === "/member/checkout")
     return { href: "/member/access", label: "Back to access" };
+  if (pathname === "/member/dining" || pathname === "/member/facilities")
+    return { href: "/member", label: "Back to Home" };
   if (pathname.startsWith("/member/rewards"))
     return {
       href: "/member/benefits#member-rewards",
