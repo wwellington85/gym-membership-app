@@ -847,15 +847,26 @@ a[class~="rounded"][class~="border"] {
 }
 
 /* Club Home: photography brings the property into the member experience. */
-.club-home-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 20px; min-height: 190px; display: flex; align-items: flex-end; background: #1d3f56; }
+.club-home-hero { position: relative; isolation: isolate; overflow: hidden; border-radius: 20px; min-height: 150px; display: flex; align-items: flex-end; background: #1d3f56; }
 .club-home-hero > img { object-fit: cover; object-position: 50% 48%; }
 .club-home-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(transparent 10%, #102838cf); z-index: -1; }
 .club-home-hero > img { z-index: -2; }
 .club-home-hero-copy { padding: 22px; color: #fff; }
 .club-home-hero-copy .club-eyebrow { color: #f4e4ba; }
-.club-home-hero-copy h1 { margin: 7px 0; font-size: clamp(24px, 5.5vw, 32px); line-height: 1.15; }
+.club-home-hero-copy h1 { margin: 7px 0; font-size: clamp(24px, 5.5vw, 32px); font-weight: 500; letter-spacing: -.035em; line-height: 1.15; }
 .club-home-hero-copy > p:last-child { font-size: 14px; color: #ffffffdf; }
-.club-home-membership { display: grid; gap: 12px; padding: 18px; border: 1px solid hsl(var(--border)); border-radius: 18px; }
+.club-home-membership { display: grid; gap: 10px; padding: 16px; border: 1px solid hsl(var(--border)); border-radius: 18px; }
+.club-home-shortcuts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-block: 1px solid hsl(var(--border)); }
+.club-home-shortcuts > a { display: grid; grid-template-columns: auto minmax(0,1fr) auto; align-items: center; gap: 8px; min-width: 0; min-height: 56px; padding: 12px 8px 12px 0; color: hsl(var(--primary)); font-size: 13px; font-weight: 500; }
+.club-home-shortcuts > a + a { border-left: 1px solid hsl(var(--border)); padding-left: 12px; }
+.club-home-shortcuts > a:hover { background: hsl(var(--muted)); }
+.club-home-update { display: block; border-left: 2px solid #b9a472; padding: 4px 0 4px 14px; }
+.club-home-update > span + span { margin-top: 4px; }
+.club-home-progress { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; padding-block: 12px; border-block: 1px solid hsl(var(--border)); }
+.club-home-pass-offer { display: grid; gap: 12px; border-top: 1px solid hsl(var(--border)); padding-top: 18px; }
+.club-menu-categories { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 4px 12px; border-bottom: 1px solid hsl(var(--border)); }
+.club-menu-categories a { min-height: 40px; display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid hsl(var(--border)); border-radius: 999px; color: hsl(var(--primary)); font-size: 12px; }
+.club-menu-categories a:hover { background: hsl(var(--muted)); }
 .club-inclusions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 10px; }
 .club-inclusions li { padding: 7px 11px; background: #eef4f1; color: #31574d; border-radius: 10px; font-size: 13px; }
 .club-home-visits { scroll-margin-top: 30px; }

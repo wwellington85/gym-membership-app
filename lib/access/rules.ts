@@ -85,6 +85,28 @@ export function membershipCardPass(passes: AccessPass[], now = new Date()) {
   );
 }
 
+export function availableUpgradePlans(
+  catalogue: AccessPlan[],
+  passes: AccessPass[],
+  active = true,
+  now = new Date(),
+) {
+  if (!active) return [];
+  const codes = new Set(
+    passes
+      .filter((p) => passIsActive(p, now) || upcomingPass([p], now) !== null)
+      .map((p) => p.plan_snapshot.code),
+  );
+  if (codes.has("club_monthly_95")) return [];
+  return catalogue.filter(
+    (p) =>
+      ["club_weekly", "club_monthly_95"].includes(p.code) &&
+      p.grants_access &&
+      p.price > 0 &&
+      !codes.has(p.code),
+  );
+}
+
 export function purchasePeriod(args: {
   start: string;
   duration: number;

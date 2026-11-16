@@ -145,6 +145,14 @@ test("Home renders the current pass benefits instead of the free catalogue rates
       default: (props) =>
         React.createElement("img", { src: props.src, alt: props.alt }),
     },
+    "@/lib/member/home-updates": {
+      loadHomeUpdates: async () => ({
+        booking: null,
+        reward: null,
+        error: false,
+      }),
+    },
+    "@/components/member/home-updates": { HomeUpdates: () => null },
     "@/lib/member/leaderboard": {
       getMemberGymSummary: async () => ({
         allTimeCheckins: 33,
@@ -181,7 +189,7 @@ test("Home renders the current pass benefits instead of the free catalogue rates
   assert.doesNotMatch(markup, /Digital membership card|club-membership-card/);
   const html = markup.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
   assert.match(html, /20% off/);
-  assert.match(html, /15% off/);
+  assert.doesNotMatch(html, /Spa: 15%/);
   assert.doesNotMatch(html, /10% off/);
 });
 

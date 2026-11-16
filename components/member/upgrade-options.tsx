@@ -2,8 +2,7 @@ import Link from "next/link";
 import { effectiveBenefits } from "@/lib/access/benefits";
 import {
   facilities,
-  passIsActive,
-  upcomingPass,
+  availableUpgradePlans,
   type AccessPass,
   type AccessPlan,
 } from "@/lib/access/rules";
@@ -22,23 +21,7 @@ export function UpgradeOptions({
   localRewards?: boolean;
   passes?: AccessPass[];
 }) {
-  const now = new Date();
-  const currentCodes = new Set(
-    passes
-      .filter(
-        (pass) => passIsActive(pass, now) || upcomingPass([pass], now) !== null,
-      )
-      .map((pass) => pass.plan_snapshot.code),
-  );
-  // Current or scheduled monthly access already covers the highest Club plan.
-  if (!active || currentCodes.has("club_monthly_95")) return null;
-  const plans = catalogue.filter(
-    (p) =>
-      ["club_weekly", "club_monthly_95"].includes(p.code) &&
-      p.grants_access &&
-      p.price > 0 &&
-      !currentCodes.has(p.code),
-  );
+  const plans = availableUpgradePlans(catalogue, passes, active);
   if (!active || !plans.length) return null;
   return (
     <section className="space-y-3" aria-label="Upgrade your membership">
